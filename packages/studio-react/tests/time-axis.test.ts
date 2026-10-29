@@ -69,6 +69,11 @@ describe('computeGridLines', () => {
     const six8 = { numerator: 6, denominator: 8 } as const;
     const axis = TimeAxis.fromPxPerBeat(120);
     const lines = computeGridLines(axis, 1000, six8, 10);
-    expect(lines.filter((l) => l.level === 'bar').map((l) => l.tick).slice(0, 2)).toEqual([0, ticksPerBar(six8)]);
+    expect(
+      lines
+        .filter((l) => l.level === 'bar')
+        .map((l) => l.tick)
+        .slice(0, 2),
+    ).toEqual([0, ticksPerBar(six8)]);
   });
 });

@@ -44,7 +44,11 @@ export function Studio({ className, style, config, platform }: StudioProps) {
         if (cancelled) return;
         setBoot({ status: 'ready', session });
       } catch (error) {
-        if (!cancelled) setBoot({ status: 'error', message: error instanceof Error ? error.message : String(error) });
+        if (!cancelled)
+          setBoot({
+            status: 'error',
+            message: error instanceof Error ? error.message : String(error),
+          });
       }
     })();
     return () => {
@@ -55,7 +59,10 @@ export function Studio({ className, style, config, platform }: StudioProps) {
 
   return (
     <div
-      className={clsx('studio-root relative flex h-full min-h-[480px] w-full flex-col overflow-hidden select-none', className)}
+      className={clsx(
+        'studio-root relative flex h-full min-h-[480px] w-full flex-col overflow-hidden select-none',
+        className,
+      )}
       style={style}
       data-testid="studio-root"
       data-studio-status={boot.status}
@@ -67,7 +74,10 @@ export function Studio({ className, style, config, platform }: StudioProps) {
           </StudioPortalProvider>
         </StudioSessionProvider>
       ) : (
-        <StartupScreen status={boot.status} message={boot.status === 'error' ? boot.message : undefined} />
+        <StartupScreen
+          status={boot.status}
+          message={boot.status === 'error' ? boot.message : undefined}
+        />
       )}
       <div ref={setPortalContainer} className="studio-portal-root" />
     </div>

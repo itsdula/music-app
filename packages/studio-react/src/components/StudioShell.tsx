@@ -41,7 +41,11 @@ export function StudioShell() {
       <div className="flex min-h-0 flex-1">
         {panels.browserOpen && (
           <>
-            <aside id="studio-browser" className="flex shrink-0 flex-col border-r border-line bg-surface-1" style={{ width: panels.browserWidth }}>
+            <aside
+              id="studio-browser"
+              className="flex shrink-0 flex-col border-r border-line bg-surface-1"
+              style={{ width: panels.browserWidth }}
+            >
               <BrowserPanel />
             </aside>
             <ResizeHandle
@@ -71,7 +75,11 @@ export function StudioShell() {
                 defaultSize={300}
                 onSizeChange={(bottomHeight) => setPanels({ bottomHeight })}
               />
-              <section id="studio-bottom-panel" className="flex shrink-0 flex-col border-t border-line bg-surface-1" style={{ height: panels.bottomHeight }}>
+              <section
+                id="studio-bottom-panel"
+                className="flex shrink-0 flex-col border-t border-line bg-surface-1"
+                style={{ height: panels.bottomHeight }}
+              >
                 <BottomPanel />
               </section>
             </>

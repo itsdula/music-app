@@ -10,7 +10,12 @@ import { MappingsTable } from './MappingsTable';
 
 type View = 'hardware' | 'mappings' | 'diagnostics' | 'compatibility';
 
-const SUPPORT_TONE = { supported: 'success', 'software-equivalent': 'accent', experimental: 'warning', unsupported: 'neutral' } as const;
+const SUPPORT_TONE = {
+  supported: 'success',
+  'software-equivalent': 'accent',
+  experimental: 'warning',
+  unsupported: 'neutral',
+} as const;
 
 export function ControllerPanel() {
   const session = useSession();
@@ -22,13 +27,21 @@ export function ControllerPanel() {
   const [view, setView] = useState<View>('hardware');
   const [selected, setSelected] = useState<string | null>('knob.K1');
   const [bank, setBank] = useState<'A' | 'B'>('A');
-  const mpk = devices.find((d) => d.type === 'input' && d.profileId === MPK_MINI_MK3_PROFILE_ID && d.state === 'connected');
+  const mpk = devices.find(
+    (d) => d.type === 'input' && d.profileId === MPK_MINI_MK3_PROFILE_ID && d.state === 'connected',
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="controller-panel">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line px-3 text-[12px]">
         <span className="font-semibold">AKAI Professional MPK Mini MK3</span>
-        {mpk ? <Badge tone="success">Connected · {mpk.displayName}</Badge> : <Badge tone="neutral">{status === 'unsupported' ? 'Web MIDI unavailable' : 'Not connected'}</Badge>}
+        {mpk ? (
+          <Badge tone="success">Connected · {mpk.displayName}</Badge>
+        ) : (
+          <Badge tone="neutral">
+            {status === 'unsupported' ? 'Web MIDI unavailable' : 'Not connected'}
+          </Badge>
+        )}
         {status !== 'granted' && status !== 'unsupported' && (
           <Button size="sm" variant="secondary" onClick={() => void session.midi.requestAccess()}>
             Connect MIDI
@@ -39,7 +52,9 @@ export function ControllerPanel() {
           label="Velocity curve"
           size="sm"
           value={velocityCurve}
-          onValueChange={(v: string) => void session.midi.updateSettings({ velocityCurve: v as typeof velocityCurve })}
+          onValueChange={(v: string) =>
+            void session.midi.updateSettings({ velocityCurve: v as typeof velocityCurve })
+          }
           options={[
             { value: 'linear', label: 'Velocity: linear' },
             { value: 'soft', label: 'Velocity: soft' },
@@ -51,7 +66,9 @@ export function ControllerPanel() {
           label="Quantize MIDI recording"
           size="sm"
           value={recordQuantize ?? 'off'}
-          onValueChange={(v: string) => void session.midi.updateSettings({ recordQuantize: v === 'off' ? null : (v as '1/16') })}
+          onValueChange={(v: string) =>
+            void session.midi.updateSettings({ recordQuantize: v === 'off' ? null : (v as '1/16') })
+          }
           options={[
             { value: 'off', label: 'Record: no quantize' },
             { value: '1/8', label: 'Record: quantize 1/8' },
@@ -74,23 +91,36 @@ export function ControllerPanel() {
           ]}
         />
       </div>
-      {lastError && <p className="border-b border-warning/30 bg-warning/10 px-3 py-1 text-[11px]">{lastError}</p>}
+      {lastError && (
+        <p className="border-b border-warning/30 bg-warning/10 px-3 py-1 text-[11px]">
+          {lastError}
+        </p>
+      )}
       {view === 'hardware' && (
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 items-center justify-center p-3">
             <HardwareView selectedLayoutId={selected} onSelect={setSelected} padBank={bank} />
           </div>
           <aside className="w-80 shrink-0 overflow-y-auto border-l border-line bg-surface-2/40">
-            {selected ? <ControlInspector layoutId={selected} bank={bank} onBankChange={setBank} /> : <p className="p-3 text-[12px] text-text-muted">Select a control on the device.</p>}
+            {selected ? (
+              <ControlInspector layoutId={selected} bank={bank} onBankChange={setBank} />
+            ) : (
+              <p className="p-3 text-[12px] text-text-muted">Select a control on the device.</p>
+            )}
           </aside>
         </div>
       )}
       {view === 'mappings' && <MappingsTable />}
       {view === 'diagnostics' && <DiagnosticsLog />}
       {view === 'compatibility' && (
-        <div className="min-h-0 flex-1 overflow-auto p-3 text-[12px]" data-testid="mpk-compatibility">
+        <div
+          className="min-h-0 flex-1 overflow-auto p-3 text-[12px]"
+          data-testid="mpk-compatibility"
+        >
           <p className="mb-2 text-text-muted">
-            What Studio does with this controller and how well each item is evidenced. Nothing below has been tested on a physical unit yet; see docs/midi-integration.md for the hardware test protocol.
+            What Studio does with this controller and how well each item is evidenced. Nothing below
+            has been tested on a physical unit yet; see docs/midi-integration.md for the hardware
+            test protocol.
           </p>
           <table className="w-full text-left">
             <thead className="text-[10px] tracking-wide text-text-faint uppercase">

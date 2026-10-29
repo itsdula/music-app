@@ -19,7 +19,10 @@ export class BrowserLogger implements Logger {
   ) {}
 
   log(level: LogLevel, message: string, data?: unknown): void {
-    const record: LogRecord = data === undefined ? { level, message, timeMs: performance.now() } : { level, message, data, timeMs: performance.now() };
+    const record: LogRecord =
+      data === undefined
+        ? { level, message, timeMs: performance.now() }
+        : { level, message, data, timeMs: performance.now() };
     this.records.push(record);
     if (this.records.length > this.capacity) this.records.shift();
     if (ORDER[level] < ORDER[this.minLevel]) return;

@@ -1,4 +1,11 @@
-import { asMappingId, asTrackId, createEmptyProject, createMidiMapping, asProjectId, type MidiMapping } from '@studio/domain';
+import {
+  asMappingId,
+  asTrackId,
+  createEmptyProject,
+  createMidiMapping,
+  asProjectId,
+  type MidiMapping,
+} from '@studio/domain';
 import { MPK_MINI_MK3_CONTROLS, MPK_MINI_MK3_PROFILE_ID } from '@studio/midi-akai-mpk-mini-mk3';
 import { describe, expect, it } from 'vitest';
 import {
@@ -21,9 +28,15 @@ const cc = (controller: number, id: string, enabled = true): MidiMapping => ({
 
 describe('mapping helpers', () => {
   it('describes sources in plain language', () => {
-    expect(describeSource({ kind: 'cc', channel: 'any', controller: 70, mode: 'absolute' })).toBe('CC 70 · any ch');
-    expect(describeSource({ kind: 'note', channel: 10, note: 36, behavior: 'trigger' })).toBe('Note 36 · ch 10 · trigger');
-    expect(describeSource({ kind: 'cc', channel: 1, controller: 20, mode: 'twosComplement' })).toContain('relative');
+    expect(describeSource({ kind: 'cc', channel: 'any', controller: 70, mode: 'absolute' })).toBe(
+      'CC 70 · any ch',
+    );
+    expect(describeSource({ kind: 'note', channel: 10, note: 36, behavior: 'trigger' })).toBe(
+      'Note 36 · ch 10 · trigger',
+    );
+    expect(
+      describeSource({ kind: 'cc', channel: 1, controller: 20, mode: 'twosComplement' }),
+    ).toContain('relative');
   });
 
   it('flags enabled mappings that share a control', () => {
@@ -40,7 +53,22 @@ describe('mapping helpers', () => {
   it('offers selection-following, track and action targets with stable keys', () => {
     const base = createEmptyProject({ id: asProjectId('p'), now: '2026-01-01T00:00:00.000Z' });
     const trackId = asTrackId('t1');
-    const project = { ...base, trackOrder: [trackId], tracks: { [trackId]: { id: trackId, kind: 'audio' as const, name: 'Vox', color: '#8B7CF6', mixer: { gainDb: 0, pan: 0, mute: false, solo: false }, armed: false, monitor: 'off' as const, effects: [] } } };
+    const project = {
+      ...base,
+      trackOrder: [trackId],
+      tracks: {
+        [trackId]: {
+          id: trackId,
+          kind: 'audio' as const,
+          name: 'Vox',
+          color: '#8B7CF6',
+          mixer: { gainDb: 0, pan: 0, mute: false, solo: false },
+          armed: false,
+          monitor: 'off' as const,
+          effects: [],
+        },
+      },
+    };
     const options = targetOptions(project);
     const keys = options.map((o) => o.key);
     expect(keys).toContain('sel:gain');

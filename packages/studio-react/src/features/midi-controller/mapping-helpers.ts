@@ -29,7 +29,10 @@ export function describeSource(source: MidiControlSource): string {
   }
 }
 
-export function describeDevice(device: MidiDeviceSelector | null, profileNames: Readonly<Record<string, string>>): string {
+export function describeDevice(
+  device: MidiDeviceSelector | null,
+  profileNames: Readonly<Record<string, string>>,
+): string {
   if (!device) return 'Any device';
   if (device.profileId) return profileNames[device.profileId] ?? device.profileId;
   return device.portName ?? 'Any device';
@@ -53,8 +56,14 @@ const ACTION_LABELS: Record<StudioActionId, string> = {
   'track.toggleSoloSelected': 'Solo selected track',
 };
 
-export function describeTarget(project: Project, target: MappingTarget, selectedTrackId: TrackId | null): string {
-  return target.kind === 'action' ? ACTION_LABELS[target.action] : describeAddress(project, target.address, selectedTrackId);
+export function describeTarget(
+  project: Project,
+  target: MappingTarget,
+  selectedTrackId: TrackId | null,
+): string {
+  return target.kind === 'action'
+    ? ACTION_LABELS[target.action]
+    : describeAddress(project, target.address, selectedTrackId);
 }
 
 export interface TargetOption {
@@ -69,25 +78,80 @@ const param = (address: ParameterAddress): MappingTarget => ({ kind: 'parameter'
 /** Mapping targets offered in the inspector (selection-following targets first). */
 export function targetOptions(project: Project): TargetOption[] {
   const options: TargetOption[] = [
-    { key: 'sel:gain', group: 'Selected track', label: 'Volume', target: param({ scope: 'selectedTrack', param: 'gainDb' }) },
-    { key: 'sel:pan', group: 'Selected track', label: 'Pan', target: param({ scope: 'selectedTrack', param: 'pan' }) },
-    { key: 'sel:mute', group: 'Selected track', label: 'Mute', target: param({ scope: 'selectedTrack', param: 'mute' }) },
-    { key: 'sel:solo', group: 'Selected track', label: 'Solo', target: param({ scope: 'selectedTrack', param: 'solo' }) },
-    { key: 'sel:arm', group: 'Selected track', label: 'Arm', target: param({ scope: 'selectedTrack', param: 'arm' }) },
+    {
+      key: 'sel:gain',
+      group: 'Selected track',
+      label: 'Volume',
+      target: param({ scope: 'selectedTrack', param: 'gainDb' }),
+    },
+    {
+      key: 'sel:pan',
+      group: 'Selected track',
+      label: 'Pan',
+      target: param({ scope: 'selectedTrack', param: 'pan' }),
+    },
+    {
+      key: 'sel:mute',
+      group: 'Selected track',
+      label: 'Mute',
+      target: param({ scope: 'selectedTrack', param: 'mute' }),
+    },
+    {
+      key: 'sel:solo',
+      group: 'Selected track',
+      label: 'Solo',
+      target: param({ scope: 'selectedTrack', param: 'solo' }),
+    },
+    {
+      key: 'sel:arm',
+      group: 'Selected track',
+      label: 'Arm',
+      target: param({ scope: 'selectedTrack', param: 'arm' }),
+    },
   ];
   for (const spec of INSTRUMENT_PARAM_SPECS.synth) {
-    options.push({ key: `inst:${spec.id}`, group: 'Selected instrument', label: spec.label, target: param({ scope: 'selectedInstrument', param: spec.id }) });
+    options.push({
+      key: `inst:${spec.id}`,
+      group: 'Selected instrument',
+      label: spec.label,
+      target: param({ scope: 'selectedInstrument', param: spec.id }),
+    });
   }
-  options.push({ key: 'master:gain', group: 'Master', label: 'Master volume', target: param({ scope: 'master', param: 'gainDb' }) });
-  options.push({ key: 'transport:bpm', group: 'Transport', label: 'Tempo', target: param({ scope: 'transport', param: 'bpm' }) });
+  options.push({
+    key: 'master:gain',
+    group: 'Master',
+    label: 'Master volume',
+    target: param({ scope: 'master', param: 'gainDb' }),
+  });
+  options.push({
+    key: 'transport:bpm',
+    group: 'Transport',
+    label: 'Tempo',
+    target: param({ scope: 'transport', param: 'bpm' }),
+  });
   for (const id of project.trackOrder) {
     const track = project.tracks[id];
     if (!track) continue;
-    options.push({ key: `track:${id}:gain`, group: `Track · ${track.name}`, label: `${track.name} volume`, target: param({ scope: 'track', trackId: id, param: 'gainDb' }) });
-    options.push({ key: `track:${id}:pan`, group: `Track · ${track.name}`, label: `${track.name} pan`, target: param({ scope: 'track', trackId: id, param: 'pan' }) });
+    options.push({
+      key: `track:${id}:gain`,
+      group: `Track · ${track.name}`,
+      label: `${track.name} volume`,
+      target: param({ scope: 'track', trackId: id, param: 'gainDb' }),
+    });
+    options.push({
+      key: `track:${id}:pan`,
+      group: `Track · ${track.name}`,
+      label: `${track.name} pan`,
+      target: param({ scope: 'track', trackId: id, param: 'pan' }),
+    });
   }
   for (const [action, label] of Object.entries(ACTION_LABELS) as Array<[StudioActionId, string]>) {
-    options.push({ key: `action:${action}`, group: 'Actions', label, target: { kind: 'action', action } });
+    options.push({
+      key: `action:${action}`,
+      group: 'Actions',
+      label,
+      target: { kind: 'action', action },
+    });
   }
   return options;
 }
@@ -114,7 +178,12 @@ export function targetKey(target: MappingTarget): string {
 }
 
 export function sourceKey(source: MidiControlSource, device: MidiDeviceSelector | null): string {
-  return JSON.stringify([source.kind, 'channel' in source ? source.channel : 'any', source.kind === 'cc' ? source.controller : source.kind === 'note' ? source.note : 0, device?.profileId ?? device?.portName ?? '*']);
+  return JSON.stringify([
+    source.kind,
+    'channel' in source ? source.channel : 'any',
+    source.kind === 'cc' ? source.controller : source.kind === 'note' ? source.note : 0,
+    device?.profileId ?? device?.portName ?? '*',
+  ]);
 }
 
 /** Enabled mappings sharing a source with another enabled mapping. */
@@ -131,7 +200,11 @@ export function conflictingMappingIds(mappings: readonly MidiMapping[]): Readonl
 }
 
 /** Mappings that respond to a physical control's default message. */
-export function mappingsForControl(mappings: readonly MidiMapping[], control: DeviceControl, profileId: string): MidiMapping[] {
+export function mappingsForControl(
+  mappings: readonly MidiMapping[],
+  control: DeviceControl,
+  profileId: string,
+): MidiMapping[] {
   const src = control.defaultSource;
   if (!src) return [];
   return mappings.filter((m) => {

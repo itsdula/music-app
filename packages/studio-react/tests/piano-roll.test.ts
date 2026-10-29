@@ -1,11 +1,28 @@
 import { asClipId, asNoteId, asTrackId, createMidiClip, type MidiNote } from '@studio/domain';
 import { describe, expect, it } from 'vitest';
 import { TimeAxis } from '../src/canvas/time-axis';
-import { contentToTimeline, pitchToY, timelineToContent, yToPitch } from '../src/features/piano-roll/geometry';
+import {
+  contentToTimeline,
+  pitchToY,
+  timelineToContent,
+  yToPitch,
+} from '../src/features/piano-roll/geometry';
 import { hitTestNote, notesInRect } from '../src/features/piano-roll/hit-test';
-import { moveNotes, nudgeNotes, resizeNoteEnds, resizeNoteStarts, scaleVelocities } from '../src/features/piano-roll/note-edits';
+import {
+  moveNotes,
+  nudgeNotes,
+  resizeNoteEnds,
+  resizeNoteStarts,
+  scaleVelocities,
+} from '../src/features/piano-roll/note-edits';
 
-const note = (id: string, startTick: number, pitch: number, durationTicks = 480, velocity = 100): MidiNote => ({
+const note = (
+  id: string,
+  startTick: number,
+  pitch: number,
+  durationTicks = 480,
+  velocity = 100,
+): MidiNote => ({
   id: asNoteId(id),
   startTick,
   pitch,
@@ -47,14 +64,22 @@ describe('hit testing', () => {
   it('finds note bodies and edges', () => {
     const y = pitchToY(64, pitch) + 5;
     const x0 = time.tickToX(contentToTimeline(clip, 480));
-    expect(hitTestNote(clip, time, pitch, x0 + 20, y)).toMatchObject({ note: { id: 'b' }, region: 'body' });
+    expect(hitTestNote(clip, time, pitch, x0 + 20, y)).toMatchObject({
+      note: { id: 'b' },
+      region: 'body',
+    });
     expect(hitTestNote(clip, time, pitch, x0 + 47, y)?.region).toBe('end-edge');
     expect(hitTestNote(clip, time, pitch, x0 + 1, y)?.region).toBe('start-edge');
     expect(hitTestNote(clip, time, pitch, x0 + 20, y + 10)).toBeNull();
   });
 
   it('selects notes intersecting a marquee', () => {
-    const ids = notesInRect(clip, time, pitch, { x0: 0, y0: 0, x1: time.tickToX(contentToTimeline(clip, 500)), y1: 400 });
+    const ids = notesInRect(clip, time, pitch, {
+      x0: 0,
+      y0: 0,
+      x1: time.tickToX(contentToTimeline(clip, 500)),
+      y1: 400,
+    });
     expect(ids.sort()).toEqual(['a', 'b']);
   });
 });
@@ -82,24 +107,36 @@ describe('note edits', () => {
   });
 
   it('resizes ends with snapping and minimum length', () => {
-    const patches = resizeNoteEnds(clip, new Set([asNoteId('a')]), asNoteId('a'), 100, { gridTicks: 240 });
+    const patches = resizeNoteEnds(clip, new Set([asNoteId('a')]), asNoteId('a'), 100, {
+      gridTicks: 240,
+    });
     expect(patches).toEqual([{ id: 'a', durationTicks: 480 }]);
-    const shrink = resizeNoteEnds(clip, new Set([asNoteId('a')]), asNoteId('a'), -2000, { gridTicks: 240 });
+    const shrink = resizeNoteEnds(clip, new Set([asNoteId('a')]), asNoteId('a'), -2000, {
+      gridTicks: 240,
+    });
     expect(shrink[0]!.durationTicks).toBe(240);
   });
 
   it('resizes starts keeping ends fixed', () => {
-    const patches = resizeNoteStarts(clip, new Set([asNoteId('c')]), asNoteId('c'), 250, { gridTicks: 240 });
+    const patches = resizeNoteStarts(clip, new Set([asNoteId('c')]), asNoteId('c'), 250, {
+      gridTicks: 240,
+    });
     expect(patches).toEqual([{ id: 'c', startTick: 1200, durationTicks: 720 }]);
   });
 
   it('scales velocities within MIDI range', () => {
-    expect(scaleVelocities(clip, new Set([asNoteId('a')]), 50)).toEqual([{ id: 'a', velocity: 127 }]);
-    expect(scaleVelocities(clip, new Set([asNoteId('a')]), -500)).toEqual([{ id: 'a', velocity: 1 }]);
+    expect(scaleVelocities(clip, new Set([asNoteId('a')]), 50)).toEqual([
+      { id: 'a', velocity: 127 },
+    ]);
+    expect(scaleVelocities(clip, new Set([asNoteId('a')]), -500)).toEqual([
+      { id: 'a', velocity: 1 },
+    ]);
   });
 
   it('nudges selected notes and returns nothing when blocked', () => {
     expect(nudgeNotes(clip, new Set([asNoteId('a')]), -240, 0)).toEqual([]);
-    expect(nudgeNotes(clip, new Set([asNoteId('b')]), 240, -12)).toEqual([{ id: 'b', startTick: 720, pitch: 52 }]);
+    expect(nudgeNotes(clip, new Set([asNoteId('b')]), 240, -12)).toEqual([
+      { id: 'b', startTick: 720, pitch: 52 },
+    ]);
   });
 });

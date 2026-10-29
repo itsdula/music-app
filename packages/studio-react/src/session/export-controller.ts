@@ -23,16 +23,24 @@ export interface ExportResult {
   readonly saved: boolean;
 }
 
-export function exportRangeTicks(project: Project, range: ExportRange): { startTick: number; endTick: number } | null {
+export function exportRangeTicks(
+  project: Project,
+  range: ExportRange,
+): { startTick: number; endTick: number } | null {
   if (range === 'loop') {
-    return project.loop.endTick > project.loop.startTick ? { startTick: project.loop.startTick, endTick: project.loop.endTick } : null;
+    return project.loop.endTick > project.loop.startTick
+      ? { startTick: project.loop.startTick, endTick: project.loop.endTick }
+      : null;
   }
   const end = Math.ceil(arrangementEndTick(project));
   return end > 0 ? { startTick: 0, endTick: end } : null;
 }
 
 export function safeFileName(name: string): string {
-  const cleaned = name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const cleaned = name
+    .replace(/[\\/:*?"<>|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return cleaned.length > 0 ? cleaned.slice(0, 80) : 'Studio Export';
 }
 
@@ -48,7 +56,12 @@ export class ExportController {
     hooks: { signal?: AbortSignal; onProgress?: (p: RenderProgress) => void; save?: boolean } = {},
   ): Promise<ExportResult> {
     const range = exportRangeTicks(project, options.range);
-    if (!range) throw new Error(options.range === 'loop' ? 'The loop region is empty.' : 'The arrangement is empty — add a clip first.');
+    if (!range)
+      throw new Error(
+        options.range === 'loop'
+          ? 'The loop region is empty.'
+          : 'The arrangement is empty — add a clip first.',
+      );
     const rendered = await this.engine.render(
       {
         startTick: range.startTick,
@@ -58,12 +71,32 @@ export class ExportController {
         tailSeconds: options.includeTail ? 'auto' : 0,
         includeMetronome: false,
       },
-      { ...(hooks.signal ? { signal: hooks.signal } : {}), ...(hooks.onProgress ? { onProgress: hooks.onProgress } : {}) },
+      {
+        ...(hooks.signal ? { signal: hooks.signal } : {}),
+        ...(hooks.onProgress ? { onProgress: hooks.onProgress } : {}),
+      },
     );
-    const bytes = encodeWav(rendered.pcm, options.bitDepth === 32 ? { bitDepth: 32 } : { bitDepth: options.bitDepth, dither: 'tpdf', seed: 1 });
+    const bytes = encodeWav(
+      rendered.pcm,
+      options.bitDepth === 32
+        ? { bitDepth: 32 }
+        : { bitDepth: options.bitDepth, dither: 'tpdf', seed: 1 },
+    );
     const fileName = `${safeFileName(project.name)}.wav`;
     const frames = rendered.pcm.channels[0]?.length ?? 0;
-    const saved = hooks.save === false ? false : await this.fileDialogs.saveFile(bytes, { suggestedName: fileName, mimeType: 'audio/wav' });
-    return { bytes, fileName, durationSeconds: frames / rendered.pcm.sampleRate, peak: rendered.peak, saved };
+    const saved =
+      hooks.save === false
+        ? false
+        : await this.fileDialogs.saveFile(bytes, {
+            suggestedName: fileName,
+            mimeType: 'audio/wav',
+          });
+    return {
+      bytes,
+      fileName,
+      durationSeconds: frames / rendered.pcm.sampleRate,
+      peak: rendered.peak,
+      saved,
+    };
   }
 }

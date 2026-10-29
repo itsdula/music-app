@@ -3,7 +3,9 @@ import { sineWav, wavStats } from '../audio-fixtures';
 import { openStudio, readDownload, resetStorage } from '../helpers';
 
 async function ready(page: Page): Promise<void> {
-  await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+  await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+    timeout: 30_000,
+  });
 }
 
 async function importWav(page: Page, name: string, wav: Buffer): Promise<void> {
@@ -21,7 +23,9 @@ async function renameProject(page: Page, name: string): Promise<void> {
 }
 
 async function waitForSave(page: Page): Promise<void> {
-  await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', { timeout: 10_000 });
+  await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', {
+    timeout: 10_000,
+  });
 }
 
 async function exportWav(page: Page): Promise<Uint8Array> {
@@ -80,7 +84,13 @@ test.describe('Phases 3–4: audio import, persistence, bundles and effects', ()
     await page.getByTestId('project-menu').click();
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('menuitem', { name: 'Import project bundle…' }).click();
-    await (await chooser).setFiles({ name: 'bundle-song.studio', mimeType: 'application/zip', buffer: Buffer.from(bundle) });
+    await (
+      await chooser
+    ).setFiles({
+      name: 'bundle-song.studio',
+      mimeType: 'application/zip',
+      buffer: Buffer.from(bundle),
+    });
     await expect(page.getByTestId('project-name')).toHaveText('Bundle Song');
     await expect(page.getByTestId('track-header')).toHaveCount(2);
     expect(wavStats(await exportWav(page)).peak).toBeGreaterThan(0.2);

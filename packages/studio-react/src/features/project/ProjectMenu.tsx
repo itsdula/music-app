@@ -11,7 +11,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@studio/ui';
-import { AudioWaveform, ChevronDown, FilePlus2, FolderOpen, PackageOpen, Save, Sparkles } from 'lucide-react';
+import {
+  AudioWaveform,
+  ChevronDown,
+  FilePlus2,
+  FolderOpen,
+  PackageOpen,
+  Save,
+  Sparkles,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useProjectState, useSession } from '../../session/context';
 
@@ -22,7 +30,12 @@ export function ProjectMenu() {
   const [editing, setEditing] = useState(false);
 
   const report = (error: unknown) =>
-    session.engineStore.setState({ lastError: { code: 'internal', message: error instanceof Error ? error.message : String(error) } });
+    session.engineStore.setState({
+      lastError: {
+        code: 'internal',
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
 
   return (
     <div className="flex items-center gap-1">
@@ -41,10 +54,16 @@ export function ProjectMenu() {
           <ChevronDown className="size-3.5 text-text-muted" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56">
-          <DropdownMenuItem icon={<FilePlus2 />} onSelect={() => void session.projects.newProject('empty').catch(report)}>
+          <DropdownMenuItem
+            icon={<FilePlus2 />}
+            onSelect={() => void session.projects.newProject('empty').catch(report)}
+          >
             New project
           </DropdownMenuItem>
-          <DropdownMenuItem icon={<Sparkles />} onSelect={() => void session.projects.newProject('demo').catch(report)}>
+          <DropdownMenuItem
+            icon={<Sparkles />}
+            onSelect={() => void session.projects.newProject('demo').catch(report)}
+          >
             New demo project
           </DropdownMenuItem>
           <DropdownMenuSub>
@@ -55,9 +74,14 @@ export function ProjectMenu() {
             <DropdownMenuSubContent className="min-w-56">
               {projects.length === 0 && <DropdownMenuLabel>No saved projects</DropdownMenuLabel>}
               {projects.map((p) => (
-                <DropdownMenuItem key={p.id} onSelect={() => void session.projects.open(p.id as ProjectId).catch(report)}>
+                <DropdownMenuItem
+                  key={p.id}
+                  onSelect={() => void session.projects.open(p.id as ProjectId).catch(report)}
+                >
                   <span className="flex-1 truncate">{p.name}</span>
-                  <span className="text-[10px] text-text-faint">{new Date(p.updatedAt).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-text-faint">
+                    {new Date(p.updatedAt).toLocaleDateString()}
+                  </span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuSubContent>
@@ -67,14 +91,20 @@ export function ProjectMenu() {
             icon={<PackageOpen />}
             onSelect={() =>
               void (async () => {
-                const [file] = await session.platform.fileDialogs.openFiles({ accept: ['.studio', 'application/zip'], multiple: false });
+                const [file] = await session.platform.fileDialogs.openFiles({
+                  accept: ['.studio', 'application/zip'],
+                  multiple: false,
+                });
                 if (file) await session.projects.importBundle(file);
               })().catch(report)
             }
           >
             Import project bundle…
           </DropdownMenuItem>
-          <DropdownMenuItem icon={<Save />} onSelect={() => void session.projects.exportBundle().catch(report)}>
+          <DropdownMenuItem
+            icon={<Save />}
+            onSelect={() => void session.projects.exportBundle().catch(report)}
+          >
             Export project bundle…
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -21,7 +21,8 @@ export function ArrangementRuler() {
   const overlayRef = useRef<CanvasSurfaceHandle>(null);
 
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D, size: { width: number; height: number }) => drawRuler(ctx, size.width, size.height, axis, meter, loop, LOOP_BAR_HEIGHT),
+    (ctx: CanvasRenderingContext2D, size: { width: number; height: number }) =>
+      drawRuler(ctx, size.width, size.height, axis, meter, loop, LOOP_BAR_HEIGHT),
     [axis, meter, loop],
   );
 
@@ -32,7 +33,8 @@ export function ArrangementRuler() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const position = session.engine.getTransportPosition();
-    const tick = position.state === 'stopped' ? session.engineStore.getState().cursorTick : position.ticks;
+    const tick =
+      position.state === 'stopped' ? session.engineStore.getState().cursorTick : position.ticks;
     ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
     ctx.clearRect(0, 0, size.width, size.height);
     const x = axis.tickToX(tick);
@@ -59,7 +61,14 @@ export function ArrangementRuler() {
       // Loop bar: drag edges/body or draw a new loop.
       const x0 = axis.tickToX(loop.startTick);
       const x1 = axis.tickToX(loop.endTick);
-      const mode = Math.abs(x - x0) < 6 ? 'start' : Math.abs(x - x1) < 6 ? 'end' : x > x0 && x < x1 ? 'move' : 'draw';
+      const mode =
+        Math.abs(x - x0) < 6
+          ? 'start'
+          : Math.abs(x - x1) < 6
+            ? 'end'
+            : x > x0 && x < x1
+              ? 'move'
+              : 'draw';
       const tx = session.history.beginTransaction('Set Loop');
       startDragGesture(e.nativeEvent, e.currentTarget, {
         threshold: 2,
@@ -74,7 +83,9 @@ export function ArrangementRuler() {
             const clamped = Math.max(-loop.startTick, shift);
             a = loop.startTick + clamped;
             b = loop.endTick + clamped;
-            tx.applyFromStart([{ type: 'project.setLoop', loop: { enabled: true, startTick: a, endTick: b } }]);
+            tx.applyFromStart([
+              { type: 'project.setLoop', loop: { enabled: true, startTick: a, endTick: b } },
+            ]);
             return;
           } else {
             a = tick;
@@ -105,9 +116,22 @@ export function ArrangementRuler() {
   };
 
   return (
-    <div className="relative min-w-0 flex-1 cursor-text" style={{ height: RULER_HEIGHT }} onPointerDown={onPointerDown} data-testid="arrangement-ruler" aria-label="Timeline ruler: click to move the playhead, drag the top strip to set the loop" role="slider" aria-valuetext="Playhead" tabIndex={-1}>
+    <div
+      className="relative min-w-0 flex-1 cursor-text"
+      style={{ height: RULER_HEIGHT }}
+      onPointerDown={onPointerDown}
+      data-testid="arrangement-ruler"
+      aria-label="Timeline ruler: click to move the playhead, drag the top strip to set the loop"
+      role="slider"
+      aria-valuetext="Playhead"
+      tabIndex={-1}
+    >
       <CanvasSurface draw={draw} className="absolute inset-0" />
-      <CanvasSurface ref={overlayRef} draw={() => undefined} className="pointer-events-none absolute inset-0" />
+      <CanvasSurface
+        ref={overlayRef}
+        draw={() => undefined}
+        className="pointer-events-none absolute inset-0"
+      />
     </div>
   );
 }

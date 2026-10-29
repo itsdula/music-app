@@ -1,17 +1,34 @@
 /**
  * Items offered by the left browser and their drag payload format.
  */
-import { EFFECT_KINDS, EFFECT_LABELS, SYNTH_PRESETS, type AssetId, type EffectKind, type InstrumentKind } from '@studio/domain';
+import {
+  EFFECT_KINDS,
+  EFFECT_LABELS,
+  SYNTH_PRESETS,
+  type AssetId,
+  type EffectKind,
+  type InstrumentKind,
+} from '@studio/domain';
 
 export const BROWSER_DRAG_MIME = 'application/x-studio-browser-item';
 
 export type BrowserItem =
-  | { readonly kind: 'instrument'; readonly instrument: InstrumentKind; readonly presetId?: string; readonly label: string }
+  | {
+      readonly kind: 'instrument';
+      readonly instrument: InstrumentKind;
+      readonly presetId?: string;
+      readonly label: string;
+    }
   | { readonly kind: 'effect'; readonly effect: EffectKind; readonly label: string }
   | { readonly kind: 'asset'; readonly assetId: AssetId; readonly label: string };
 
 export const INSTRUMENT_ITEMS: readonly BrowserItem[] = [
-  ...SYNTH_PRESETS.map((p) => ({ kind: 'instrument' as const, instrument: 'synth' as const, presetId: p.id, label: p.label })),
+  ...SYNTH_PRESETS.map((p) => ({
+    kind: 'instrument' as const,
+    instrument: 'synth' as const,
+    presetId: p.id,
+    label: p.label,
+  })),
   { kind: 'instrument', instrument: 'drums', label: 'Drum Kit (synthesized)' },
   { kind: 'instrument', instrument: 'sampler', label: 'Sampler' },
 ];

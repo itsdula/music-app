@@ -10,7 +10,10 @@ afterEach(async () => {
 });
 
 async function setup() {
-  const session = createStudioSession(createTestPlatform(), { ...DEFAULT_STUDIO_CONFIG, autosaveDelayMs: 5 });
+  const session = createStudioSession(createTestPlatform(), {
+    ...DEFAULT_STUDIO_CONFIG,
+    autosaveDelayMs: 5,
+  });
   sessions.push(session);
   await session.start();
   const trackId = session.history.present.trackOrder[0]!;

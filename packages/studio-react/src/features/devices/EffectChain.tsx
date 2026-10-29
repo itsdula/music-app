@@ -1,10 +1,33 @@
-import { EFFECT_KINDS, EFFECT_LABELS, EFFECT_PARAM_SPECS, type EffectSlot, type TrackId } from '@studio/domain';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, IconButton, Switch } from '@studio/ui';
+import {
+  EFFECT_KINDS,
+  EFFECT_LABELS,
+  EFFECT_PARAM_SPECS,
+  type EffectSlot,
+  type TrackId,
+} from '@studio/domain';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  IconButton,
+  Switch,
+} from '@studio/ui';
 import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useSession } from '../../session/context';
 import { ParamControl } from './ParamControl';
 
-function EffectUnit({ target, slot, index, count }: { target: TrackId | 'master'; slot: EffectSlot; index: number; count: number }) {
+function EffectUnit({
+  target,
+  slot,
+  index,
+  count,
+}: {
+  target: TrackId | 'master';
+  slot: EffectSlot;
+  index: number;
+  count: number;
+}) {
   const session = useSession();
   const specs = EFFECT_PARAM_SPECS[slot.kind];
   return (
@@ -18,12 +41,52 @@ function EffectUnit({ target, slot, index, count }: { target: TrackId | 'master'
         <Switch
           label={`${EFFECT_LABELS[slot.kind]} on`}
           checked={!slot.bypass}
-          onCheckedChange={(on) => session.history.execute({ type: 'effect.setBypass', target, effectId: slot.id, bypass: !on }, { label: on ? 'Enable Effect' : 'Bypass Effect' })}
+          onCheckedChange={(on) =>
+            session.history.execute(
+              { type: 'effect.setBypass', target, effectId: slot.id, bypass: !on },
+              { label: on ? 'Enable Effect' : 'Bypass Effect' },
+            )
+          }
         />
         <h4 className="flex-1 text-[12px] font-semibold">{EFFECT_LABELS[slot.kind]}</h4>
-        <IconButton label="Move left" icon={<ChevronLeft />} size="sm" variant="ghost" disabled={index === 0} onClick={() => session.history.execute({ type: 'effect.move', target, effectId: slot.id, toIndex: index - 1 }, { label: 'Reorder Effect' })} />
-        <IconButton label="Move right" icon={<ChevronRight />} size="sm" variant="ghost" disabled={index === count - 1} onClick={() => session.history.execute({ type: 'effect.move', target, effectId: slot.id, toIndex: index + 1 }, { label: 'Reorder Effect' })} />
-        <IconButton label="Remove effect" icon={<Trash2 />} size="sm" variant="ghost" onClick={() => session.history.execute({ type: 'effect.remove', target, effectId: slot.id }, { label: 'Remove Effect' })} />
+        <IconButton
+          label="Move left"
+          icon={<ChevronLeft />}
+          size="sm"
+          variant="ghost"
+          disabled={index === 0}
+          onClick={() =>
+            session.history.execute(
+              { type: 'effect.move', target, effectId: slot.id, toIndex: index - 1 },
+              { label: 'Reorder Effect' },
+            )
+          }
+        />
+        <IconButton
+          label="Move right"
+          icon={<ChevronRight />}
+          size="sm"
+          variant="ghost"
+          disabled={index === count - 1}
+          onClick={() =>
+            session.history.execute(
+              { type: 'effect.move', target, effectId: slot.id, toIndex: index + 1 },
+              { label: 'Reorder Effect' },
+            )
+          }
+        />
+        <IconButton
+          label="Remove effect"
+          icon={<Trash2 />}
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            session.history.execute(
+              { type: 'effect.remove', target, effectId: slot.id },
+              { label: 'Remove Effect' },
+            )
+          }
+        />
       </header>
       <div className="flex flex-wrap items-end gap-3">
         {specs.map((spec) => (
@@ -34,7 +97,12 @@ function EffectUnit({ target, slot, index, count }: { target: TrackId | 'master'
             gestureKey={`fx:${slot.id}:${spec.id}`}
             address={{ scope: 'effect', trackId: target, effectId: slot.id, param: spec.id }}
             size="sm"
-            command={(v) => ({ type: 'effect.setParams', target, effectId: slot.id, params: { [spec.id]: v } })}
+            command={(v) => ({
+              type: 'effect.setParams',
+              target,
+              effectId: slot.id,
+              params: { [spec.id]: v },
+            })}
           />
         ))}
       </div>
@@ -42,7 +110,13 @@ function EffectUnit({ target, slot, index, count }: { target: TrackId | 'master'
   );
 }
 
-export function EffectChain({ target, effects }: { target: TrackId | 'master'; effects: readonly EffectSlot[] }) {
+export function EffectChain({
+  target,
+  effects,
+}: {
+  target: TrackId | 'master';
+  effects: readonly EffectSlot[];
+}) {
   const session = useSession();
   return (
     <div className="flex min-w-0 items-stretch gap-2" data-testid="effect-chain">
@@ -63,7 +137,11 @@ export function EffectChain({ target, effects }: { target: TrackId | 'master'; e
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {EFFECT_KINDS.map((kind) => (
-            <DropdownMenuItem key={kind} icon={<SlidersHorizontal />} onSelect={() => session.edits.addEffect(target, kind)}>
+            <DropdownMenuItem
+              key={kind}
+              icon={<SlidersHorizontal />}
+              onSelect={() => session.edits.addEffect(target, kind)}
+            >
               {EFFECT_LABELS[kind]}
             </DropdownMenuItem>
           ))}

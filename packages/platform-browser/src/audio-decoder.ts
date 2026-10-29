@@ -12,7 +12,10 @@ export function createBrowserAudioDecoder(): AudioDecoder {
       return DECODABLE.test(mimeType || guessMime(fileName)) || EXTENSIONS.test(fileName);
     },
     decode(bytes, hint) {
-      return decodeAudioBytes(bytes, { mimeType: hint.mimeType || guessMime(hint.fileName), fileName: hint.fileName });
+      return decodeAudioBytes(bytes, {
+        mimeType: hint.mimeType || guessMime(hint.fileName),
+        fileName: hint.fileName,
+      });
     },
   };
 }

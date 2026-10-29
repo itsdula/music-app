@@ -94,7 +94,10 @@ export class TransportController {
 
   toggleLoop(): void {
     const { loop } = this.history.present;
-    this.history.execute({ type: 'project.setLoop', loop: { enabled: !loop.enabled } }, { label: 'Toggle Loop' });
+    this.history.execute(
+      { type: 'project.setLoop', loop: { enabled: !loop.enabled } },
+      { label: 'Toggle Loop' },
+    );
   }
 
   toggleMetronome(): void {
@@ -106,7 +109,10 @@ export class TransportController {
   }
 
   setTempo(bpm: number): void {
-    this.history.execute({ type: 'project.setTempo', bpm: clampBpm(bpm) }, { label: 'Set Tempo', coalesceKey: 'tempo' });
+    this.history.execute(
+      { type: 'project.setTempo', bpm: clampBpm(bpm) },
+      { label: 'Set Tempo', coalesceKey: 'tempo' },
+    );
   }
 
   /** Tap tempo: averages the last taps within 2 s windows. */
@@ -132,7 +138,10 @@ export class TransportController {
     const armed = orderedTracks(project).filter((t) => t.armed);
     if (armed.length === 0) {
       this.engineStore.setState({
-        lastError: { code: 'internal', message: 'Arm a track (the ● button on a track) before recording.' },
+        lastError: {
+          code: 'internal',
+          message: 'Arm a track (the ● button on a track) before recording.',
+        },
       });
       return;
     }
@@ -155,11 +164,20 @@ export class TransportController {
         });
         this.audioRecording = true;
       }
-      if (midiTracks.length > 0 && this.recordingHooks?.beginMidiRecording(midiTracks, state.cursorTick)) {
+      if (
+        midiTracks.length > 0 &&
+        this.recordingHooks?.beginMidiRecording(midiTracks, state.cursorTick)
+      ) {
         this.midiRecording = true;
         if (!this.audioRecording) {
           // The engine only reports audio capture; publish the MIDI-only recording state ourselves.
-          this.engineStore.setState({ recording: { phase: 'recording', startedAtTick: state.cursorTick, trackIds: midiTracks } });
+          this.engineStore.setState({
+            recording: {
+              phase: 'recording',
+              startedAtTick: state.cursorTick,
+              trackIds: midiTracks,
+            },
+          });
         }
       }
     } catch (error) {
@@ -170,7 +188,9 @@ export class TransportController {
       this.engineStore.setState({ playState: 'stopped' });
       if (!this.engineStore.getState().lastError) {
         const reason = error instanceof Error ? error.message : String(error);
-        this.engineStore.setState({ lastError: { code: 'internal', message: `Recording could not start: ${reason}` } });
+        this.engineStore.setState({
+          lastError: { code: 'internal', message: `Recording could not start: ${reason}` },
+        });
       }
     }
   }
@@ -191,7 +211,10 @@ export class TransportController {
     }
     if (hadMidi) this.recordingHooks?.endMidiRecording(Math.round(position.ticks));
     await this.engine.stop();
-    this.engineStore.setState({ playState: 'stopped', ...(hadAudio ? {} : { recording: { phase: 'idle' as const } }) });
+    this.engineStore.setState({
+      playState: 'stopped',
+      ...(hadAudio ? {} : { recording: { phase: 'idle' as const } }),
+    });
     if (takes.length > 0) await this.recordingHooks?.commitAudioTakes(takes);
   }
 }

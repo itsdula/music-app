@@ -11,5 +11,7 @@ interface WorkerScope {
 
 const scope = self as unknown as WorkerScope;
 scope.onmessage = (event) => {
-  handleVocalWorkerRequest(event.data, (response, transfer) => scope.postMessage(response, transfer ?? []));
+  handleVocalWorkerRequest(event.data, (response, transfer) =>
+    scope.postMessage(response, transfer ?? []),
+  );
 };

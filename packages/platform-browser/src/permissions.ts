@@ -1,4 +1,8 @@
-import type { PermissionName, PermissionState, PermissionsService } from '@studio/platform-contracts';
+import type {
+  PermissionName,
+  PermissionState,
+  PermissionsService,
+} from '@studio/platform-contracts';
 
 type QueryDescriptor = { name: string; sysex?: boolean };
 

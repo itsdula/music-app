@@ -25,12 +25,22 @@ export interface PianoRollViewModel {
   readonly pitch: PitchAxis;
   readonly selected: ReadonlySet<NoteId>;
   /** Optional marquee rectangle in canvas px. */
-  readonly marquee?: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number } | null;
+  readonly marquee?: {
+    readonly x0: number;
+    readonly y0: number;
+    readonly x1: number;
+    readonly y1: number;
+  } | null;
   /** In-scale pitch classes to highlight (empty = none). */
   readonly scaleHighlight?: ReadonlySet<number>;
 }
 
-export function drawNoteGrid(ctx: CanvasRenderingContext2D, width: number, height: number, vm: PianoRollViewModel): void {
+export function drawNoteGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  vm: PianoRollViewModel,
+): void {
   const { clip, time, pitch } = vm;
   ctx.fillStyle = colors.surface1;
   ctx.fillRect(0, 0, width, height);
@@ -56,7 +66,11 @@ export function drawNoteGrid(ctx: CanvasRenderingContext2D, width: number, heigh
   // Vertical grid
   for (const line of computeGridLines(time, width, vm.meter, 12)) {
     ctx.strokeStyle =
-      line.level === 'bar' ? colors.lineStrong : line.level === 'beat' ? colors.line : withAlpha(colors.line, 0.45);
+      line.level === 'bar'
+        ? colors.lineStrong
+        : line.level === 'beat'
+          ? colors.line
+          : withAlpha(colors.line, 0.45);
     vline(ctx, line.x, 0, height);
   }
 
@@ -92,7 +106,12 @@ export function drawNoteGrid(ctx: CanvasRenderingContext2D, width: number, heigh
     ctx.fillStyle = withAlpha(colors.accent, 0.12);
     ctx.strokeStyle = withAlpha(colors.accent, 0.8);
     ctx.fillRect(Math.min(mx0, mx1), Math.min(my0, my1), Math.abs(mx1 - mx0), Math.abs(my1 - my0));
-    ctx.strokeRect(Math.min(mx0, mx1) + 0.5, Math.min(my0, my1) + 0.5, Math.abs(mx1 - mx0), Math.abs(my1 - my0));
+    ctx.strokeRect(
+      Math.min(mx0, mx1) + 0.5,
+      Math.min(my0, my1) + 0.5,
+      Math.abs(mx1 - mx0),
+      Math.abs(my1 - my0),
+    );
   }
 }
 

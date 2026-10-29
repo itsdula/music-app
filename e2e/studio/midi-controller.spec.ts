@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { installFakeMidi, lastSysexRequest, sendMidi, sendMidiBatch, setMidiPortConnected } from '../fake-midi';
+import {
+  installFakeMidi,
+  lastSysexRequest,
+  sendMidi,
+  sendMidiBatch,
+  setMidiPortConnected,
+} from '../fake-midi';
 import { openStudio, resetStorage } from '../helpers';
 
 /**
@@ -14,13 +20,18 @@ async function connectMidi(page: Page): Promise<void> {
   await expect(page.getByTestId('midi-devices').getByRole('status')).toHaveText('MIDI connected.');
 }
 
-async function openControllerView(page: Page, view: 'Hardware' | 'Mappings' | 'Diagnostics' | 'Compatibility'): Promise<void> {
+async function openControllerView(
+  page: Page,
+  view: 'Hardware' | 'Mappings' | 'Diagnostics' | 'Compatibility',
+): Promise<void> {
   await page.getByRole('tab', { name: 'Controller' }).click();
   await page.getByTestId('controller-panel').getByRole('radio', { name: view }).click();
 }
 
 async function sliderValue(page: Page, name: string): Promise<number> {
-  return Number(await page.getByRole('slider', { name, exact: true }).first().getAttribute('aria-valuenow'));
+  return Number(
+    await page.getByRole('slider', { name, exact: true }).first().getAttribute('aria-valuenow'),
+  );
 }
 
 test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
@@ -29,10 +40,14 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     await openStudio(page);
     await resetStorage(page);
     await page.reload();
-    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+      timeout: 30_000,
+    });
   });
 
-  test('detects the controller by port name, applies its profile and never requests SysEx', async ({ page }) => {
+  test('detects the controller by port name, applies its profile and never requests SysEx', async ({
+    page,
+  }) => {
     await connectMidi(page);
     const device = page.getByTestId('midi-device');
     await expect(device).toHaveCount(1);
@@ -44,7 +59,9 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     await expect(page.getByTestId('controller-panel')).toContainText('Connected · MPK mini 3');
     await expect(page.getByTestId('mpk-hardware-view')).toBeVisible();
     await openControllerView(page, 'Compatibility');
-    await expect(page.getByTestId('mpk-compatibility')).toContainText('Nothing below has been tested on a physical unit yet');
+    await expect(page.getByTestId('mpk-compatibility')).toContainText(
+      'Nothing below has been tested on a physical unit yet',
+    );
   });
 
   test('pads and keys play the selected instrument and appear in diagnostics', async ({ page }) => {
@@ -79,7 +96,9 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     await expect.poll(() => sliderValue(page, 'Keys volume')).toBeCloseTo(64 / 127, 2);
   });
 
-  test('MIDI Learn maps a new CC to an instrument parameter and stores it in the project', async ({ page }) => {
+  test('MIDI Learn maps a new CC to an instrument parameter and stores it in the project', async ({
+    page,
+  }) => {
     await connectMidi(page);
     await page.getByRole('tab', { name: /Track|Clip/ }).click();
     await page.getByRole('slider', { name: 'Cutoff', exact: true }).click({ button: 'right' });
@@ -114,15 +133,23 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
       await page.getByRole('menuitem', { name: 'MIDI Learn…' }).click();
       await sendMidi(page, MPK.id, [0xb0, cc, 90]);
       await expect(page.getByTestId('learn-banner')).toContainText(`CC ${cc}`);
-      await page.getByRole('button', { name: scope === 'project' ? 'Map in this project' : 'Map for all projects' }).click();
+      await page
+        .getByRole('button', {
+          name: scope === 'project' ? 'Map in this project' : 'Map for all projects',
+        })
+        .click();
       await expect(page.getByTestId('learn-banner')).toHaveCount(0);
     };
     await learn('Cutoff', 21, 'project');
     await learn('Resonance', 22, 'global');
-    await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', { timeout: 10_000 });
+    await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', {
+      timeout: 10_000,
+    });
 
     await page.reload();
-    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+      timeout: 30_000,
+    });
     await openControllerView(page, 'Mappings');
     const rows = page.getByTestId('mapping-row');
     await expect(rows.filter({ hasText: 'CC 21' })).toHaveCount(1);

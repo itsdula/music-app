@@ -1,6 +1,19 @@
 import type { Command } from '@studio/commands';
-import { denormalizeParam, formatParamValue, normalizeParam, type ParamSpec, type ParameterAddress } from '@studio/domain';
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, Knob, SegmentedControl } from '@studio/ui';
+import {
+  denormalizeParam,
+  formatParamValue,
+  normalizeParam,
+  type ParamSpec,
+  type ParameterAddress,
+} from '@studio/domain';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  Knob,
+  SegmentedControl,
+} from '@studio/ui';
 import type { ReactElement } from 'react';
 import { useRef } from 'react';
 import { useSession } from '../../session/context';
@@ -29,12 +42,17 @@ export function ParamControl({
   const session = useSession();
   const gesture = useRef(0);
   const commit = (v: number) =>
-    session.history.execute(command(v), { label: `Change ${spec.label}`, coalesceKey: `${gestureKey}:${gesture.current}` });
+    session.history.execute(command(v), {
+      label: `Change ${spec.label}`,
+      coalesceKey: `${gestureKey}:${gesture.current}`,
+    });
 
   if (spec.options && spec.options.length <= 5) {
     return (
       <div className="flex flex-col items-start gap-1">
-        <span className="text-[10px] font-medium tracking-wide text-text-muted uppercase">{spec.label}</span>
+        <span className="text-[10px] font-medium tracking-wide text-text-muted uppercase">
+          {spec.label}
+        </span>
         <SegmentedControl
           label={spec.label}
           size="sm"
@@ -85,7 +103,9 @@ export function withLearn(
         <div>{control}</div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onSelect={() => startLearn({ kind: 'parameter', address })}>MIDI Learn…</ContextMenuItem>
+        <ContextMenuItem onSelect={() => startLearn({ kind: 'parameter', address })}>
+          MIDI Learn…
+        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );

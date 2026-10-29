@@ -12,10 +12,14 @@ test.describe('Phase 4: microphone recording (fake capture device)', () => {
     await openStudio(page);
     await resetStorage(page);
     await page.reload();
-    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+      timeout: 30_000,
+    });
   });
 
-  test('records an armed audio track into a new clip that is audible in the bounce', async ({ page }) => {
+  test('records an armed audio track into a new clip that is audible in the bounce', async ({
+    page,
+  }) => {
     await page.getByTestId('add-track').click();
     await page.getByTestId('add-audio-track').click();
     const headers = page.getByTestId('track-header');

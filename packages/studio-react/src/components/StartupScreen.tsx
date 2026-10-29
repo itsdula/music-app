@@ -1,8 +1,18 @@
 import { Spinner } from '@studio/ui';
 
-export function StartupScreen({ status, message }: { status: 'booting' | 'error'; message?: string | undefined }) {
+export function StartupScreen({
+  status,
+  message,
+}: {
+  status: 'booting' | 'error';
+  message?: string | undefined;
+}) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-text-muted" role="status" aria-live="polite">
+    <div
+      className="flex flex-1 flex-col items-center justify-center gap-3 text-text-muted"
+      role="status"
+      aria-live="polite"
+    >
       {status === 'booting' ? (
         <>
           <Spinner />

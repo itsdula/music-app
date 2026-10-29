@@ -20,7 +20,9 @@ export interface GridLine {
 function subdivisionCandidates(meter: TimeSignature): number[] {
   const beat = ticksPerBeat(meter);
   const candidates = [beat / 2, beat / 4, PPQ / 8, PPQ / 16];
-  return [...new Set(candidates.filter((c) => Number.isInteger(c) && c > 0 && c < beat))].sort((a, b) => b - a);
+  return [...new Set(candidates.filter((c) => Number.isInteger(c) && c > 0 && c < beat))].sort(
+    (a, b) => b - a,
+  );
 }
 
 /**

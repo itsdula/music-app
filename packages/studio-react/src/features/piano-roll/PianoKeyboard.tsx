@@ -11,7 +11,11 @@ export function PianoKeyboard({ trackId, pitch }: { trackId: TrackId; pitch: Pit
   const [active, setActive] = useState<ReadonlySet<number>>(new Set());
   const held = useRef<number | null>(null);
   const vm = useMemo(() => ({ pitch, active }), [pitch, active]);
-  const draw = useCallback((ctx: CanvasRenderingContext2D, s: CanvasSize) => drawKeyboard(ctx, s.width, s.height, vm.pitch, vm.active), [vm]);
+  const draw = useCallback(
+    (ctx: CanvasRenderingContext2D, s: CanvasSize) =>
+      drawKeyboard(ctx, s.width, s.height, vm.pitch, vm.active),
+    [vm],
+  );
 
   const release = () => {
     if (held.current !== null) session.engine.live.noteOff(trackId, held.current);

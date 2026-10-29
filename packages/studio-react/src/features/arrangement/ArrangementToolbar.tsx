@@ -34,7 +34,14 @@ export function GridControls() {
   const snap = useUiState((s) => s.snap);
   return (
     <div className="flex items-center gap-1">
-      <ToggleButton size="sm" label="Snap to grid" tone="accent" pressed={snap} icon={<Magnet />} onPressedChange={(v) => session.uiStore.setState({ snap: v })} />
+      <ToggleButton
+        size="sm"
+        label="Snap to grid"
+        tone="accent"
+        pressed={snap}
+        icon={<Magnet />}
+        onPressedChange={(v) => session.uiStore.setState({ snap: v })}
+      />
       <Select
         label="Grid"
         size="sm"
@@ -51,19 +58,40 @@ export function AddTrackMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <IconButton label="Add track" icon={<Plus />} size="sm" variant="ghost" data-testid="add-track" />
+        <IconButton
+          label="Add track"
+          icon={<Plus />}
+          size="sm"
+          variant="ghost"
+          data-testid="add-track"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuItem icon={<Piano />} onSelect={() => session.edits.addTrack('instrument')} data-testid="add-instrument-track">
+        <DropdownMenuItem
+          icon={<Piano />}
+          onSelect={() => session.edits.addTrack('instrument')}
+          data-testid="add-instrument-track"
+        >
           Instrument track
         </DropdownMenuItem>
-        <DropdownMenuItem icon={<Drum />} onSelect={() => session.edits.addTrack('instrument', { instrument: 'drums' })}>
+        <DropdownMenuItem
+          icon={<Drum />}
+          onSelect={() => session.edits.addTrack('instrument', { instrument: 'drums' })}
+        >
           Drum track
         </DropdownMenuItem>
-        <DropdownMenuItem icon={<AudioLines />} onSelect={() => session.edits.addTrack('audio')} data-testid="add-audio-track">
+        <DropdownMenuItem
+          icon={<AudioLines />}
+          onSelect={() => session.edits.addTrack('audio')}
+          data-testid="add-audio-track"
+        >
           Audio track
         </DropdownMenuItem>
-        <DropdownMenuItem icon={<Mic />} onSelect={() => session.edits.addTrack('vocal')} data-testid="add-vocal-track">
+        <DropdownMenuItem
+          icon={<Mic />}
+          onSelect={() => session.edits.addTrack('vocal')}
+          data-testid="add-vocal-track"
+        >
           Vocal track
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -67,7 +67,9 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
     const pxPerTick = (width * 0.94) / span;
     const pitches = clip.notes.map((n) => n.pitch);
     const center = pitches.length > 0 ? (Math.min(...pitches) + Math.max(...pitches)) / 2 : 60;
-    const visibleRows = ((hostRef.current?.clientHeight ?? 300) - RULER_HEIGHT - 64) / session.uiStore.getState().pianoRoll.rowHeight;
+    const visibleRows =
+      ((hostRef.current?.clientHeight ?? 300) - RULER_HEIGHT - 64) /
+      session.uiStore.getState().pianoRoll.rowHeight;
     session.uiStore.setState((s) => ({
       pianoRoll: {
         ...s.pianoRoll,
@@ -114,7 +116,12 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
             const selected = session.uiStore.getState().selection.noteIds;
             const ids = selected.size > 0 ? [...selected] : clip.notes.map((n) => n.id);
             session.history.execute(
-              { type: 'notes.quantize', clipId: clip.id, noteIds: ids, options: { gridTicks: gridDivisionTicks(grid, meter), strength: 1 } },
+              {
+                type: 'notes.quantize',
+                clipId: clip.id,
+                noteIds: ids,
+                options: { gridTicks: gridDivisionTicks(grid, meter), strength: 1 },
+              },
               { label: 'Quantize' },
             );
           }}
@@ -127,16 +134,29 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
           icon={<Repeat />}
           onPressedChange={(on) =>
             session.history.execute(
-              { type: 'clip.updateMidi', clipId: clip.id, patch: { loopLengthTicks: on ? Math.max(1, clip.lengthTicks) : null } },
+              {
+                type: 'clip.updateMidi',
+                clipId: clip.id,
+                patch: { loopLengthTicks: on ? Math.max(1, clip.lengthTicks) : null },
+              },
               { label: on ? 'Loop Clip' : 'Unloop Clip' },
             )
           }
         />
-        <IconButton label="Zoom to clip" icon={<Expand />} size="sm" variant="ghost" onClick={fit} />
+        <IconButton
+          label="Zoom to clip"
+          icon={<Expand />}
+          size="sm"
+          variant="ghost"
+          onClick={fit}
+        />
       </div>
       <div className="flex min-h-0 flex-1">
         <div className="flex shrink-0 flex-col" style={{ width: KEYBOARD_WIDTH }}>
-          <div className="shrink-0 border-r border-b border-line bg-surface-1" style={{ height: RULER_HEIGHT }} />
+          <div
+            className="shrink-0 border-r border-b border-line bg-surface-1"
+            style={{ height: RULER_HEIGHT }}
+          />
           <PianoKeyboard trackId={clip.trackId} pitch={pitch} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -145,7 +165,10 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
         </div>
       </div>
       <div className="flex shrink-0 border-t border-line">
-        <div className="shrink-0 border-r border-line bg-surface-1 px-2 pt-1 text-[10px] text-text-faint" style={{ width: KEYBOARD_WIDTH }}>
+        <div
+          className="shrink-0 border-r border-line bg-surface-1 px-2 pt-1 text-[10px] text-text-faint"
+          style={{ width: KEYBOARD_WIDTH }}
+        >
           Velocity
         </div>
         <div className="min-w-0 flex-1">

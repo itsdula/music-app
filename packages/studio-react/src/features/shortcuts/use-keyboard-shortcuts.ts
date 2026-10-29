@@ -4,7 +4,9 @@ import { useSession } from '../../session/context';
 import { openClipInEditor, selectClips } from '../../state/ui-store';
 import { isTextEntryTarget, matchShortcut, type ShortcutAction } from './shortcuts';
 
-const isApple = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+const isApple = () =>
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
 
 /**
  * Global (Studio-scoped) shortcuts. Editors that need their own handling of keys like
@@ -61,30 +63,47 @@ export function useKeyboardShortcuts(rootRef: RefObject<HTMLElement | null>): vo
           return true;
         case 'paste': {
           const position = session.engine.getTransportPosition();
-          const at = position.state === 'stopped' ? engineStore.getState().cursorTick : Math.round(position.ticks);
+          const at =
+            position.state === 'stopped'
+              ? engineStore.getState().cursorTick
+              : Math.round(position.ticks);
           return edits.paste(at, ui.selection.trackId).length > 0;
         }
         case 'split': {
           const position = session.engine.getTransportPosition();
-          const at = position.state === 'stopped' ? engineStore.getState().cursorTick : Math.round(position.ticks);
+          const at =
+            position.state === 'stopped'
+              ? engineStore.getState().cursorTick
+              : Math.round(position.ticks);
           edits.splitClipsAt(clipIds, at);
           return true;
         }
         case 'selectAll':
-          uiStore.setState((s) => selectClips(s, Object.keys(history.present.clips) as typeof clipIds));
+          uiStore.setState((s) =>
+            selectClips(s, Object.keys(history.present.clips) as typeof clipIds),
+          );
           return true;
         case 'toggleBrowser':
-          uiStore.setState((s) => ({ ...s, panels: { ...s.panels, browserOpen: !s.panels.browserOpen } }));
+          uiStore.setState((s) => ({
+            ...s,
+            panels: { ...s.panels, browserOpen: !s.panels.browserOpen },
+          }));
           return true;
         case 'toggleEditor':
-          uiStore.setState((s) => ({ ...s, panels: { ...s.panels, bottomOpen: !s.panels.bottomOpen } }));
+          uiStore.setState((s) => ({
+            ...s,
+            panels: { ...s.panels, bottomOpen: !s.panels.bottomOpen },
+          }));
           return true;
         case 'zoomIn':
         case 'zoomOut': {
           const factor = action === 'zoomIn' ? 1.25 : 0.8;
           uiStore.setState((s) => ({
             ...s,
-            arrangement: { ...s.arrangement, pxPerTick: Math.min(2, Math.max(2 / PPQ, s.arrangement.pxPerTick * factor)) },
+            arrangement: {
+              ...s.arrangement,
+              pxPerTick: Math.min(2, Math.max(2 / PPQ, s.arrangement.pxPerTick * factor)),
+            },
           }));
           return true;
         }

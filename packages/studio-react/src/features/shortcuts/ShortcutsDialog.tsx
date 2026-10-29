@@ -52,13 +52,24 @@ export function ShortcutsDialog() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <IconButton label="Keyboard shortcuts" icon={<Keyboard />} variant="ghost" onClick={() => setOpen(true)} />
+      <IconButton
+        label="Keyboard shortcuts"
+        icon={<Keyboard />}
+        variant="ghost"
+        onClick={() => setOpen(true)}
+      />
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent title="Keyboard shortcuts" description="Mod is ⌘ on macOS and Ctrl elsewhere." widthClassName="max-w-2xl">
+        <DialogContent
+          title="Keyboard shortcuts"
+          description="Mod is ⌘ on macOS and Ctrl elsewhere."
+          widthClassName="max-w-2xl"
+        >
           <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[12px]">
             {GROUPS.map((group) => (
               <section key={group.title}>
-                <h3 className="mb-1.5 text-[11px] font-semibold tracking-wide text-text-muted uppercase">{group.title}</h3>
+                <h3 className="mb-1.5 text-[11px] font-semibold tracking-wide text-text-muted uppercase">
+                  {group.title}
+                </h3>
                 <dl className="space-y-1">
                   {group.items.map(([keys, label]) => (
                     <div key={keys} className="flex items-center justify-between gap-3">

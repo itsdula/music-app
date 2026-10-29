@@ -16,18 +16,34 @@ export function ArrangementView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="arrangement">
-      <div className="flex shrink-0 border-b border-line bg-surface-1" style={{ height: RULER_HEIGHT }}>
-        <div className="flex shrink-0 items-center justify-between gap-1 border-r border-line px-2" style={{ width: TRACK_HEADER_WIDTH }}>
+      <div
+        className="flex shrink-0 border-b border-line bg-surface-1"
+        style={{ height: RULER_HEIGHT }}
+      >
+        <div
+          className="flex shrink-0 items-center justify-between gap-1 border-r border-line px-2"
+          style={{ width: TRACK_HEADER_WIDTH }}
+        >
           <AddTrackMenu />
           <GridControls />
         </div>
         <ArrangementRuler />
       </div>
       <div className="flex min-h-0 flex-1">
-        <div className="relative shrink-0 overflow-hidden border-r border-line bg-surface-1" style={{ width: TRACK_HEADER_WIDTH }} role="grid" aria-label="Tracks">
+        <div
+          className="relative shrink-0 overflow-hidden border-r border-line bg-surface-1"
+          style={{ width: TRACK_HEADER_WIDTH }}
+          role="grid"
+          aria-label="Tracks"
+        >
           <div style={{ transform: `translateY(${-scrollY}px)` }}>
             {tracks.map((track) => (
-              <TrackHeader key={track.id} track={track} height={trackHeight} selected={track.id === selectedTrackId} />
+              <TrackHeader
+                key={track.id}
+                track={track}
+                height={trackHeight}
+                selected={track.id === selectedTrackId}
+              />
             ))}
           </div>
         </div>

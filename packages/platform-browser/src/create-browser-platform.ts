@@ -32,7 +32,8 @@ export function createBrowserPlatform(options: BrowserPlatformOptions = {}): Pla
   return {
     hostKind,
     audioBackendFactory: createWebAudioBackendFactory(),
-    createVocalProcessor: () => createWorkerVocalProcessor(() => createInlineWorker(vocalWorkerSource, 'studio-vocal')),
+    createVocalProcessor: () =>
+      createWorkerVocalProcessor(() => createInlineWorker(vocalWorkerSource, 'studio-vocal')),
     midiAccess,
     projectRepository: storage.projects,
     assetRepository: storage.assets,

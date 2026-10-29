@@ -72,7 +72,8 @@ export class ProjectController {
   }
 
   async openInitial(initialProjectId?: string): Promise<OpenResult> {
-    const preferred = initialProjectId ?? (await this.platform.settingsRepository.get<string>(LAST_PROJECT_KEY));
+    const preferred =
+      initialProjectId ?? (await this.platform.settingsRepository.get<string>(LAST_PROJECT_KEY));
     if (preferred) {
       const opened = await this.open(preferred as ProjectId).catch(() => null);
       if (opened) return opened;
@@ -91,10 +92,15 @@ export class ProjectController {
   async open(id: ProjectId): Promise<OpenResult> {
     const result = await this.platform.projectRepository.load(id);
     if (result.status !== 'ok') {
-      throw new Error(result.status === 'not-found' ? 'Project not found.' : `Project data is damaged: ${result.errors.join('; ')}`);
+      throw new Error(
+        result.status === 'not-found'
+          ? 'Project not found.'
+          : `Project data is damaged: ${result.errors.join('; ')}`,
+      );
     }
     if (result.recoveredFromBackup) {
-      this.notice = 'The latest save of this project was damaged; the previous good version was restored.';
+      this.notice =
+        'The latest save of this project was damaged; the previous good version was restored.';
     } else if (result.migratedFrom < result.project.schemaVersion) {
       this.notice = `This project was upgraded from format v${result.migratedFrom}.`;
     }
@@ -109,7 +115,10 @@ export class ProjectController {
 
   async newProject(kind: 'empty' | 'demo'): Promise<Project> {
     await this.flush();
-    const project = kind === 'demo' ? createDemoProject(this.ids, this.platform.now()) : createStarterProject(this.ids, this.platform.now());
+    const project =
+      kind === 'demo'
+        ? createDemoProject(this.ids, this.platform.now())
+        : createStarterProject(this.ids, this.platform.now());
     await this.adopt(project, true, 0);
     return project;
   }
@@ -140,7 +149,10 @@ export class ProjectController {
       const record = await this.platform.assetRepository.get(id as keyof typeof project.assets);
       if (record) records.push(record);
     }
-    const bytes = await exportProjectBundle({ project, assets: records }, { sha256: (b) => this.platform.hasher.sha256(b) });
+    const bytes = await exportProjectBundle(
+      { project, assets: records },
+      { sha256: (b) => this.platform.hasher.sha256(b) },
+    );
     return this.platform.fileDialogs.saveFile(bytes, {
       suggestedName: `${safeFileName(project.name)}${BUNDLE_FILE_EXTENSION}`,
       mimeType: BUNDLE_MIME_TYPE,
@@ -148,7 +160,9 @@ export class ProjectController {
   }
 
   async importBundle(file: PickedFile): Promise<Project> {
-    const result = await importProjectBundle(file.bytes, { sha256: (b) => this.platform.hasher.sha256(b) });
+    const result = await importProjectBundle(file.bytes, {
+      sha256: (b) => this.platform.hasher.sha256(b),
+    });
     if (!result.ok) throw new Error(`This bundle could not be imported: ${result.error.message}`);
     for (const record of result.value.assets) await this.platform.assetRepository.put(record);
     // Imported projects get a fresh id so importing never overwrites an existing project.

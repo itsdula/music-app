@@ -31,7 +31,10 @@ function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) 
     if (meter) meterRef.current?.setLevels(meter.peak, meter.clipped);
   });
   const setMixer = (mixer: Partial<Track['mixer']>, label: string, coalesceKey?: string) =>
-    session.history.execute({ type: 'track.setMixer', trackId: track.id, mixer }, { label, ...(coalesceKey ? { coalesceKey } : {}) });
+    session.history.execute(
+      { type: 'track.setMixer', trackId: track.id, mixer },
+      { label, ...(coalesceKey ? { coalesceKey } : {}) },
+    );
 
   return (
     <div
@@ -41,7 +44,11 @@ function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) 
       data-track-id={track.id}
     >
       <div className="flex w-full items-center gap-1.5">
-        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: track.color }} aria-hidden />
+        <span
+          className="size-2 shrink-0 rounded-full"
+          style={{ backgroundColor: track.color }}
+          aria-hidden
+        />
         <span className="truncate text-[11px] font-semibold" title={track.name}>
           {track.name}
         </span>
@@ -66,18 +73,42 @@ function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) 
           defaultValue={normalizeParam(TRACK_GAIN_SPEC, 0)}
           unityValue={normalizeParam(TRACK_GAIN_SPEC, 0)}
           formatValue={(n) => `${formatDb(denormalizeParam(TRACK_GAIN_SPEC, n))} dB`}
-          onChange={(n) => setMixer({ gainDb: denormalizeParam(TRACK_GAIN_SPEC, n) }, 'Volume', `gain:${track.id}:${gainGesture.key()}`)}
+          onChange={(n) =>
+            setMixer(
+              { gainDb: denormalizeParam(TRACK_GAIN_SPEC, n) },
+              'Volume',
+              `gain:${track.id}:${gainGesture.key()}`,
+            )
+          }
           onChangeEnd={gainGesture.end}
           className="h-full min-h-24"
           showValue
         />
-        <Meter ref={meterRef} label={`${track.name} level`} orientation="vertical" channels={2} className="h-full min-h-24 w-3" />
+        <Meter
+          ref={meterRef}
+          label={`${track.name} level`}
+          orientation="vertical"
+          channels={2}
+          className="h-full min-h-24 w-3"
+        />
       </div>
       <div className="flex gap-1">
-        <ToggleButton size="sm" label="Mute" tone="warning" pressed={track.mixer.mute} onPressedChange={(mute) => setMixer({ mute }, mute ? 'Mute' : 'Unmute')}>
+        <ToggleButton
+          size="sm"
+          label="Mute"
+          tone="warning"
+          pressed={track.mixer.mute}
+          onPressedChange={(mute) => setMixer({ mute }, mute ? 'Mute' : 'Unmute')}
+        >
           M
         </ToggleButton>
-        <ToggleButton size="sm" label="Solo" tone="accent" pressed={track.mixer.solo} onPressedChange={(solo) => setMixer({ solo }, solo ? 'Solo' : 'Unsolo')}>
+        <ToggleButton
+          size="sm"
+          label="Solo"
+          tone="accent"
+          pressed={track.mixer.solo}
+          onPressedChange={(solo) => setMixer({ solo }, solo ? 'Solo' : 'Unsolo')}
+        >
           S
         </ToggleButton>
         <ToggleButton
@@ -86,10 +117,15 @@ function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) 
           tone="record"
           pressed={track.armed}
           icon={<Circle className={track.armed ? 'fill-current' : ''} />}
-          onPressedChange={(armed) => session.history.execute({ type: 'track.update', trackId: track.id, patch: { armed } })}
+          onPressedChange={(armed) =>
+            session.history.execute({ type: 'track.update', trackId: track.id, patch: { armed } })
+          }
         />
       </div>
-      <ul className="w-full space-y-0.5 text-[10px] text-text-muted" aria-label={`${track.name} effects`}>
+      <ul
+        className="w-full space-y-0.5 text-[10px] text-text-muted"
+        aria-label={`${track.name} effects`}
+      >
         {track.effects.length === 0 ? (
           <li className="text-text-faint">No effects</li>
         ) : (
@@ -114,7 +150,10 @@ function MasterStrip() {
     meterRef.current?.setLevels(meters.master.peak, meters.master.clipped);
   });
   return (
-    <div className="flex w-28 shrink-0 flex-col items-center gap-2 rounded-lg border border-line bg-surface-2 p-2" data-testid="master-strip">
+    <div
+      className="flex w-28 shrink-0 flex-col items-center gap-2 rounded-lg border border-line bg-surface-2 p-2"
+      data-testid="master-strip"
+    >
       <span className="text-[11px] font-semibold">Master</span>
       <div className="flex min-h-0 flex-1 items-stretch gap-1.5">
         <Fader
@@ -123,12 +162,23 @@ function MasterStrip() {
           defaultValue={normalizeParam(MASTER_GAIN_SPEC, 0)}
           unityValue={normalizeParam(MASTER_GAIN_SPEC, 0)}
           formatValue={(n) => `${formatDb(denormalizeParam(MASTER_GAIN_SPEC, n))} dB`}
-          onChange={(n) => session.history.execute({ type: 'master.setGain', gainDb: denormalizeParam(MASTER_GAIN_SPEC, n) }, { label: 'Master Volume', coalesceKey: `master:${gesture.key()}` })}
+          onChange={(n) =>
+            session.history.execute(
+              { type: 'master.setGain', gainDb: denormalizeParam(MASTER_GAIN_SPEC, n) },
+              { label: 'Master Volume', coalesceKey: `master:${gesture.key()}` },
+            )
+          }
           onChangeEnd={gesture.end}
           className="h-full min-h-24"
           showValue
         />
-        <Meter ref={meterRef} label="Master level" orientation="vertical" channels={2} className="h-full min-h-24 w-4" />
+        <Meter
+          ref={meterRef}
+          label="Master level"
+          orientation="vertical"
+          channels={2}
+          className="h-full min-h-24 w-4"
+        />
       </div>
     </div>
   );
@@ -148,7 +198,9 @@ export function Mixer() {
         <MasterStrip />
       </div>
       <details className="border-t border-line px-2 py-1">
-        <summary className="cursor-pointer text-[11px] text-text-muted">Master effects ({project.master.effects.length})</summary>
+        <summary className="cursor-pointer text-[11px] text-text-muted">
+          Master effects ({project.master.effects.length})
+        </summary>
         <div className="overflow-x-auto py-2">
           <EffectChain target="master" effects={project.master.effects} />
         </div>

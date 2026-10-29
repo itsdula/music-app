@@ -36,7 +36,12 @@ export interface RecordedMidiTake {
   readonly trackId: TrackId;
   readonly startTick: number;
   readonly endTick: number;
-  readonly notes: ReadonlyArray<{ pitch: number; velocity: number; startTick: number; durationTicks: number }>;
+  readonly notes: ReadonlyArray<{
+    pitch: number;
+    velocity: number;
+    startTick: number;
+    durationTicks: number;
+  }>;
 }
 
 interface ClipboardContent {
@@ -45,7 +50,11 @@ interface ClipboardContent {
   readonly originTick: number;
 }
 
-const KIND_NAMES: Record<TrackKind, string> = { instrument: 'Instrument', audio: 'Audio', vocal: 'Vocal' };
+const KIND_NAMES: Record<TrackKind, string> = {
+  instrument: 'Instrument',
+  audio: 'Audio',
+  vocal: 'Vocal',
+};
 
 export class EditController {
   private clipboard: ClipboardContent | null = null;
@@ -72,14 +81,20 @@ export class EditController {
     for (let i = 2; ; i++) if (!names.has(`${base} ${i}`)) return `${base} ${i}`;
   }
 
-  addTrack(kind: TrackKind, options: { instrument?: InstrumentKind; presetId?: string; name?: string } = {}): TrackId {
+  addTrack(
+    kind: TrackKind,
+    options: { instrument?: InstrumentKind; presetId?: string; name?: string } = {},
+  ): TrackId {
     const id = this.ids.create('track');
     const index = this.project.trackOrder.length;
     const selectedId = this.ui.getState().selection.trackId;
     const insertAt = selectedId ? this.project.trackOrder.indexOf(selectedId) + 1 : index;
     const instrument =
       kind === 'instrument'
-        ? createInstrumentConfig(options.instrument ?? 'synth', options.presetId ?? (options.instrument === 'drums' ? undefined : 'synth.keys'))
+        ? createInstrumentConfig(
+            options.instrument ?? 'synth',
+            options.presetId ?? (options.instrument === 'drums' ? undefined : 'synth.keys'),
+          )
         : undefined;
     const track = createTrack({
       id,
@@ -112,7 +127,10 @@ export class EditController {
       lengthTicks: lengthTicks ?? ticksPerBar(this.project.meter),
       name: track.name,
     });
-    const result = this.history.execute({ type: 'clip.add', clips: [clip] }, { label: 'Create MIDI Clip' });
+    const result = this.history.execute(
+      { type: 'clip.add', clips: [clip] },
+      { label: 'Create MIDI Clip' },
+    );
     if (!result.ok) return null;
     this.ui.setState((s) => openClipInEditor(selectClips(selectTrack(s, trackId), [id]), id));
     return id;
@@ -120,7 +138,10 @@ export class EditController {
 
   addNotes(clipId: ClipId, notes: ReadonlyArray<Omit<MidiNote, 'id'>>): MidiNote[] {
     const created = notes.map((n) => ({ ...n, id: this.ids.create('note') }));
-    this.history.execute({ type: 'notes.add', clipId, notes: created }, { label: created.length === 1 ? 'Add Note' : `Add ${created.length} Notes` });
+    this.history.execute(
+      { type: 'notes.add', clipId, notes: created },
+      { label: created.length === 1 ? 'Add Note' : `Add ${created.length} Notes` },
+    );
     return created;
   }
 
@@ -138,8 +159,15 @@ export class EditController {
     const start = Math.min(...clips.map((c) => c.startTick));
     const end = Math.max(...clips.map((c) => Math.ceil(clipEndTick(c, this.project))));
     const offset = end - start;
-    const copies = clips.map((c) => ({ ...c, id: this.ids.create('clip'), startTick: c.startTick + offset }));
-    const result = this.history.execute({ type: 'clip.add', clips: copies }, { label: 'Duplicate' });
+    const copies = clips.map((c) => ({
+      ...c,
+      id: this.ids.create('clip'),
+      startTick: c.startTick + offset,
+    }));
+    const result = this.history.execute(
+      { type: 'clip.add', clips: copies },
+      { label: 'Duplicate' },
+    );
     if (!result.ok) return [];
     const ids = copies.map((c) => c.id);
     this.ui.setState((s) => selectClips(s, ids));
@@ -153,7 +181,12 @@ export class EditController {
       const clip = this.project.clips[id];
       if (!clip) continue;
       if (tick > clip.startTick && tick < clipEndTick(clip, this.project)) {
-        commands.push({ type: 'clip.split', clipId: id, atTick: Math.round(tick), newClipId: this.ids.create('clip') });
+        commands.push({
+          type: 'clip.split',
+          clipId: id,
+          atTick: Math.round(tick),
+          newClipId: this.ids.create('clip'),
+        });
       }
     }
     if (commands.length > 0) this.history.executeBatch(commands, { label: 'Split' });
@@ -184,14 +217,21 @@ export class EditController {
       let trackId = clip.trackId;
       const fits = (id: TrackId) => {
         const t = project.tracks[id];
-        return Boolean(t && (clip.kind === 'midi' ? t.kind === 'instrument' : t.kind !== 'instrument'));
+        return Boolean(
+          t && (clip.kind === 'midi' ? t.kind === 'instrument' : t.kind !== 'instrument'),
+        );
       };
       if (!fits(trackId)) {
         if (fallbackTrackId && fits(fallbackTrackId)) trackId = fallbackTrackId;
         else continue;
       }
       if (clip.kind === 'audio' && !project.assets[clip.assetId]) continue;
-      pasted.push({ ...clip, id: this.ids.create('clip'), trackId, startTick: Math.max(0, Math.round(atTick + clip.startTick - content.originTick)) });
+      pasted.push({
+        ...clip,
+        id: this.ids.create('clip'),
+        trackId,
+        startTick: Math.max(0, Math.round(atTick + clip.startTick - content.originTick)),
+      });
     }
     if (pasted.length === 0) return [];
     const result = this.history.execute({ type: 'clip.add', clips: pasted }, { label: 'Paste' });
@@ -202,7 +242,10 @@ export class EditController {
   }
 
   /** Imports audio files onto a track (creating an audio track if needed). One undo entry. */
-  async importAudio(files: readonly PickedFile[], options: { trackId?: TrackId; atTick?: number } = {}): Promise<ClipId[]> {
+  async importAudio(
+    files: readonly PickedFile[],
+    options: { trackId?: TrackId; atTick?: number } = {},
+  ): Promise<ClipId[]> {
     const imported = [];
     for (const file of files) imported.push(await this.assets.importFile(file));
     if (imported.length === 0) return [];
@@ -213,7 +256,12 @@ export class EditController {
       trackId = this.ids.create('track');
       commands.push({
         type: 'track.add',
-        track: createTrack({ id: trackId, kind: 'audio', index: this.project.trackOrder.length, name: imported[0]!.asset.name }),
+        track: createTrack({
+          id: trackId,
+          kind: 'audio',
+          index: this.project.trackOrder.length,
+          name: imported[0]!.asset.name,
+        }),
       });
     }
     let cursor = Math.max(0, Math.round(options.atTick ?? 0));
@@ -228,11 +276,22 @@ export class EditController {
       clipIds.push(id);
       commands.push({
         type: 'clip.add',
-        clips: [createAudioClip({ id, trackId: trackId!, assetId: asset.id, startTick: cursor, lengthFrames: asset.frames, name: asset.name })],
+        clips: [
+          createAudioClip({
+            id,
+            trackId: trackId!,
+            assetId: asset.id,
+            startTick: cursor,
+            lengthFrames: asset.frames,
+            name: asset.name,
+          }),
+        ],
       });
       cursor += Math.ceil((asset.frames / asset.sampleRate) * (this.project.bpm / 60) * PPQ);
     }
-    const result = this.history.executeBatch(commands, { label: files.length === 1 ? 'Import Audio' : `Import ${files.length} Files` });
+    const result = this.history.executeBatch(commands, {
+      label: files.length === 1 ? 'Import Audio' : `Import ${files.length} Files`,
+    });
     if (!result.ok) throw result.error;
     this.ui.setState((s) => selectClips(selectTrack(s, trackId!), clipIds));
     return clipIds;
@@ -248,13 +307,27 @@ export class EditController {
       target = this.ids.create('track');
       commands.push({
         type: 'track.add',
-        track: createTrack({ id: target, kind: 'audio', index: this.project.trackOrder.length, name: asset.name }),
+        track: createTrack({
+          id: target,
+          kind: 'audio',
+          index: this.project.trackOrder.length,
+          name: asset.name,
+        }),
       });
     }
     const id = this.ids.create('clip');
     commands.push({
       type: 'clip.add',
-      clips: [createAudioClip({ id, trackId: target, assetId, startTick: Math.max(0, Math.round(atTick)), lengthFrames: asset.frames, name: asset.name })],
+      clips: [
+        createAudioClip({
+          id,
+          trackId: target,
+          assetId,
+          startTick: Math.max(0, Math.round(atTick)),
+          lengthFrames: asset.frames,
+          name: asset.name,
+        }),
+      ],
     });
     const result = this.history.executeBatch(commands, { label: 'Place Audio' });
     if (!result.ok) return null;
@@ -312,13 +385,19 @@ export class EditController {
           durationTicks: Math.max(1, n.durationTicks),
         })),
     });
-    const result = this.history.execute({ type: 'clip.add', clips: [clip] }, { label: 'Record MIDI' });
+    const result = this.history.execute(
+      { type: 'clip.add', clips: [clip] },
+      { label: 'Record MIDI' },
+    );
     return result.ok ? id : null;
   }
 
   addEffect(target: TrackId | 'master', kind: EffectKind): EffectId {
     const id = this.ids.create('effect');
-    this.history.execute({ type: 'effect.add', target, effect: createEffectSlot(id, kind) }, { label: 'Add Effect' });
+    this.history.execute(
+      { type: 'effect.add', target, effect: createEffectSlot(id, kind) },
+      { label: 'Add Effect' },
+    );
     return id;
   }
 

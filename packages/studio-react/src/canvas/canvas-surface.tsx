@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, type HTMLAttributes, type Ref } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type HTMLAttributes,
+  type Ref,
+} from 'react';
 
 export interface CanvasSize {
   readonly width: number;
@@ -28,7 +35,14 @@ export interface CanvasSurfaceProps extends Omit<HTMLAttributes<HTMLCanvasElemen
  * A HiDPI-aware canvas that redraws when its size or `version` changes. Drawing happens in
  * device-independent pixels (the context is pre-scaled by devicePixelRatio).
  */
-export function CanvasSurface({ draw, version, ref, onResize, style, ...rest }: CanvasSurfaceProps) {
+export function CanvasSurface({
+  draw,
+  version,
+  ref,
+  onResize,
+  style,
+  ...rest
+}: CanvasSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef<CanvasSize>({ width: 0, height: 0, dpr: 1 });
   const frameRef = useRef<number | null>(null);
@@ -98,5 +112,11 @@ export function CanvasSurface({ draw, version, ref, onResize, style, ...rest }: 
     invalidate();
   }, [version, draw, invalidate]);
 
-  return <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%', ...style }} {...rest} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ display: 'block', width: '100%', height: '100%', ...style }}
+      {...rest}
+    />
+  );
 }

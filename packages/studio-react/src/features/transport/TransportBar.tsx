@@ -1,6 +1,24 @@
 import { clampBpm, isValidTimeSignature, type TimeSignatureDenominator } from '@studio/domain';
-import { IconButton, NumberField, ToggleButton, Toolbar, ToolbarGroup, ToolbarSeparator } from '@studio/ui';
-import { Circle, Download, Metronome, Pause, Play, Redo2, Repeat, SkipBack, Square, Undo2 } from 'lucide-react';
+import {
+  IconButton,
+  NumberField,
+  ToggleButton,
+  Toolbar,
+  ToolbarGroup,
+  ToolbarSeparator,
+} from '@studio/ui';
+import {
+  Circle,
+  Download,
+  Metronome,
+  Pause,
+  Play,
+  Redo2,
+  Repeat,
+  SkipBack,
+  Square,
+  Undo2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { formatBpm, parseBpm } from '../../lib/format';
 import { useEngineState, useProjectState, useSession } from '../../session/context';
@@ -33,17 +51,30 @@ export function TransportBar() {
 
   const setMeter = (numerator: number, denominator: TimeSignatureDenominator) => {
     const next = { numerator, denominator };
-    if (isValidTimeSignature(next)) session.history.execute({ type: 'project.setMeter', meter: next }, { label: 'Set Time Signature' });
+    if (isValidTimeSignature(next))
+      session.history.execute(
+        { type: 'project.setMeter', meter: next },
+        { label: 'Set Time Signature' },
+      );
   };
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-surface-1 px-2" data-testid="transport-bar">
+    <header
+      className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-surface-1 px-2"
+      data-testid="transport-bar"
+    >
       <ProjectMenu />
       <SaveIndicator />
       <div className="flex-1" />
       <Toolbar aria-label="Transport" className="gap-1">
         <ToolbarGroup>
-          <IconButton label="Return to start" shortcut="Home" icon={<SkipBack />} variant="ghost" onClick={() => void transport.rewind()} />
+          <IconButton
+            label="Return to start"
+            shortcut="Home"
+            icon={<SkipBack />}
+            variant="ghost"
+            onClick={() => void transport.rewind()}
+          />
           <IconButton
             label={playing ? 'Pause' : 'Play'}
             shortcut="Space"
@@ -52,7 +83,13 @@ export function TransportBar() {
             data-testid="transport-play"
             onClick={() => void (playing ? transport.pause() : transport.play())}
           />
-          <IconButton label="Stop" icon={<Square />} variant="ghost" data-testid="transport-stop" onClick={() => void transport.stop()} />
+          <IconButton
+            label="Stop"
+            icon={<Square />}
+            variant="ghost"
+            data-testid="transport-stop"
+            onClick={() => void transport.stop()}
+          />
           <ToggleButton
             label="Record"
             shortcut="R"
@@ -65,8 +102,23 @@ export function TransportBar() {
         </ToolbarGroup>
         <ToolbarSeparator />
         <ToolbarGroup>
-          <ToggleButton label="Loop" shortcut="L" tone="accent" pressed={loopEnabled} icon={<Repeat />} data-testid="transport-loop" onPressedChange={() => transport.toggleLoop()} />
-          <ToggleButton label="Metronome" shortcut="M" tone="accent" pressed={metronomeOn} icon={<Metronome />} onPressedChange={() => transport.toggleMetronome()} />
+          <ToggleButton
+            label="Loop"
+            shortcut="L"
+            tone="accent"
+            pressed={loopEnabled}
+            icon={<Repeat />}
+            data-testid="transport-loop"
+            onPressedChange={() => transport.toggleLoop()}
+          />
+          <ToggleButton
+            label="Metronome"
+            shortcut="M"
+            tone="accent"
+            pressed={metronomeOn}
+            icon={<Metronome />}
+            onPressedChange={() => transport.toggleMetronome()}
+          />
         </ToolbarGroup>
       </Toolbar>
       <PositionDisplay />
@@ -108,7 +160,9 @@ export function TransportBar() {
             return DENOMINATORS.includes(n as TimeSignatureDenominator) ? n : null;
           }}
           onChange={(v) => {
-            const nearest = DENOMINATORS.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
+            const nearest = DENOMINATORS.reduce((a, b) =>
+              Math.abs(b - v) < Math.abs(a - v) ? b : a,
+            );
             setMeter(meter.numerator, nearest);
           }}
           className="w-[40px]"
@@ -116,13 +170,33 @@ export function TransportBar() {
       </div>
       <div className="flex-1" />
       <ToolbarGroup>
-        <IconButton label={undoLabel ? `Undo ${undoLabel}` : 'Undo'} shortcut="Mod+Z" icon={<Undo2 />} variant="ghost" disabled={!canUndo} onClick={() => session.history.undo()} />
-        <IconButton label={redoLabel ? `Redo ${redoLabel}` : 'Redo'} shortcut="Mod+Shift+Z" icon={<Redo2 />} variant="ghost" disabled={!canRedo} onClick={() => session.history.redo()} />
+        <IconButton
+          label={undoLabel ? `Undo ${undoLabel}` : 'Undo'}
+          shortcut="Mod+Z"
+          icon={<Undo2 />}
+          variant="ghost"
+          disabled={!canUndo}
+          onClick={() => session.history.undo()}
+        />
+        <IconButton
+          label={redoLabel ? `Redo ${redoLabel}` : 'Redo'}
+          shortcut="Mod+Shift+Z"
+          icon={<Redo2 />}
+          variant="ghost"
+          disabled={!canRedo}
+          onClick={() => session.history.redo()}
+        />
       </ToolbarGroup>
       <MasterMeter />
       <ShortcutsDialog />
       <SettingsDialog />
-      <IconButton label="Export audio" icon={<Download />} variant="secondary" data-testid="open-export" onClick={() => setExportOpen(true)} />
+      <IconButton
+        label="Export audio"
+        icon={<Download />}
+        variant="secondary"
+        data-testid="open-export"
+        onClick={() => setExportOpen(true)}
+      />
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
     </header>
   );

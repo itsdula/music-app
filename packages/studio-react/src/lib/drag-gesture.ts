@@ -14,10 +14,18 @@ export interface DragGestureOptions {
    * Called when the gesture ends. `committed` is false when cancelled; `dragged` is false for
    * a plain click.
    */
-  readonly onEnd: (result: { committed: boolean; dragged: boolean; event: PointerEvent | null }) => void;
+  readonly onEnd: (result: {
+    committed: boolean;
+    dragged: boolean;
+    event: PointerEvent | null;
+  }) => void;
 }
 
-export function startDragGesture(down: PointerEvent, element: Element, options: DragGestureOptions): () => void {
+export function startDragGesture(
+  down: PointerEvent,
+  element: Element,
+  options: DragGestureOptions,
+): () => void {
   const threshold = options.threshold ?? 3;
   const startX = down.clientX;
   const startY = down.clientY;

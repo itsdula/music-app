@@ -2,7 +2,14 @@
  * Arrangement layout: tracks are stacked rows; clips are positioned with the shared
  * TimeAxis. Clip extents for audio clips derive from tempo (see domain `clipEndTick`).
  */
-import { clipEndTick, type Clip, type ClipId, type Project, type Track, type TrackId } from '@studio/domain';
+import {
+  clipEndTick,
+  type Clip,
+  type ClipId,
+  type Project,
+  type Track,
+  type TrackId,
+} from '@studio/domain';
 import type { TimeAxis } from '../../canvas/time-axis';
 
 export const RULER_HEIGHT = 28;
@@ -29,8 +36,17 @@ export interface ClipBox {
   readonly h: number;
 }
 
-export function layoutRows(tracks: readonly Track[], trackHeight: number, scrollY: number): TrackRow[] {
-  return tracks.map((track, index) => ({ track, index, top: index * trackHeight - scrollY, height: trackHeight }));
+export function layoutRows(
+  tracks: readonly Track[],
+  trackHeight: number,
+  scrollY: number,
+): TrackRow[] {
+  return tracks.map((track, index) => ({
+    track,
+    index,
+    top: index * trackHeight - scrollY,
+    height: trackHeight,
+  }));
 }
 
 export function rowAtY(rows: readonly TrackRow[], y: number): TrackRow | null {

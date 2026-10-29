@@ -39,17 +39,27 @@ export function clampTopPitch(topPitch: number, viewHeight: number, rowHeight: n
 }
 
 /** Timeline tick of a content tick for a (non-looping view of a) clip. */
-export function contentToTimeline(clip: Pick<MidiClip, 'startTick' | 'contentOffsetTicks'>, contentTick: number): number {
+export function contentToTimeline(
+  clip: Pick<MidiClip, 'startTick' | 'contentOffsetTicks'>,
+  contentTick: number,
+): number {
   return clip.startTick + contentTick - clip.contentOffsetTicks;
 }
 
-export function timelineToContent(clip: Pick<MidiClip, 'startTick' | 'contentOffsetTicks'>, timelineTick: number): number {
+export function timelineToContent(
+  clip: Pick<MidiClip, 'startTick' | 'contentOffsetTicks'>,
+  timelineTick: number,
+): number {
   return timelineTick - clip.startTick + clip.contentOffsetTicks;
 }
 
 /** Editable content window of the clip (the loop region when looping, otherwise the visible window). */
-export function editableContentRange(clip: MidiClip): { readonly start: number; readonly end: number } {
-  if (clip.loopLengthTicks !== undefined && clip.loopLengthTicks > 0) return { start: 0, end: clip.loopLengthTicks };
+export function editableContentRange(clip: MidiClip): {
+  readonly start: number;
+  readonly end: number;
+} {
+  if (clip.loopLengthTicks !== undefined && clip.loopLengthTicks > 0)
+    return { start: 0, end: clip.loopLengthTicks };
   return { start: clip.contentOffsetTicks, end: clip.contentOffsetTicks + clip.lengthTicks };
 }
 
@@ -61,7 +71,12 @@ export interface NoteRect {
   readonly h: number;
 }
 
-export function noteRect(note: MidiNote, clip: MidiClip, time: TimeAxis, pitch: PitchAxis): NoteRect {
+export function noteRect(
+  note: MidiNote,
+  clip: MidiClip,
+  time: TimeAxis,
+  pitch: PitchAxis,
+): NoteRect {
   const x = time.tickToX(contentToTimeline(clip, note.startTick));
   const w = Math.max(2, time.span(note.durationTicks));
   const y = pitchToY(note.pitch, pitch);

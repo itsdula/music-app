@@ -8,7 +8,9 @@ export async function openStudio(page: Page, path = '/'): Promise<void> {
     Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });
   });
   await page.goto(path);
-  await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+  await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+    timeout: 30_000,
+  });
 }
 
 export async function resetStorage(page: Page): Promise<void> {

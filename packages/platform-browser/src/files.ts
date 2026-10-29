@@ -2,7 +2,12 @@
  * Browser file dialogs: File System Access API when available (Chromium), otherwise an
  * <input type="file"> for opening and an <a download> for saving.
  */
-import type { FileDialogs, OpenFileOptions, PickedFile, SaveFileOptions } from '@studio/platform-contracts';
+import type {
+  FileDialogs,
+  OpenFileOptions,
+  PickedFile,
+  SaveFileOptions,
+} from '@studio/platform-contracts';
 
 interface FilePickerAcceptType {
   description?: string;
@@ -13,12 +18,21 @@ interface FileSystemAccessWindow {
   showSaveFilePicker?: (options: {
     suggestedName?: string;
     types?: FilePickerAcceptType[];
-  }) => Promise<{ createWritable(): Promise<{ write(data: BufferSource | Blob): Promise<void>; close(): Promise<void> }> }>;
+  }) => Promise<{
+    createWritable(): Promise<{
+      write(data: BufferSource | Blob): Promise<void>;
+      close(): Promise<void>;
+    }>;
+  }>;
 }
 
 async function readFile(file: File): Promise<PickedFile> {
   const buffer = await file.arrayBuffer();
-  return { name: file.name, mimeType: file.type || guessMime(file.name), bytes: new Uint8Array(buffer) };
+  return {
+    name: file.name,
+    mimeType: file.type || guessMime(file.name),
+    bytes: new Uint8Array(buffer),
+  };
 }
 
 export function guessMime(fileName: string): string {
@@ -68,10 +82,16 @@ export function createBrowserFileDialogs(doc: Document = document): FileDialogs 
       const copy = bytes.slice();
       if (fsWindow?.showSaveFilePicker) {
         try {
-          const ext = options.suggestedName.includes('.') ? `.${options.suggestedName.split('.').pop()}` : '';
+          const ext = options.suggestedName.includes('.')
+            ? `.${options.suggestedName.split('.').pop()}`
+            : '';
           const handle = await fsWindow.showSaveFilePicker({
             suggestedName: options.suggestedName,
-            ...(ext ? { types: [{ description: options.mimeType, accept: { [options.mimeType]: [ext] } }] } : {}),
+            ...(ext
+              ? {
+                  types: [{ description: options.mimeType, accept: { [options.mimeType]: [ext] } }],
+                }
+              : {}),
           });
           const writable = await handle.createWritable();
           await writable.write(copy);

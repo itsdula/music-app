@@ -10,7 +10,10 @@ const out = join(process.cwd(), 'apps/web/public/screenshots');
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({
+  viewport: { width: 1600, height: 1000 },
+  deviceScaleFactor: 1,
+});
 await page.goto(base);
 await page.getByTestId('studio-root').waitFor();
 await page.waitForSelector('[data-studio-status="ready"]', { timeout: 30_000 });

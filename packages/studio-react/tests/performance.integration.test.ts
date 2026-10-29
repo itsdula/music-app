@@ -37,7 +37,16 @@ function representativeProject(): Project {
   for (let t = 0; t < 16; t++) {
     const id = asTrackId(`t${t}`);
     const kind = t < 10 ? 'instrument' : 'audio';
-    tracks.push(createTrack({ id, kind, index: t, ...(kind === 'instrument' ? { instrument: createInstrumentConfig('synth', 'synth.keys') } : {}) }));
+    tracks.push(
+      createTrack({
+        id,
+        kind,
+        index: t,
+        ...(kind === 'instrument'
+          ? { instrument: createInstrumentConfig('synth', 'synth.keys') }
+          : {}),
+      }),
+    );
   }
   let n = 0;
   for (let c = 0; c < 100; c++) {
@@ -51,11 +60,39 @@ function representativeProject(): Project {
         pitch: 48 + ((i * 7) % 24),
         velocity: 90,
       }));
-      clips.push(createMidiClip({ id: asClipId(`c${c}`), trackId: track.id, startTick: start, lengthTicks: PPQ * 16, notes }));
+      clips.push(
+        createMidiClip({
+          id: asClipId(`c${c}`),
+          trackId: track.id,
+          startTick: start,
+          lengthTicks: PPQ * 16,
+          notes,
+        }),
+      );
     } else {
       const assetId = asAssetId(`a${c}`);
-      assets[assetId] = { id: assetId, name: `take ${c}`, kind: 'audio', mimeType: 'audio/wav', sampleRate: 48000, channels: 2, frames: 48000 * 8, contentHash: 'f'.repeat(64), byteLength: 48000 * 8 * 8, source: 'recording', createdAt: base.createdAt };
-      clips.push(createAudioClip({ id: asClipId(`c${c}`), trackId: track.id, assetId, startTick: start, lengthFrames: 48000 * 8 }));
+      assets[assetId] = {
+        id: assetId,
+        name: `take ${c}`,
+        kind: 'audio',
+        mimeType: 'audio/wav',
+        sampleRate: 48000,
+        channels: 2,
+        frames: 48000 * 8,
+        contentHash: 'f'.repeat(64),
+        byteLength: 48000 * 8 * 8,
+        source: 'recording',
+        createdAt: base.createdAt,
+      };
+      clips.push(
+        createAudioClip({
+          id: asClipId(`c${c}`),
+          trackId: track.id,
+          assetId,
+          startTick: start,
+          lengthFrames: 48000 * 8,
+        }),
+      );
     }
   }
   return {
@@ -80,7 +117,10 @@ describe('performance baselines (16 tracks / 100 clips)', () => {
   const project = representativeProject();
 
   it('diffs a single-clip edit quickly', () => {
-    const moved = applyCommand(project, { type: 'clip.move', moves: [{ clipId: asClipId('c5'), startTick: PPQ * 128 }] });
+    const moved = applyCommand(project, {
+      type: 'clip.move',
+      moves: [{ clipId: asClipId('c5'), startTick: PPQ * 128 }],
+    });
     let changes = 0;
     const ms = time('diffProjects (one clip moved)', 2000, () => {
       changes = diffProjects(project, moved).length;
@@ -91,7 +131,11 @@ describe('performance baselines (16 tracks / 100 clips)', () => {
 
   it('applies a note move command quickly', () => {
     const ms = time('applyCommand notes.update (64-note clip)', 2000, () => {
-      applyCommand(project, { type: 'notes.update', clipId: asClipId('c0'), patches: [{ id: asNoteId('n0'), startTick: 10 }] });
+      applyCommand(project, {
+        type: 'notes.update',
+        clipId: asClipId('c0'),
+        patches: [{ id: asNoteId('n0'), startTick: 10 }],
+      });
     });
     expect(ms).toBeLessThan(2);
   });
@@ -111,7 +155,11 @@ describe('performance baselines (16 tracks / 100 clips)', () => {
   });
 
   it('lays out arrangement clips for a viewport', () => {
-    const rows = layoutRows(project.trackOrder.map((id) => project.tracks[id]!), 64, 0);
+    const rows = layoutRows(
+      project.trackOrder.map((id) => project.tracks[id]!),
+      64,
+      0,
+    );
     const axis = new TimeAxis(0.05, 0);
     let count = 0;
     const ms = time('clipBoxes (visible clips for 1600×1000 viewport)', 2000, () => {

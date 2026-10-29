@@ -81,21 +81,36 @@ export class AssetLibrary implements AssetPcmSource {
 
   async importFile(file: PickedFile): Promise<ImportedAsset> {
     if (!this.platform.audioDecoder.canDecode(file.mimeType, file.name)) {
-      throw new AssetImportError(`“${file.name}” is not an audio format this browser can decode.`, file.name);
+      throw new AssetImportError(
+        `“${file.name}” is not an audio format this browser can decode.`,
+        file.name,
+      );
     }
     const contentHash = await this.platform.hasher.sha256(file.bytes);
-    const existing = Object.values(this.getProject().assets).find((a) => a.contentHash === contentHash);
+    const existing = Object.values(this.getProject().assets).find(
+      (a) => a.contentHash === contentHash,
+    );
     if (existing) return { asset: existing, pcm: await this.load(existing.id), reused: true };
     let pcm: PcmAudio;
     try {
-      pcm = await this.platform.audioDecoder.decode(file.bytes, { mimeType: file.mimeType, fileName: file.name });
+      pcm = await this.platform.audioDecoder.decode(file.bytes, {
+        mimeType: file.mimeType,
+        fileName: file.name,
+      });
     } catch (error) {
       throw new AssetImportError(
         `Could not decode “${file.name}”: ${error instanceof Error ? error.message : String(error)}`,
         file.name,
       );
     }
-    const asset = this.describe(stripExtension(file.name), file.mimeType, pcm, contentHash, file.bytes.byteLength, 'import');
+    const asset = this.describe(
+      stripExtension(file.name),
+      file.mimeType,
+      pcm,
+      contentHash,
+      file.bytes.byteLength,
+      'import',
+    );
     await this.platform.assetRepository.put({ meta: asset, bytes: file.bytes });
     this.pcm.set(asset.id, pcm);
     this.ensurePeaks(asset.id, pcm, contentHash);
@@ -114,11 +129,18 @@ export class AssetLibrary implements AssetPcmSource {
   }
 
   /** Interleaved [min, max] peaks for drawing, or null while not yet available. */
-  readPeaks(assetId: AssetId, startFrame: number, endFrame: number, columns: number): Float32Array | null {
+  readPeaks(
+    assetId: AssetId,
+    startFrame: number,
+    endFrame: number,
+    columns: number,
+  ): Float32Array | null {
     const pyramid = this.pyramids.get(assetId);
     if (pyramid) return readPeaks(pyramid, startFrame, endFrame, columns);
     if (!this.loading.has(assetId) && !this.pcm.has(assetId) && this.getProject().assets[assetId]) {
-      this.load(assetId).catch((error: unknown) => this.platform.logger.warn('Asset load failed', error));
+      this.load(assetId).catch((error: unknown) =>
+        this.platform.logger.warn('Asset load failed', error),
+      );
     }
     return null;
   }
@@ -165,7 +187,12 @@ export class AssetLibrary implements AssetPcmSource {
   private ensurePeaks(assetId: AssetId, pcm: PcmAudio, contentHash: string): void {
     if (this.pyramids.has(assetId) || this.pyramidJobs.has(assetId)) return;
     this.pyramidJobs.add(assetId);
-    const key = derivedCacheKey({ kind: 'peaks', contentHash, algorithmVersion: PEAKS_VERSION, paramsHash: '-' });
+    const key = derivedCacheKey({
+      kind: 'peaks',
+      contentHash,
+      algorithmVersion: PEAKS_VERSION,
+      paramsHash: '-',
+    });
     void (async () => {
       try {
         let pyramid = await this.platform.derivedCache.get<PeakPyramid>(key);

@@ -1,7 +1,14 @@
 /** Small canvas drawing helpers shared by renderers. */
 import { colors } from '@studio/ui';
 
-export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+export function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
   const radius = Math.max(0, Math.min(r, w / 2, h / 2));
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -31,7 +38,8 @@ export function shade(hex: string, amount: number): string {
   const n = Number.parseInt(m[1]!, 16);
   const target = amount >= 0 ? 255 : 0;
   const t = Math.min(1, Math.abs(amount));
-  const ch = (shift: number) => Math.round(((n >> shift) & 255) + (target - ((n >> shift) & 255)) * t);
+  const ch = (shift: number) =>
+    Math.round(((n >> shift) & 255) + (target - ((n >> shift) & 255)) * t);
   return `rgb(${ch(16)}, ${ch(8)}, ${ch(0)})`;
 }
 
@@ -57,7 +65,12 @@ export const canvasFont = (sizePx: number, weight = 500) =>
 
 export const palette = colors;
 
-export function drawPlayhead(ctx: CanvasRenderingContext2D, x: number, height: number, recording: boolean): void {
+export function drawPlayhead(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  height: number,
+  recording: boolean,
+): void {
   ctx.strokeStyle = recording ? colors.record : colors.text;
   ctx.lineWidth = 1;
   vline(ctx, x, 0, height);

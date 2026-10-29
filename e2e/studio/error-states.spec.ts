@@ -5,13 +5,20 @@ async function freshStudio(page: Page): Promise<void> {
   await openStudio(page);
   await resetStorage(page);
   await page.reload();
-  await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+  await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+    timeout: 30_000,
+  });
 }
 
 test.describe('Error states are explained, not silent', () => {
-  test('a browser without Web MIDI shows an unsupported state instead of a broken button', async ({ page }) => {
+  test('a browser without Web MIDI shows an unsupported state instead of a broken button', async ({
+    page,
+  }) => {
     await page.addInitScript(() => {
-      Object.defineProperty(navigator, 'requestMIDIAccess', { value: undefined, configurable: true });
+      Object.defineProperty(navigator, 'requestMIDIAccess', {
+        value: undefined,
+        configurable: true,
+      });
     });
     await freshStudio(page);
     const section = page.getByTestId('midi-devices');
@@ -30,7 +37,9 @@ test.describe('Error states are explained, not silent', () => {
     });
     await freshStudio(page);
     await page.getByTestId('midi-connect').click();
-    await expect(page.getByTestId('midi-devices').getByRole('status')).toContainText('MIDI permission was denied');
+    await expect(page.getByTestId('midi-devices').getByRole('status')).toContainText(
+      'MIDI permission was denied',
+    );
     // The user can retry after changing the site setting.
     await expect(page.getByTestId('midi-connect')).toBeVisible();
   });
@@ -53,14 +62,24 @@ test.describe('Error states are explained, not silent', () => {
     await expect(page.getByTestId('transport-play')).toHaveAccessibleName(/Play/);
   });
 
-  test('a corrupt project bundle is rejected and the open project is untouched', async ({ page }) => {
+  test('a corrupt project bundle is rejected and the open project is untouched', async ({
+    page,
+  }) => {
     await freshStudio(page);
     const before = await page.getByTestId('project-name').textContent();
     await page.getByTestId('project-menu').click();
     const chooser = page.waitForEvent('filechooser');
     await page.getByRole('menuitem', { name: 'Import project bundle…' }).click();
-    await (await chooser).setFiles({ name: 'broken.studio', mimeType: 'application/zip', buffer: Buffer.from('PK\u0003\u0004 definitely not a zip') });
-    await expect(page.getByText('This bundle could not be imported', { exact: false })).toBeVisible();
+    await (
+      await chooser
+    ).setFiles({
+      name: 'broken.studio',
+      mimeType: 'application/zip',
+      buffer: Buffer.from('PK\u0003\u0004 definitely not a zip'),
+    });
+    await expect(
+      page.getByText('This bundle could not be imported', { exact: false }),
+    ).toBeVisible();
     await expect(page.getByTestId('project-name')).toHaveText(before ?? '');
     await expect(page.getByTestId('track-header')).toHaveCount(1);
   });

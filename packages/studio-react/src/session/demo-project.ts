@@ -16,11 +16,22 @@ import {
 
 export function createStarterProject(ids: IdFactory, now: string): Project {
   const project = createEmptyProject({ id: ids.create('project'), name: 'Untitled Project', now });
-  const keys = createTrack({ id: ids.create('track'), kind: 'instrument', index: 0, name: 'Keys', instrument: createInstrumentConfig('synth', 'synth.keys') });
+  const keys = createTrack({
+    id: ids.create('track'),
+    kind: 'instrument',
+    index: 0,
+    name: 'Keys',
+    instrument: createInstrumentConfig('synth', 'synth.keys'),
+  });
   return { ...project, trackOrder: [keys.id], tracks: { [keys.id]: keys } };
 }
 
-type NoteSpec = readonly [startSixteenth: number, pitch: number, lengthSixteenths: number, velocity: number];
+type NoteSpec = readonly [
+  startSixteenth: number,
+  pitch: number,
+  lengthSixteenths: number,
+  velocity: number,
+];
 
 function notes(ids: IdFactory, specs: readonly NoteSpec[]): MidiNote[] {
   const s = PPQ / 4;
@@ -35,9 +46,27 @@ function notes(ids: IdFactory, specs: readonly NoteSpec[]): MidiNote[] {
 
 export function createDemoProject(ids: IdFactory, now: string): Project {
   const base = createEmptyProject({ id: ids.create('project'), name: 'Demo Groove', now, bpm: 96 });
-  const drums = createTrack({ id: ids.create('track'), kind: 'instrument', index: 0, name: 'Drums', instrument: createInstrumentConfig('drums') });
-  const bass = createTrack({ id: ids.create('track'), kind: 'instrument', index: 1, name: 'Bass', instrument: createInstrumentConfig('synth', 'synth.bass') });
-  const keys = createTrack({ id: ids.create('track'), kind: 'instrument', index: 2, name: 'Keys', instrument: createInstrumentConfig('synth', 'synth.keys') });
+  const drums = createTrack({
+    id: ids.create('track'),
+    kind: 'instrument',
+    index: 0,
+    name: 'Drums',
+    instrument: createInstrumentConfig('drums'),
+  });
+  const bass = createTrack({
+    id: ids.create('track'),
+    kind: 'instrument',
+    index: 1,
+    name: 'Bass',
+    instrument: createInstrumentConfig('synth', 'synth.bass'),
+  });
+  const keys = createTrack({
+    id: ids.create('track'),
+    kind: 'instrument',
+    index: 2,
+    name: 'Keys',
+    instrument: createInstrumentConfig('synth', 'synth.keys'),
+  });
   const bar = PPQ * 4;
 
   const drumPattern: NoteSpec[] = [];
@@ -51,18 +80,53 @@ export function createDemoProject(ids: IdFactory, now: string): Project {
 
   // Bass: A minor-ish line (A2, C3, G2, E2) — original.
   const bassLine: NoteSpec[] = [
-    [0, 45, 3, 104], [4, 45, 2, 92], [7, 48, 2, 96], [10, 43, 3, 98], [14, 40, 2, 90],
-    [16, 45, 3, 104], [20, 45, 2, 92], [23, 52, 2, 96], [26, 50, 3, 98], [30, 48, 2, 90],
+    [0, 45, 3, 104],
+    [4, 45, 2, 92],
+    [7, 48, 2, 96],
+    [10, 43, 3, 98],
+    [14, 40, 2, 90],
+    [16, 45, 3, 104],
+    [20, 45, 2, 92],
+    [23, 52, 2, 96],
+    [26, 50, 3, 98],
+    [30, 48, 2, 90],
   ];
   // Keys: sustained chords Am7 → Fmaj7 (voicings original).
   const chords: NoteSpec[] = [
-    [0, 57, 15, 78], [0, 60, 15, 74], [0, 64, 15, 74], [0, 67, 15, 70],
-    [16, 53, 15, 78], [16, 57, 15, 74], [16, 60, 15, 74], [16, 64, 15, 70],
+    [0, 57, 15, 78],
+    [0, 60, 15, 74],
+    [0, 64, 15, 74],
+    [0, 67, 15, 70],
+    [16, 53, 15, 78],
+    [16, 57, 15, 74],
+    [16, 60, 15, 74],
+    [16, 64, 15, 70],
   ];
 
-  const drumClip = createMidiClip({ id: ids.create('clip'), trackId: drums.id, startTick: 0, lengthTicks: bar * 4, name: 'Beat', notes: notes(ids, drumPattern) });
-  const bassClip = createMidiClip({ id: ids.create('clip'), trackId: bass.id, startTick: 0, lengthTicks: bar * 4, name: 'Bassline', notes: notes(ids, bassLine) });
-  const keysClip = createMidiClip({ id: ids.create('clip'), trackId: keys.id, startTick: 0, lengthTicks: bar * 4, name: 'Chords', notes: notes(ids, chords) });
+  const drumClip = createMidiClip({
+    id: ids.create('clip'),
+    trackId: drums.id,
+    startTick: 0,
+    lengthTicks: bar * 4,
+    name: 'Beat',
+    notes: notes(ids, drumPattern),
+  });
+  const bassClip = createMidiClip({
+    id: ids.create('clip'),
+    trackId: bass.id,
+    startTick: 0,
+    lengthTicks: bar * 4,
+    name: 'Bassline',
+    notes: notes(ids, bassLine),
+  });
+  const keysClip = createMidiClip({
+    id: ids.create('clip'),
+    trackId: keys.id,
+    startTick: 0,
+    lengthTicks: bar * 4,
+    name: 'Chords',
+    notes: notes(ids, chords),
+  });
 
   return {
     ...base,

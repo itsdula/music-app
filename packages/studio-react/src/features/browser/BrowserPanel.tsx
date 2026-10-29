@@ -1,5 +1,16 @@
 import { EmptyState, IconButton } from '@studio/ui';
-import { AudioLines, ChevronDown, ChevronRight, Drum, FileAudio, Piano, Plus, Search, SlidersHorizontal, Upload } from 'lucide-react';
+import {
+  AudioLines,
+  ChevronDown,
+  ChevronRight,
+  Drum,
+  FileAudio,
+  Piano,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Upload,
+} from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import {
@@ -12,7 +23,17 @@ import {
 } from './browser-items';
 import { MidiDevicesSection } from './MidiDevicesSection';
 
-function Section({ title, icon, children, defaultOpen = true }: { title: string; icon: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
+function Section({
+  title,
+  icon,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className="border-b border-line/60">
@@ -22,7 +43,11 @@ function Section({ title, icon, children, defaultOpen = true }: { title: string;
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        {open ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5" aria-hidden />}
+        {open ? (
+          <ChevronDown className="size-3.5" aria-hidden />
+        ) : (
+          <ChevronRight className="size-3.5" aria-hidden />
+        )}
         <span className="[&_svg]:size-3.5" aria-hidden>
           {icon}
         </span>
@@ -33,7 +58,17 @@ function Section({ title, icon, children, defaultOpen = true }: { title: string;
   );
 }
 
-function ItemRow({ item, icon, onActivate, hint }: { item: BrowserItem; icon: ReactNode; onActivate: () => void; hint: string }) {
+function ItemRow({
+  item,
+  icon,
+  onActivate,
+  hint,
+}: {
+  item: BrowserItem;
+  icon: ReactNode;
+  onActivate: () => void;
+  hint: string;
+}) {
   return (
     <li>
       <button
@@ -71,25 +106,44 @@ export function BrowserPanel() {
   );
 
   const report = (error: unknown) =>
-    session.engineStore.setState({ lastError: { code: 'internal', message: error instanceof Error ? error.message : String(error) } });
+    session.engineStore.setState({
+      lastError: {
+        code: 'internal',
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
 
   const activate = (item: BrowserItem) => {
     const { edits, engineStore } = session;
     if (item.kind === 'instrument') {
-      edits.addTrack('instrument', { instrument: item.instrument, ...(item.presetId ? { presetId: item.presetId } : {}), name: item.instrument === 'synth' ? item.label : undefined });
+      edits.addTrack('instrument', {
+        instrument: item.instrument,
+        ...(item.presetId ? { presetId: item.presetId } : {}),
+        name: item.instrument === 'synth' ? item.label : undefined,
+      });
     } else if (item.kind === 'effect') {
       const target = selectedTrackId ?? 'master';
       edits.addEffect(target, item.effect);
-      session.uiStore.setState((s) => ({ ...s, panels: { ...s.panels, bottomOpen: true, bottomPanel: 'editor' } }));
+      session.uiStore.setState((s) => ({
+        ...s,
+        panels: { ...s.panels, bottomOpen: true, bottomPanel: 'editor' },
+      }));
     } else {
-      const trackId = selectedTrackId && session.history.present.tracks[selectedTrackId]?.kind !== 'instrument' ? selectedTrackId : null;
+      const trackId =
+        selectedTrackId && session.history.present.tracks[selectedTrackId]?.kind !== 'instrument'
+          ? selectedTrackId
+          : null;
       session.edits.placeAsset(item.assetId, trackId, engineStore.getState().cursorTick);
     }
   };
 
   const importFiles = async () => {
-    const files = await session.platform.fileDialogs.openFiles({ accept: ['audio/*', '.wav', '.mp3', '.flac', '.ogg', '.m4a'], multiple: true });
-    if (files.length > 0) await session.edits.importAudio(files, { atTick: session.engineStore.getState().cursorTick });
+    const files = await session.platform.fileDialogs.openFiles({
+      accept: ['audio/*', '.wav', '.mp3', '.flac', '.ogg', '.m4a'],
+      multiple: true,
+    });
+    if (files.length > 0)
+      await session.edits.importAudio(files, { atTick: session.engineStore.getState().cursorTick });
   };
 
   const instruments = INSTRUMENT_ITEMS.filter((i) => matchesQuery(i.label, query));
@@ -110,7 +164,13 @@ export function BrowserPanel() {
             className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-text-faint"
           />
         </div>
-        <IconButton label="Import audio files" icon={<Upload />} variant="ghost" data-testid="import-audio" onClick={() => void importFiles().catch(report)} />
+        <IconButton
+          label="Import audio files"
+          icon={<Upload />}
+          variant="ghost"
+          data-testid="import-audio"
+          onClick={() => void importFiles().catch(report)}
+        />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Section title="Instruments" icon={<Piano />}>
@@ -118,7 +178,9 @@ export function BrowserPanel() {
             <ItemRow
               key={item.label}
               item={item}
-              icon={item.kind === 'instrument' && item.instrument === 'drums' ? <Drum /> : <Piano />}
+              icon={
+                item.kind === 'instrument' && item.instrument === 'drums' ? <Drum /> : <Piano />
+              }
               hint="Double-click or drag into the arrangement to add a track"
               onActivate={() => activate(item)}
             />
@@ -126,17 +188,33 @@ export function BrowserPanel() {
         </Section>
         <Section title="Audio Effects" icon={<SlidersHorizontal />}>
           {effects.map((item) => (
-            <ItemRow key={item.label} item={item} icon={<SlidersHorizontal />} hint="Double-click to add to the selected track, or drag onto a track" onActivate={() => activate(item)} />
+            <ItemRow
+              key={item.label}
+              item={item}
+              icon={<SlidersHorizontal />}
+              hint="Double-click to add to the selected track, or drag onto a track"
+              onActivate={() => activate(item)}
+            />
           ))}
         </Section>
         <Section title="Project Files" icon={<FileAudio />}>
           {files.length === 0 ? (
             <li className="px-3 py-2">
-              <EmptyState title="No audio yet" description="Import WAV or MP3 files, or record a take." icon={<AudioLines />} />
+              <EmptyState
+                title="No audio yet"
+                description="Import WAV or MP3 files, or record a take."
+                icon={<AudioLines />}
+              />
             </li>
           ) : (
             files.map((item) => (
-              <ItemRow key={item.kind === 'asset' ? item.assetId : item.label} item={item} icon={<AudioLines />} hint="Drag onto an audio track or double-click to place at the cursor" onActivate={() => activate(item)} />
+              <ItemRow
+                key={item.kind === 'asset' ? item.assetId : item.label}
+                item={item}
+                icon={<AudioLines />}
+                hint="Drag onto an audio track or double-click to place at the cursor"
+                onActivate={() => activate(item)}
+              />
             ))
           )}
         </Section>

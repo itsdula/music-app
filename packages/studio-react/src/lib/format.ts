@@ -1,6 +1,10 @@
 import { formatBarsBeats, formatSeconds, ticksToSeconds, type TimeSignature } from '@studio/domain';
 
-export function formatPosition(ticks: number, bpm: number, meter: TimeSignature): { bars: string; time: string } {
+export function formatPosition(
+  ticks: number,
+  bpm: number,
+  meter: TimeSignature,
+): { bars: string; time: string } {
   return { bars: formatBarsBeats(ticks, meter), time: formatSeconds(ticksToSeconds(ticks, bpm)) };
 }
 

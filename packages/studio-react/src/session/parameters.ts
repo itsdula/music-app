@@ -43,7 +43,11 @@ export interface ResolvedParameter {
   command(value: number): Command;
 }
 
-function trackParam(project: Project, trackId: TrackId, param: TrackParam): ResolvedParameter | undefined {
+function trackParam(
+  project: Project,
+  trackId: TrackId,
+  param: TrackParam,
+): ResolvedParameter | undefined {
   const track = project.tracks[trackId];
   if (!track) return undefined;
   switch (param) {
@@ -85,7 +89,11 @@ function trackParam(project: Project, trackId: TrackId, param: TrackParam): Reso
   }
 }
 
-function instrumentParam(project: Project, trackId: TrackId, param: string): ResolvedParameter | undefined {
+function instrumentParam(
+  project: Project,
+  trackId: TrackId,
+  param: string,
+): ResolvedParameter | undefined {
   const track = project.tracks[trackId];
   const instrument = track?.instrument;
   if (!track || !instrument) return undefined;
@@ -128,12 +136,18 @@ export function resolveParameter(
         command: (v) => ({ type: 'project.setTempo', bpm: v }),
       };
     case 'effect': {
-      const chain = address.trackId === 'master' ? project.master.effects : project.tracks[address.trackId]?.effects;
+      const chain =
+        address.trackId === 'master'
+          ? project.master.effects
+          : project.tracks[address.trackId]?.effects;
       const slot = chain?.find((e) => e.id === address.effectId);
       if (!slot) return undefined;
       const spec = EFFECT_PARAM_SPECS[slot.kind].find((s) => s.id === address.param);
       if (!spec) return undefined;
-      const owner = address.trackId === 'master' ? 'Master' : (project.tracks[address.trackId]?.name ?? 'Track');
+      const owner =
+        address.trackId === 'master'
+          ? 'Master'
+          : (project.tracks[address.trackId]?.name ?? 'Track');
       return {
         spec,
         value: slot.params[address.param] ?? spec.default,
@@ -157,7 +171,11 @@ export function commandForNormalized(resolved: ResolvedParameter, normalized: nu
   return resolved.command(denormalizeParam(resolved.spec, normalized));
 }
 
-export function describeAddress(project: Project, address: ParameterAddress, selectedTrackId: TrackId | null): string {
+export function describeAddress(
+  project: Project,
+  address: ParameterAddress,
+  selectedTrackId: TrackId | null,
+): string {
   if (address.scope === 'selectedTrack' || address.scope === 'selectedInstrument') {
     const resolved = resolveParameter(project, address, selectedTrackId);
     const paramLabel = resolved?.spec.label ?? address.param;

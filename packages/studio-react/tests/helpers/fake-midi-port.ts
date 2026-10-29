@@ -1,4 +1,9 @@
-import type { MidiAccessPort, MidiAccessStatus, MidiPortDescriptor, RawMidiInput } from '@studio/midi-core';
+import type {
+  MidiAccessPort,
+  MidiAccessStatus,
+  MidiPortDescriptor,
+  RawMidiInput,
+} from '@studio/midi-core';
 
 /** Scriptable MIDI host port: tests connect ports and inject raw bytes. */
 export class FakeMidiPort implements MidiAccessPort {
@@ -40,10 +45,13 @@ export class FakeMidiPort implements MidiAccessPort {
     for (const l of this.portListeners) l(this.listPorts());
   }
   disconnect(portId: string): void {
-    this.ports = this.ports.map((p) => (p.id === portId ? { ...p, state: 'disconnected' as const } : p));
+    this.ports = this.ports.map((p) =>
+      p.id === portId ? { ...p, state: 'disconnected' as const } : p,
+    );
     for (const l of this.portListeners) l(this.listPorts());
   }
   input(portId: string, bytes: number[], timestampMs = 0): void {
-    for (const l of this.messageListeners) l({ portId, bytes: Uint8Array.from(bytes), timestampMs });
+    for (const l of this.messageListeners)
+      l({ portId, bytes: Uint8Array.from(bytes), timestampMs });
   }
 }

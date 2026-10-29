@@ -20,7 +20,9 @@ export interface ProjectStoreState {
 
 export type ProjectStore = StoreApi<ProjectStoreState>;
 
-function snapshot(history: CommandHistory): Pick<ProjectStoreState, 'project' | 'canUndo' | 'canRedo' | 'undoLabel' | 'redoLabel'> {
+function snapshot(
+  history: CommandHistory,
+): Pick<ProjectStoreState, 'project' | 'canUndo' | 'canRedo' | 'undoLabel' | 'redoLabel'> {
   return {
     project: history.present,
     canUndo: history.canUndo,
@@ -30,7 +32,10 @@ function snapshot(history: CommandHistory): Pick<ProjectStoreState, 'project' | 
   };
 }
 
-export function createProjectStore(history: CommandHistory): { store: ProjectStore; detach: () => void } {
+export function createProjectStore(history: CommandHistory): {
+  store: ProjectStore;
+  detach: () => void;
+} {
   const store = createStore<ProjectStoreState>()(() => ({
     ...snapshot(history),
     saveStatus: 'idle',

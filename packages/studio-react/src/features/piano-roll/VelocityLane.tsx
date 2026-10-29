@@ -15,7 +15,10 @@ export function VelocityLane({ clip, color }: { clip: MidiClip; color: string })
   const { time } = usePianoRollAxes();
   const hostRef = useRef<HTMLDivElement>(null);
   const vm = useMemo(() => ({ clip, time, selected, color }), [clip, time, selected, color]);
-  const draw = useCallback((ctx: CanvasRenderingContext2D, s: CanvasSize) => drawVelocityLane(ctx, s.width, s.height, vm), [vm]);
+  const draw = useCallback(
+    (ctx: CanvasRenderingContext2D, s: CanvasSize) => drawVelocityLane(ctx, s.width, s.height, vm),
+    [vm],
+  );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = hostRef.current!.getBoundingClientRect();
@@ -23,7 +26,8 @@ export function VelocityLane({ clip, color }: { clip: MidiClip; color: string })
     let nearest: { id: NoteId; distance: number } | null = null;
     for (const note of clip.notes) {
       const distance = Math.abs(time.tickToX(contentToTimeline(clip, note.startTick)) - x);
-      if (distance < 6 && (!nearest || distance < nearest.distance)) nearest = { id: note.id, distance };
+      if (distance < 6 && (!nearest || distance < nearest.distance))
+        nearest = { id: note.id, distance };
     }
     if (!nearest) return;
     const target = nearest.id;
@@ -34,14 +38,23 @@ export function VelocityLane({ clip, color }: { clip: MidiClip; color: string })
       threshold: 1,
       onDrag: (_dx, dy) => {
         const delta = (-dy / (VELOCITY_LANE_HEIGHT - 8)) * 127;
-        tx.applyFromStart([{ type: 'notes.update', clipId: clip.id, patches: scaleVelocities(clip, ids, delta) }]);
+        tx.applyFromStart([
+          { type: 'notes.update', clipId: clip.id, patches: scaleVelocities(clip, ids, delta) },
+        ]);
       },
       onEnd: ({ committed, dragged }) => (committed && dragged ? tx.commit() : tx.cancel()),
     });
   };
 
   return (
-    <div ref={hostRef} className="relative shrink-0 cursor-ns-resize" style={{ height: VELOCITY_LANE_HEIGHT }} onPointerDown={onPointerDown} aria-label="Velocity lane: drag a bar up or down" role="presentation">
+    <div
+      ref={hostRef}
+      className="relative shrink-0 cursor-ns-resize"
+      style={{ height: VELOCITY_LANE_HEIGHT }}
+      onPointerDown={onPointerDown}
+      aria-label="Velocity lane: drag a bar up or down"
+      role="presentation"
+    >
       <CanvasSurface draw={draw} version={vm} className="absolute inset-0" />
     </div>
   );

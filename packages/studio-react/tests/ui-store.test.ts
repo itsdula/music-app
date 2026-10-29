@@ -45,6 +45,8 @@ describe('ui-store updaters', () => {
     expect(pruned.selection.trackId).toBeNull();
     expect([...pruned.selection.clipIds]).toEqual(['keep']);
     expect([...pruned.selection.noteIds]).toEqual(['n1']);
-    expect(pruneSelection(pruned, { track: () => true, clip: () => true, note: () => true })).toBe(pruned);
+    expect(pruneSelection(pruned, { track: () => true, clip: () => true, note: () => true })).toBe(
+      pruned,
+    );
   });
 });

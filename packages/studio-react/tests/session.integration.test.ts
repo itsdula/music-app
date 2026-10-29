@@ -1,5 +1,13 @@
 import { decodeWav, encodeWav } from '@studio/audio-dsp';
-import { normalizeParam, orderedTracks, PPQ, TRACK_GAIN_SPEC, type ClipId, type MidiClip, type TrackId } from '@studio/domain';
+import {
+  normalizeParam,
+  orderedTracks,
+  PPQ,
+  TRACK_GAIN_SPEC,
+  type ClipId,
+  type MidiClip,
+  type TrackId,
+} from '@studio/domain';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STUDIO_CONFIG } from '../src/config';
 import { createStudioSession, type StudioSession } from '../src/session/studio-session';
@@ -40,7 +48,9 @@ describe('session lifecycle', () => {
     const { session, platform } = await startSession();
     const trackId = session.history.present.trackOrder[0]!;
     const clipId = session.edits.createMidiClip(trackId, 0)!;
-    session.edits.addNotes(clipId, [{ startTick: 0, durationTicks: PPQ, pitch: 69, velocity: 100 }]);
+    session.edits.addNotes(clipId, [
+      { startTick: 0, durationTicks: PPQ, pitch: 69, velocity: 100 },
+    ]);
     session.history.undo();
     session.history.undo();
     await new Promise((r) => setTimeout(r, 0));
@@ -60,7 +70,10 @@ describe('session lifecycle', () => {
     await session.dispose();
     sessions.length = 0;
 
-    const second = createStudioSession({ ...platform, audioBackendFactory: { ...platform.audioBackendFactory } }, DEFAULT_STUDIO_CONFIG);
+    const second = createStudioSession(
+      { ...platform, audioBackendFactory: { ...platform.audioBackendFactory } },
+      DEFAULT_STUDIO_CONFIG,
+    );
     sessions.push(second);
     await second.start();
     const reopened = second.history.present;
@@ -75,7 +88,10 @@ describe('audio import and export', () => {
   it('imports a WAV file onto a new audio track with stored bytes and peaks', async () => {
     const { session, platform } = await startSession();
     const bytes = sineWav(0.5);
-    const [clipId] = await session.edits.importAudio([{ name: 'tone.wav', mimeType: 'audio/wav', bytes }], { atTick: PPQ });
+    const [clipId] = await session.edits.importAudio(
+      [{ name: 'tone.wav', mimeType: 'audio/wav', bytes }],
+      { atTick: PPQ },
+    );
     const project = session.history.present;
     const clip = project.clips[clipId as ClipId];
     expect(clip?.kind).toBe('audio');
@@ -83,7 +99,12 @@ describe('audio import and export', () => {
     expect(project.tracks[clip.trackId]?.kind).toBe('audio');
     expect(clip.startTick).toBe(PPQ);
     const asset = project.assets[clip.assetId]!;
-    expect(asset).toMatchObject({ sampleRate: 48000, channels: 1, frames: 24000, source: 'import' });
+    expect(asset).toMatchObject({
+      sampleRate: 48000,
+      channels: 1,
+      frames: 24000,
+      source: 'import',
+    });
     expect((await platform.assetRepository.get(asset.id))?.bytes.byteLength).toBe(bytes.byteLength);
     await new Promise((r) => setTimeout(r, 10));
     const peaks = session.assets.readPeaks(asset.id, 0, asset.frames, 50);
@@ -102,7 +123,9 @@ describe('audio import and export', () => {
   it('rejects files the platform cannot decode with a clear message', async () => {
     const { session } = await startSession();
     await expect(
-      session.edits.importAudio([{ name: 'notes.txt', mimeType: 'text/plain', bytes: new Uint8Array([1, 2]) }]),
+      session.edits.importAudio([
+        { name: 'notes.txt', mimeType: 'text/plain', bytes: new Uint8Array([1, 2]) },
+      ]),
     ).rejects.toThrow(/not an audio format/);
   });
 
@@ -110,9 +133,21 @@ describe('audio import and export', () => {
     const { session, platform } = await startSession();
     const trackId = session.history.present.trackOrder[0]!;
     const clipId = session.edits.createMidiClip(trackId, 0, PPQ * 4)!;
-    session.edits.addNotes(clipId, [{ startTick: 0, durationTicks: PPQ, pitch: 69, velocity: 100 }]);
-    const result = await session.exporter.exportWav(session.history.present, { range: 'arrangement', sampleRate: 44100, bitDepth: 16, includeTail: false });
-    expect(platform.engine.renders[0]).toMatchObject({ startTick: 0, endTick: PPQ * 4, sampleRate: 44100, tailSeconds: 0 });
+    session.edits.addNotes(clipId, [
+      { startTick: 0, durationTicks: PPQ, pitch: 69, velocity: 100 },
+    ]);
+    const result = await session.exporter.exportWav(session.history.present, {
+      range: 'arrangement',
+      sampleRate: 44100,
+      bitDepth: 16,
+      includeTail: false,
+    });
+    expect(platform.engine.renders[0]).toMatchObject({
+      startTick: 0,
+      endTick: PPQ * 4,
+      sampleRate: 44100,
+      tailSeconds: 0,
+    });
     expect(platform.savedFiles[0]?.name).toMatch(/\.wav$/);
     const decoded = decodeWav(result.bytes);
     expect(decoded.sampleRate).toBe(44100);
@@ -129,7 +164,9 @@ describe('recording', () => {
     await session.transport.record();
     platform.engine.advance(1);
     await session.transport.stop();
-    const clips = Object.values(session.history.present.clips).filter((c) => c.trackId === audioTrack);
+    const clips = Object.values(session.history.present.clips).filter(
+      (c) => c.trackId === audioTrack,
+    );
     expect(clips).toHaveLength(1);
     expect(clips[0]).toMatchObject({ kind: 'audio', startTick: PPQ * 4 });
     expect(session.history.undoLabel).toBe('Record Audio');
@@ -139,20 +176,31 @@ describe('recording', () => {
     const { session, platform } = await startSession();
     const audioTrack = session.edits.addTrack('audio');
     session.history.execute({ type: 'track.update', trackId: audioTrack, patch: { armed: true } });
-    platform.engine.recordingError = { code: 'microphone-denied', message: 'Microphone access was denied' };
+    platform.engine.recordingError = {
+      code: 'microphone-denied',
+      message: 'Microphone access was denied',
+    };
     await session.transport.record();
     expect(session.transport.isRecording).toBe(false);
     expect(platform.engine.getTransportPosition().state).toBe('stopped');
     expect(session.engineStore.getState().playState).toBe('stopped');
     expect(session.engineStore.getState().lastError?.message).toMatch(/Allow the microphone/);
-    expect(Object.values(session.history.present.clips).filter((c) => c.trackId === audioTrack)).toHaveLength(0);
+    expect(
+      Object.values(session.history.present.clips).filter((c) => c.trackId === audioTrack),
+    ).toHaveLength(0);
   });
 });
 
 describe('MIDI integration', () => {
   async function connectMpk(session: StudioSession, platform: TestPlatform) {
     await session.midi.requestAccess();
-    platform.midiPort.connect({ id: 'in-1', name: 'MPK mini 3', manufacturer: 'AKAI', type: 'input', state: 'connected' });
+    platform.midiPort.connect({
+      id: 'in-1',
+      name: 'MPK mini 3',
+      manufacturer: 'AKAI',
+      type: 'input',
+      state: 'connected',
+    });
   }
 
   it('routes notes to the selected instrument track', async () => {
@@ -161,7 +209,9 @@ describe('MIDI integration', () => {
     const trackId = session.uiStore.getState().selection.trackId as TrackId;
     platform.midiPort.input('in-1', [0x90, 60, 100]);
     platform.midiPort.input('in-1', [0x80, 60, 0]);
-    const calls = platform.engine.live_calls.filter((c) => c.kind === 'noteOn' || c.kind === 'noteOff');
+    const calls = platform.engine.live_calls.filter(
+      (c) => c.kind === 'noteOn' || c.kind === 'noteOff',
+    );
     expect(calls).toEqual([
       { kind: 'noteOn', trackId, value: 60, velocity: 100 },
       { kind: 'noteOff', trackId, value: 60 },
@@ -181,14 +231,19 @@ describe('MIDI integration', () => {
     platform.midiPort.input('in-1', [0xb0, 70, 110]);
     expect(session.history.present.tracks[trackId]!.mixer.gainDb).toBeGreaterThan(1);
     // Consecutive knob moves on one mapping coalesce into a single undo entry.
-    expect(session.history.entries().undo.filter((e) => e.coalesceKey?.startsWith('midi:'))).toHaveLength(1);
+    expect(
+      session.history.entries().undo.filter((e) => e.coalesceKey?.startsWith('midi:')),
+    ).toHaveLength(1);
   });
 
   it('learns a CC mapping to a parameter and persists it in the project', async () => {
     const { session, platform } = await startSession();
     await connectMpk(session, platform);
     const trackId = session.uiStore.getState().selection.trackId as TrackId;
-    session.midi.startLearn({ kind: 'parameter', address: { scope: 'track', trackId, param: 'pan' } });
+    session.midi.startLearn({
+      kind: 'parameter',
+      address: { scope: 'track', trackId, param: 'pan' },
+    });
     platform.midiPort.input('in-1', [0xb0, 20, 64]);
     expect(session.midi.store.getState().learn.phase).toBe('captured');
     const mapping = await session.midi.confirmLearn('project');
@@ -224,7 +279,9 @@ describe('MIDI integration', () => {
     platform.midiPort.input('in-1', [0x80, 62, 0], performance.now());
     platform.engine.advance(0.25);
     await session.transport.stop();
-    const clips = Object.values(session.history.present.clips).filter((c) => c.trackId === trackId && c.kind === 'midi');
+    const clips = Object.values(session.history.present.clips).filter(
+      (c) => c.trackId === trackId && c.kind === 'midi',
+    );
     expect(clips).toHaveLength(1);
     const clip = clips[0] as MidiClip;
     expect(clip.notes).toHaveLength(1);

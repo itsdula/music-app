@@ -7,10 +7,14 @@ test.describe('Phase 2 vertical slice: MIDI clip → piano roll → synth → lo
     await openStudio(page);
     await resetStorage(page);
     await page.reload();
-    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', { timeout: 30_000 });
+    await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
+      timeout: 30_000,
+    });
   });
 
-  test('create a clip, draw notes, play, loop, stop, seek and export an audible WAV', async ({ page }) => {
+  test('create a clip, draw notes, play, loop, stop, seek and export an audible WAV', async ({
+    page,
+  }) => {
     const lanes = page.getByTestId('arrangement-lanes');
     const box = (await lanes.boundingBox())!;
     // Double-click the first instrument track lane at bar 1 → new MIDI clip opens in the piano roll.
@@ -21,7 +25,10 @@ test.describe('Phase 2 vertical slice: MIDI clip → piano roll → synth → lo
     // Draw four notes by double-clicking across the clip (piano roll zooms to fit the clip).
     const g = (await grid.boundingBox())!;
     for (let i = 0; i < 4; i++) {
-      await page.mouse.dblclick(g.x + g.width * (0.08 + i * 0.22), g.y + g.height * (0.3 + i * 0.08));
+      await page.mouse.dblclick(
+        g.x + g.width * (0.08 + i * 0.22),
+        g.y + g.height * (0.3 + i * 0.08),
+      );
     }
     await expect(grid.locator('.sr-only')).toContainText('4 notes');
 

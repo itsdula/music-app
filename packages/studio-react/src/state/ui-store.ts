@@ -73,7 +73,13 @@ export const INITIAL_UI_STATE: UiState = {
   grid: '1/16',
   snap: true,
   tool: 'select',
-  panels: { browserOpen: true, browserWidth: 232, bottomOpen: true, bottomHeight: 300, bottomPanel: 'editor' },
+  panels: {
+    browserOpen: true,
+    browserWidth: 232,
+    bottomOpen: true,
+    bottomHeight: 300,
+    bottomPanel: 'editor',
+  },
   followPlayhead: true,
   audioEditorMode: 'auto',
 };
@@ -112,7 +118,12 @@ export function openClipInEditor(state: UiState, clipId: ClipId | null): UiState
   if (state.selection.editorClipId === clipId) return state;
   return {
     ...state,
-    selection: { ...state.selection, editorClipId: clipId, noteIds: EMPTY_SET, vocalNoteIds: EMPTY_SET },
+    selection: {
+      ...state.selection,
+      editorClipId: clipId,
+      noteIds: EMPTY_SET,
+      vocalNoteIds: EMPTY_SET,
+    },
     panels: clipId ? { ...state.panels, bottomOpen: true, bottomPanel: 'editor' } : state.panels,
   };
 }
@@ -134,7 +145,11 @@ export function selectNotes(
   return { ...state, selection: { ...state.selection, noteIds: next } };
 }
 
-export function selectVocalNotes(state: UiState, ids: readonly VocalNoteId[], mode: 'replace' | 'toggle' = 'replace'): UiState {
+export function selectVocalNotes(
+  state: UiState,
+  ids: readonly VocalNoteId[],
+  mode: 'replace' | 'toggle' = 'replace',
+): UiState {
   let next: Set<VocalNoteId>;
   if (mode === 'replace') next = new Set(ids);
   else {

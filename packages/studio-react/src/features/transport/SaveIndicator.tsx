@@ -20,7 +20,13 @@ export function SaveIndicator() {
           ? 'bg-warning'
           : 'bg-text-faint';
   return (
-    <span className="flex items-center gap-1.5 text-[11px] text-text-muted" role="status" aria-live="polite" data-testid="save-status" data-status={status}>
+    <span
+      className="flex items-center gap-1.5 text-[11px] text-text-muted"
+      role="status"
+      aria-live="polite"
+      data-testid="save-status"
+      data-status={status}
+    >
       <span className={`size-1.5 rounded-full ${tone}`} aria-hidden />
       {LABELS[status]}
     </span>

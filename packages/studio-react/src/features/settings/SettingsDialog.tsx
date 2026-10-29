@@ -11,7 +11,8 @@ export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const capabilities = useEngineState((s) => s.capabilities);
   const manualMs = useEngineState((s) => s.recordLatencyMs);
-  const estimateMs = ((capabilities?.baseLatencySeconds ?? 0) + (capabilities?.outputLatencySeconds ?? 0)) * 1000;
+  const estimateMs =
+    ((capabilities?.baseLatencySeconds ?? 0) + (capabilities?.outputLatencySeconds ?? 0)) * 1000;
 
   const setManual = (value: number | null) => {
     session.engineStore.setState({ recordLatencyMs: value });
@@ -20,34 +21,59 @@ export function SettingsDialog() {
 
   return (
     <>
-      <IconButton label="Settings" icon={<Settings2 />} variant="ghost" onClick={() => setOpen(true)} data-testid="open-settings" />
+      <IconButton
+        label="Settings"
+        icon={<Settings2 />}
+        variant="ghost"
+        onClick={() => setOpen(true)}
+        data-testid="open-settings"
+      />
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent title="Settings" description="Audio and recording preferences for this browser.">
+        <DialogContent
+          title="Settings"
+          description="Audio and recording preferences for this browser."
+        >
           <div className="flex flex-col gap-4 text-[12px]">
             <section className="flex flex-col gap-2">
-              <h3 className="text-[11px] font-semibold tracking-wide text-text-muted uppercase">Audio</h3>
+              <h3 className="text-[11px] font-semibold tracking-wide text-text-muted uppercase">
+                Audio
+              </h3>
               <dl className="grid grid-cols-[180px_1fr] gap-y-1 text-text-muted">
                 <dt>Engine</dt>
                 <dd className="text-text">{capabilities?.backend ?? '—'}</dd>
                 <dt>Sample rate</dt>
-                <dd className="text-text">{capabilities ? `${capabilities.sampleRate} Hz` : '—'}</dd>
+                <dd className="text-text">
+                  {capabilities ? `${capabilities.sampleRate} Hz` : '—'}
+                </dd>
                 <dt>Reported latency</dt>
                 <dd className="text-text">
-                  {capabilities?.baseLatencySeconds != null ? `${(capabilities.baseLatencySeconds * 1000).toFixed(1)} ms processing` : 'processing: not reported'}
+                  {capabilities?.baseLatencySeconds != null
+                    ? `${(capabilities.baseLatencySeconds * 1000).toFixed(1)} ms processing`
+                    : 'processing: not reported'}
                   {' · '}
-                  {capabilities?.outputLatencySeconds != null ? `${(capabilities.outputLatencySeconds * 1000).toFixed(1)} ms output` : 'output: not reported'}
+                  {capabilities?.outputLatencySeconds != null
+                    ? `${(capabilities.outputLatencySeconds * 1000).toFixed(1)} ms output`
+                    : 'output: not reported'}
                 </dd>
               </dl>
             </section>
             <section className="flex flex-col gap-2">
-              <h3 className="text-[11px] font-semibold tracking-wide text-text-muted uppercase">Recording latency compensation</h3>
+              <h3 className="text-[11px] font-semibold tracking-wide text-text-muted uppercase">
+                Recording latency compensation
+              </h3>
               <p className="text-text-faint">
-                Browsers add input and output delay that varies by device. Recorded takes are shifted earlier by this amount so they line up with what you heard. Automatic uses the latency
-                the browser reports ({estimateMs.toFixed(1)} ms here), which usually misses the input side; calibrate manually if takes sound late.
+                Browsers add input and output delay that varies by device. Recorded takes are
+                shifted earlier by this amount so they line up with what you heard. Automatic uses
+                the latency the browser reports ({estimateMs.toFixed(1)} ms here), which usually
+                misses the input side; calibrate manually if takes sound late.
               </p>
               <label className="flex items-center justify-between gap-3">
                 <span>Set manually</span>
-                <Switch label="Set recording latency manually" checked={manualMs !== null} onCheckedChange={(on) => setManual(on ? Math.round(estimateMs) : null)} />
+                <Switch
+                  label="Set recording latency manually"
+                  checked={manualMs !== null}
+                  onCheckedChange={(on) => setManual(on ? Math.round(estimateMs) : null)}
+                />
               </label>
               {manualMs !== null && (
                 <label className="flex items-center justify-between gap-3">

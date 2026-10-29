@@ -16,7 +16,8 @@ export function PositionDisplay() {
   useFrame(() => {
     const { project } = session.projectStore.getState();
     const position = session.engine.getTransportPosition();
-    const ticks = position.state === 'stopped' ? session.engineStore.getState().cursorTick : position.ticks;
+    const ticks =
+      position.state === 'stopped' ? session.engineStore.getState().cursorTick : position.ticks;
     const { bars, time } = formatPosition(ticks, project.bpm, project.meter);
     const key = `${bars}|${time}`;
     if (key === last.current) return;

@@ -33,7 +33,8 @@ export function moveNotes(
   const anchor = notes.find((n) => n.id === anchorId) ?? notes[0];
   if (!anchor) return [];
   let deltaTicks = Math.round(rawDeltaTicks);
-  if (snap.gridTicks > 0) deltaTicks = snapTick(anchor.startTick + rawDeltaTicks, snap.gridTicks) - anchor.startTick;
+  if (snap.gridTicks > 0)
+    deltaTicks = snapTick(anchor.startTick + rawDeltaTicks, snap.gridTicks) - anchor.startTick;
   const minStart = Math.min(...notes.map((n) => n.startTick));
   if (minStart + deltaTicks < 0) deltaTicks = -minStart;
   const minPitch = Math.min(...notes.map((n) => n.pitch));
@@ -57,8 +58,14 @@ export function resizeNoteEnds(
   const anchorEnd = anchor.startTick + anchor.durationTicks;
   let delta = Math.round(rawDeltaTicks);
   if (snap.gridTicks > 0) delta = snapTick(anchorEnd + rawDeltaTicks, snap.gridTicks) - anchorEnd;
-  const minLength = snap.gridTicks > 0 ? Math.min(snap.gridTicks, Math.min(...notes.map((n) => n.durationTicks))) : 1;
-  return notes.map((n) => ({ id: n.id, durationTicks: Math.max(minLength, n.durationTicks + delta) }));
+  const minLength =
+    snap.gridTicks > 0
+      ? Math.min(snap.gridTicks, Math.min(...notes.map((n) => n.durationTicks)))
+      : 1;
+  return notes.map((n) => ({
+    id: n.id,
+    durationTicks: Math.max(minLength, n.durationTicks + delta),
+  }));
 }
 
 /** Moves note starts while keeping ends fixed. */
@@ -73,7 +80,8 @@ export function resizeNoteStarts(
   const anchor = notes.find((n) => n.id === anchorId) ?? notes[0];
   if (!anchor) return [];
   let delta = Math.round(rawDeltaTicks);
-  if (snap.gridTicks > 0) delta = snapTick(anchor.startTick + rawDeltaTicks, snap.gridTicks) - anchor.startTick;
+  if (snap.gridTicks > 0)
+    delta = snapTick(anchor.startTick + rawDeltaTicks, snap.gridTicks) - anchor.startTick;
   return notes.map((n) => {
     const end = n.startTick + n.durationTicks;
     const start = Math.min(end - 1, Math.max(0, n.startTick + delta));
@@ -82,7 +90,11 @@ export function resizeNoteStarts(
 }
 
 /** Sets velocities relative to their starting values (vertical drag in the velocity lane). */
-export function scaleVelocities(clip: MidiClip, ids: ReadonlySet<NoteId>, deltaVelocity: number): NotePatch[] {
+export function scaleVelocities(
+  clip: MidiClip,
+  ids: ReadonlySet<NoteId>,
+  deltaVelocity: number,
+): NotePatch[] {
   return pickNotes(clip, ids).map((n) => ({
     id: n.id,
     velocity: Math.min(127, Math.max(1, Math.round(n.velocity + deltaVelocity))),
@@ -90,7 +102,12 @@ export function scaleVelocities(clip: MidiClip, ids: ReadonlySet<NoteId>, deltaV
 }
 
 /** Nudges notes with the keyboard (arrow keys). */
-export function nudgeNotes(clip: MidiClip, ids: ReadonlySet<NoteId>, deltaTicks: number, deltaPitch: number): NotePatch[] {
+export function nudgeNotes(
+  clip: MidiClip,
+  ids: ReadonlySet<NoteId>,
+  deltaTicks: number,
+  deltaPitch: number,
+): NotePatch[] {
   const notes = pickNotes(clip, ids);
   if (notes.length === 0) return [];
   const minStart = Math.min(...notes.map((n) => n.startTick));

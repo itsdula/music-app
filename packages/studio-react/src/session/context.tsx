@@ -7,7 +7,13 @@ import type { StudioSession } from './studio-session';
 
 const SessionContext = createContext<StudioSession | null>(null);
 
-export function StudioSessionProvider({ session, children }: { session: StudioSession; children: ReactNode }) {
+export function StudioSessionProvider({
+  session,
+  children,
+}: {
+  session: StudioSession;
+  children: ReactNode;
+}) {
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
 

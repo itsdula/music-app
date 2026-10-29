@@ -5,7 +5,16 @@
  */
 import type { AudioEngine } from '@studio/audio-contracts';
 import type { CommandHistory } from '@studio/commands';
-import { gridDivisionTicks, PPQ, quantizeTick, type GridDivision, type MappingTarget, type MidiMapping, type StudioActionId, type TrackId } from '@studio/domain';
+import {
+  gridDivisionTicks,
+  PPQ,
+  quantizeTick,
+  type GridDivision,
+  type MappingTarget,
+  type MidiMapping,
+  type StudioActionId,
+  type TrackId,
+} from '@studio/domain';
 import { mpkMiniMk3Profile } from '@studio/midi-akai-mpk-mini-mk3';
 import {
   MappingEngine,
@@ -78,7 +87,11 @@ export class MidiController {
     private readonly transport: TransportController,
     private readonly edits: EditController,
   ) {
-    this.service = new MidiService({ port: platform.midiAccess, profiles: DEVICE_PROFILES, now: () => performance.now() });
+    this.service = new MidiService({
+      port: platform.midiAccess,
+      profiles: DEVICE_PROFILES,
+      now: () => performance.now(),
+    });
     this.store = createMidiStore(this.service.supported);
     this.learn = createMidiLearnSession({ now: () => performance.now(), scope: 'project' });
     this.unsubscribers.push(
@@ -86,7 +99,10 @@ export class MidiController {
       this.service.subscribeDevices(() => this.refreshDevices()),
       this.service.subscribeErrors((error) =>
         this.store.setState({
-          lastError: error.kind === 'invalid-input' ? `Ignored invalid MIDI from ${error.portName}: ${error.error.message}` : error.message,
+          lastError:
+            error.kind === 'invalid-input'
+              ? `Ignored invalid MIDI from ${error.portName}: ${error.error.message}`
+              : error.message,
         }),
       ),
       this.learn.subscribe((learn) => this.store.setState({ learn })),
@@ -101,7 +117,11 @@ export class MidiController {
     const saved = await this.platform.settingsRepository.get<MidiMapping[]>(GLOBAL_MAPPINGS_KEY);
     const globalMappings = saved ?? this.createDefaultGlobalMappings();
     if (!saved) await this.platform.settingsRepository.set(GLOBAL_MAPPINGS_KEY, globalMappings);
-    const settings = await this.platform.settingsRepository.get<{ velocityCurve: VelocityCurve; transpose: number; recordQuantize?: GridDivision | null }>(SETTINGS_KEY);
+    const settings = await this.platform.settingsRepository.get<{
+      velocityCurve: VelocityCurve;
+      transpose: number;
+      recordQuantize?: GridDivision | null;
+    }>(SETTINGS_KEY);
     this.store.setState({ globalMappings, ...(settings ?? {}) });
     this.applyMappings();
     // Reconnect silently when permission was granted in an earlier session (no prompt).
@@ -135,7 +155,9 @@ export class MidiController {
 
   createDefaultGlobalMappings(): MidiMapping[] {
     return DEVICE_PROFILES.flatMap((profile) =>
-      profile.defaultMappings().map((m) => ({ ...m, id: this.edits.newMappingId(), scope: 'global' as const })),
+      profile
+        .defaultMappings()
+        .map((m) => ({ ...m, id: this.edits.newMappingId(), scope: 'global' as const })),
     );
   }
 
@@ -155,10 +177,20 @@ export class MidiController {
     await this.setGlobalMappings(this.createDefaultGlobalMappings());
   }
 
-  async updateSettings(patch: Partial<{ velocityCurve: VelocityCurve; transpose: number; recordQuantize: GridDivision | null }>): Promise<void> {
+  async updateSettings(
+    patch: Partial<{
+      velocityCurve: VelocityCurve;
+      transpose: number;
+      recordQuantize: GridDivision | null;
+    }>,
+  ): Promise<void> {
     this.store.setState(patch);
     const { velocityCurve, transpose, recordQuantize } = this.store.getState();
-    await this.platform.settingsRepository.set(SETTINGS_KEY, { velocityCurve, transpose, recordQuantize });
+    await this.platform.settingsRepository.set(SETTINGS_KEY, {
+      velocityCurve,
+      transpose,
+      recordQuantize,
+    });
   }
 
   /** All mappings (global + project) for display. */
@@ -192,15 +224,25 @@ export class MidiController {
     if (state.phase !== 'captured') return null;
     const mapping: MidiMapping = { ...state.mapping, id: this.edits.newMappingId(), scope };
     // Replace existing mappings for the same source so a control has one meaning.
-    const sameSource = (m: MidiMapping) => JSON.stringify(m.source) === JSON.stringify(mapping.source) && JSON.stringify(m.device) === JSON.stringify(mapping.device);
+    const sameSource = (m: MidiMapping) =>
+      JSON.stringify(m.source) === JSON.stringify(mapping.source) &&
+      JSON.stringify(m.device) === JSON.stringify(mapping.device);
     if (scope === 'project') {
       const replaced = this.history.present.midiMappings.filter(sameSource).map((m) => m.id);
       this.history.executeBatch(
-        [...(replaced.length > 0 ? [{ type: 'mapping.remove' as const, mappingIds: replaced }] : []), { type: 'mapping.add', mapping }],
+        [
+          ...(replaced.length > 0
+            ? [{ type: 'mapping.remove' as const, mappingIds: replaced }]
+            : []),
+          { type: 'mapping.add', mapping },
+        ],
         { label: 'MIDI Learn' },
       );
     } else {
-      await this.setGlobalMappings([...this.store.getState().globalMappings.filter((m) => !sameSource(m)), mapping]);
+      await this.setGlobalMappings([
+        ...this.store.getState().globalMappings.filter((m) => !sameSource(m)),
+        mapping,
+      ]);
     }
     this.cancelLearn();
     return mapping;
@@ -210,13 +252,21 @@ export class MidiController {
 
   private readonly reader: ParameterValueReader = {
     getNormalized: (address) => {
-      const resolved = resolveParameter(this.history.present, address, this.ui.getState().selection.trackId);
+      const resolved = resolveParameter(
+        this.history.present,
+        address,
+        this.ui.getState().selection.trackId,
+      );
       return resolved ? normalizedValue(resolved) : undefined;
     },
   };
 
   private handleEvent(event: MidiInputEvent): void {
-    if (event.control) this.activity.set(event.control.controlId, { value: event.control.value, timeMs: event.timestampMs });
+    if (event.control)
+      this.activity.set(event.control.controlId, {
+        value: event.control.value,
+        timeMs: event.timestampMs,
+      });
     const message = event.message;
     if (message.type === 'clock' || message.type === 'activeSensing') return;
 
@@ -233,7 +283,11 @@ export class MidiController {
     if (effects.length > 0) {
       for (const effect of effects) {
         if (effect.kind === 'setParameter') {
-          const resolved = resolveParameter(this.history.present, effect.address, this.ui.getState().selection.trackId);
+          const resolved = resolveParameter(
+            this.history.present,
+            effect.address,
+            this.ui.getState().selection.trackId,
+          );
           if (resolved) {
             this.history.execute(commandForNormalized(resolved, effect.normalized), {
               label: `MIDI: ${resolved.label}`,
@@ -265,11 +319,20 @@ export class MidiController {
     if (!trackId) return false;
     const track = this.history.present.tracks[trackId];
     const routing = track?.midiInput;
-    if (routing && routing.channel !== 'all' && 'channel' in message && message.channel !== routing.channel) return false;
+    if (
+      routing &&
+      routing.channel !== 'all' &&
+      'channel' in message &&
+      message.channel !== routing.channel
+    )
+      return false;
     const { velocityCurve, transpose } = this.store.getState();
     switch (message.type) {
       case 'noteOn': {
-        const pitch = Math.min(127, Math.max(0, message.note + transpose + (routing?.transpose ?? 0)));
+        const pitch = Math.min(
+          127,
+          Math.max(0, message.note + transpose + (routing?.transpose ?? 0)),
+        );
         const velocity = applyVelocityCurve(message.velocity, velocityCurve);
         this.liveNotes.set(key(message.channel, message.note), { trackId, pitch });
         if (this.engine.getLifecycleState() !== 'running') void this.transport.ensureAudio();
@@ -336,7 +399,13 @@ export class MidiController {
         const order = this.history.present.trackOrder;
         const current = this.ui.getState().selection.trackId;
         const index = current ? order.indexOf(current) : -1;
-        const next = order[Math.min(order.length - 1, Math.max(0, index + (action === 'track.selectNext' ? 1 : -1)))];
+        const next =
+          order[
+            Math.min(
+              order.length - 1,
+              Math.max(0, index + (action === 'track.selectNext' ? 1 : -1)),
+            )
+          ];
         if (next) this.ui.setState((s) => ({ ...s, selection: { ...s.selection, trackId: next } }));
         this.mapper.resetTakeover();
         break;
@@ -347,9 +416,24 @@ export class MidiController {
         const id = this.ui.getState().selection.trackId;
         const track = id ? this.history.present.tracks[id] : undefined;
         if (!track || !id) break;
-        if (action === 'track.toggleArmSelected') this.history.execute({ type: 'track.update', trackId: id, patch: { armed: !track.armed } });
-        else if (action === 'track.toggleMuteSelected') this.history.execute({ type: 'track.setMixer', trackId: id, mixer: { mute: !track.mixer.mute } });
-        else this.history.execute({ type: 'track.setMixer', trackId: id, mixer: { solo: !track.mixer.solo } });
+        if (action === 'track.toggleArmSelected')
+          this.history.execute({
+            type: 'track.update',
+            trackId: id,
+            patch: { armed: !track.armed },
+          });
+        else if (action === 'track.toggleMuteSelected')
+          this.history.execute({
+            type: 'track.setMixer',
+            trackId: id,
+            mixer: { mute: !track.mixer.mute },
+          });
+        else
+          this.history.execute({
+            type: 'track.setMixer',
+            trackId: id,
+            mixer: { solo: !track.mixer.solo },
+          });
         break;
       }
     }
@@ -370,14 +454,20 @@ export class MidiController {
     this.recordStartTick = startTick;
     this.recordStartHostMs = performance.now();
     const bpm = () => this.history.present.bpm;
-    const latencyMs = () => ((this.engine.getCapabilities()?.outputLatencySeconds ?? 0) + (this.engine.getCapabilities()?.baseLatencySeconds ?? 0)) * 1000;
+    const latencyMs = () =>
+      ((this.engine.getCapabilities()?.outputLatencySeconds ?? 0) +
+        (this.engine.getCapabilities()?.baseLatencySeconds ?? 0)) *
+      1000;
     this.recorder = new MidiNoteRecorder({
       tickAt: (hostMs) => {
         // Position from the engine clock when available, falling back to host-time extrapolation.
         const position = this.engine.getTransportPosition();
         const nowMs = performance.now();
         const ticksPerMs = (bpm() * PPQ) / 60000;
-        const base = position.state === 'playing' ? position.ticks - (nowMs - hostMs) * ticksPerMs : this.recordStartTick + (hostMs - this.recordStartHostMs) * ticksPerMs;
+        const base =
+          position.state === 'playing'
+            ? position.ticks - (nowMs - hostMs) * ticksPerMs
+            : this.recordStartTick + (hostMs - this.recordStartHostMs) * ticksPerMs;
         // Players react to what they hear, which is late by the output latency.
         return base - latencyMs() * ticksPerMs;
       },
@@ -393,9 +483,13 @@ export class MidiController {
     if (!recorder || !trackId) return;
     const division = this.store.getState().recordQuantize;
     const gridTicks = division ? gridDivisionTicks(division, this.history.present.meter) : 0;
-    const notes = recorder.finish(endTick).map((n) =>
-      gridTicks > 0 ? { ...n, startTick: Math.max(0, quantizeTick(n.startTick, { gridTicks, strength: 1 })) } : n,
-    );
+    const notes = recorder
+      .finish(endTick)
+      .map((n) =>
+        gridTicks > 0
+          ? { ...n, startTick: Math.max(0, quantizeTick(n.startTick, { gridTicks, strength: 1 })) }
+          : n,
+      );
     this.edits.commitMidiTake({
       trackId,
       startTick: this.recordStartTick,

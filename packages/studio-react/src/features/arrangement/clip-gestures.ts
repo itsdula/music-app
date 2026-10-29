@@ -3,7 +3,16 @@
  * full command list from the gesture start state so drags use `applyFromStart`.
  */
 import type { Command } from '@studio/commands';
-import { clipEndTick, snapTick, type Clip, type ClipId, type IdFactory, type Project, type Track, type TrackId } from '@studio/domain';
+import {
+  clipEndTick,
+  snapTick,
+  type Clip,
+  type ClipId,
+  type IdFactory,
+  type Project,
+  type Track,
+  type TrackId,
+} from '@studio/domain';
 
 export function trackAccepts(track: Track, clip: Clip): boolean {
   return clip.kind === 'midi' ? track.kind === 'instrument' : track.kind !== 'instrument';
@@ -25,7 +34,10 @@ export function moveClipsCommands(input: MoveGestureInput): Command[] {
   const clips = clipIds.map((id) => project.clips[id]).filter((c): c is Clip => Boolean(c));
   const anchor = project.clips[anchorClipId] ?? clips[0];
   if (!anchor || clips.length === 0) return [];
-  let delta = gridTicks > 0 ? snapTick(anchor.startTick + rawDeltaTicks, gridTicks) - anchor.startTick : Math.round(rawDeltaTicks);
+  let delta =
+    gridTicks > 0
+      ? snapTick(anchor.startTick + rawDeltaTicks, gridTicks) - anchor.startTick
+      : Math.round(rawDeltaTicks);
   const minStart = Math.min(...clips.map((c) => c.startTick));
   if (minStart + delta < 0) delta = -minStart;
   const moves = clips.map((clip) => {
@@ -34,14 +46,22 @@ export function moveClipsCommands(input: MoveGestureInput): Command[] {
     const targetId = trackOrder[toRow];
     const target = targetId ? project.tracks[targetId] : undefined;
     const trackId = target && trackAccepts(target, clip) ? target.id : clip.trackId;
-    return { clipId: clip.id, startTick: clip.startTick + delta, ...(trackId !== clip.trackId ? { trackId } : {}) };
+    return {
+      clipId: clip.id,
+      startTick: clip.startTick + delta,
+      ...(trackId !== clip.trackId ? { trackId } : {}),
+    };
   });
   if (moves.every((m, i) => m.startTick === clips[i]!.startTick && !('trackId' in m))) return [];
   return [{ type: 'clip.move', moves }];
 }
 
 /** Alt-drag: copies of the clips placed at the moved positions (originals untouched). */
-export function duplicateMoveCommands(input: MoveGestureInput, ids: IdFactory, newIds: Map<ClipId, ClipId>): Command[] {
+export function duplicateMoveCommands(
+  input: MoveGestureInput,
+  ids: IdFactory,
+  newIds: Map<ClipId, ClipId>,
+): Command[] {
   const moves = moveClipsCommands(input);
   const move = moves[0];
   if (!move || move.type !== 'clip.move') return [];
@@ -54,12 +74,22 @@ export function duplicateMoveCommands(input: MoveGestureInput, ids: IdFactory, n
       id = ids.create('clip');
       newIds.set(m.clipId, id);
     }
-    copies.push({ ...original, id, startTick: m.startTick, trackId: m.trackId ?? original.trackId });
+    copies.push({
+      ...original,
+      id,
+      startTick: m.startTick,
+      trackId: m.trackId ?? original.trackId,
+    });
   }
   return copies.length > 0 ? [{ type: 'clip.add', clips: copies }] : [];
 }
 
-export function trimStartCommand(project: Project, clipId: ClipId, rawTick: number, gridTicks: number): Command[] {
+export function trimStartCommand(
+  project: Project,
+  clipId: ClipId,
+  rawTick: number,
+  gridTicks: number,
+): Command[] {
   const clip = project.clips[clipId];
   if (!clip) return [];
   const end = clipEndTick(clip, project);
@@ -69,7 +99,12 @@ export function trimStartCommand(project: Project, clipId: ClipId, rawTick: numb
   return [{ type: 'clip.trimStart', clipId, startTick: tick }];
 }
 
-export function trimEndCommand(project: Project, clipId: ClipId, rawTick: number, gridTicks: number): Command[] {
+export function trimEndCommand(
+  project: Project,
+  clipId: ClipId,
+  rawTick: number,
+  gridTicks: number,
+): Command[] {
   const clip = project.clips[clipId];
   if (!clip) return [];
   let tick = gridTicks > 0 ? snapTick(rawTick, gridTicks) : Math.round(rawTick);
@@ -80,8 +115,16 @@ export function trimEndCommand(project: Project, clipId: ClipId, rawTick: number
 
 /** Loop-region drag in the ruler. */
 export function loopCommand(startTick: number, endTick: number, gridTicks: number): Command[] {
-  const a = gridTicks > 0 ? snapTick(Math.min(startTick, endTick), gridTicks, 'floor') : Math.round(Math.min(startTick, endTick));
-  let b = gridTicks > 0 ? snapTick(Math.max(startTick, endTick), gridTicks, 'ceil') : Math.round(Math.max(startTick, endTick));
+  const a =
+    gridTicks > 0
+      ? snapTick(Math.min(startTick, endTick), gridTicks, 'floor')
+      : Math.round(Math.min(startTick, endTick));
+  let b =
+    gridTicks > 0
+      ? snapTick(Math.max(startTick, endTick), gridTicks, 'ceil')
+      : Math.round(Math.max(startTick, endTick));
   if (b <= a) b = a + Math.max(1, gridTicks);
-  return [{ type: 'project.setLoop', loop: { enabled: true, startTick: Math.max(0, a), endTick: b } }];
+  return [
+    { type: 'project.setLoop', loop: { enabled: true, startTick: Math.max(0, a), endTick: b } },
+  ];
 }

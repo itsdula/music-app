@@ -44,19 +44,35 @@ export interface StudioSession {
   dispose(): Promise<void>;
 }
 
-export function createStudioSession(platform: PlatformServices, config: StudioConfig): StudioSession {
+export function createStudioSession(
+  platform: PlatformServices,
+  config: StudioConfig,
+): StudioSession {
   const ids = createIdFactory(platform.randomId);
-  const history = createHistory(createStarterProject(ids, platform.now()), { limit: config.undoLimit });
+  const history = createHistory(createStarterProject(ids, platform.now()), {
+    limit: config.undoLimit,
+  });
   const { store: projectStore, detach: detachProjectStore } = createProjectStore(history);
   const uiStore = createUiStore();
   const engineStore = createEngineStore();
   const assets = new AssetLibrary(platform, () => history.present, ids);
-  const engine = platform.audioBackendFactory.create({ assets, latencyHint: 'interactive', logger: platform.logger });
+  const engine = platform.audioBackendFactory.create({
+    assets,
+    latencyHint: 'interactive',
+    logger: platform.logger,
+  });
   const bridge = new EngineBridge(engine, history, platform.logger);
   const renderLoop = new RenderLoop();
   const transport = new TransportController(engine, history, engineStore, platform.logger);
   const edits = new EditController(history, uiStore, ids, assets);
-  const projects = new ProjectController(platform, history, projectStore, assets, ids, config.autosaveDelayMs);
+  const projects = new ProjectController(
+    platform,
+    history,
+    projectStore,
+    assets,
+    ids,
+    config.autosaveDelayMs,
+  );
   const exporter = new ExportController(engine, platform.fileDialogs);
   const midi = new MidiController(platform, history, uiStore, engine, transport, edits);
   const vocal = new VocalController(platform, history, engine, assets);
@@ -93,7 +109,9 @@ export function createStudioSession(platform: PlatformServices, config: StudioCo
         engineStore.setState({ recording: event.status });
         break;
       case 'error':
-        engineStore.setState({ lastError: { ...event.error, message: userFacingEngineMessage(event.error) } });
+        engineStore.setState({
+          lastError: { ...event.error, message: userFacingEngineMessage(event.error) },
+        });
         platform.logger.warn(event.error.message, event.error.detail);
         break;
       case 'asset':
@@ -128,13 +146,21 @@ export function createStudioSession(platform: PlatformServices, config: StudioCo
       if (started) return;
       started = true;
       const capabilities = await engine.initialize();
-      const recordLatencyMs = (await platform.settingsRepository.get<number | null>('studio.recording.latencyMs')) ?? null;
-      engineStore.setState({ capabilities, lifecycle: engine.getLifecycleState(), recordLatencyMs });
+      const recordLatencyMs =
+        (await platform.settingsRepository.get<number | null>('studio.recording.latencyMs')) ??
+        null;
+      engineStore.setState({
+        capabilities,
+        lifecycle: engine.getLifecycleState(),
+        recordLatencyMs,
+      });
       await projects.openInitial(config.initialProjectId);
       if (disposed) return;
       await bridge.attach();
       if (config.features.midi) {
-        await midi.init().catch((error: unknown) => platform.logger.warn('MIDI initialisation failed', error));
+        await midi
+          .init()
+          .catch((error: unknown) => platform.logger.warn('MIDI initialisation failed', error));
       }
       // Select the first track so live MIDI and shortcuts have a target.
       const first = history.present.trackOrder[0];

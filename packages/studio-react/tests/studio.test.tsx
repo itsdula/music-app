@@ -7,7 +7,10 @@ import { createTestPlatform } from './helpers/test-platform';
 async function renderStudio() {
   const platform = createTestPlatform();
   const utils = render(<Studio platform={platform} config={{ autosaveDelayMs: 5 }} />);
-  await waitFor(() => expect(screen.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready'), { timeout: 5000 });
+  await waitFor(
+    () => expect(screen.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready'),
+    { timeout: 5000 },
+  );
   return { platform, ...utils };
 }
 
@@ -53,7 +56,14 @@ describe('<Studio /> with an injected platform', () => {
     const user = userEvent.setup();
     const { platform } = await renderStudio();
     await user.click(screen.getByTestId('midi-connect'));
-    act(() => platform.midiPort.connect({ id: 'in-1', name: 'MPK mini 3', type: 'input', state: 'connected' }));
+    act(() =>
+      platform.midiPort.connect({
+        id: 'in-1',
+        name: 'MPK mini 3',
+        type: 'input',
+        state: 'connected',
+      }),
+    );
     await waitFor(() => expect(screen.getByTestId('midi-device')).toHaveTextContent('MPK mini 3'));
   });
 });
@@ -63,14 +73,26 @@ describe('arrangement keyboard access', () => {
     const user = userEvent.setup();
     const platform = createTestPlatform();
     render(<Studio platform={platform} config={{ autosaveDelayMs: 5 }} />);
-    await waitFor(() => expect(screen.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready'), { timeout: 5000 });
+    await waitFor(
+      () =>
+        expect(screen.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready'),
+      { timeout: 5000 },
+    );
     // Create a clip on the first track through the lanes' double-click handler.
     const lanes = screen.getByTestId('arrangement-lanes');
     await user.dblClick(lanes);
     await user.click(lanes);
     await user.keyboard(']');
-    await waitFor(() => expect(screen.getByTestId('arrangement-announcement')).toHaveTextContent(/1\.1\.1 to 2\.1\.1/));
+    await waitFor(() =>
+      expect(screen.getByTestId('arrangement-announcement')).toHaveTextContent(
+        /1\.1\.1 to 2\.1\.1/,
+      ),
+    );
     await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
-    await waitFor(() => expect(screen.getByTestId('arrangement-announcement')).toHaveTextContent(/2\.1\.1 to 3\.1\.1/));
+    await waitFor(() =>
+      expect(screen.getByTestId('arrangement-announcement')).toHaveTextContent(
+        /2\.1\.1 to 3\.1\.1/,
+      ),
+    );
   });
 });

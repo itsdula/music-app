@@ -66,7 +66,11 @@ export interface KeyLike {
   readonly altKey: boolean;
 }
 
-export function matchShortcut(event: KeyLike, isApple: boolean, bindings: readonly ShortcutBinding[] = SHORTCUTS): ShortcutAction | null {
+export function matchShortcut(
+  event: KeyLike,
+  isApple: boolean,
+  bindings: readonly ShortcutBinding[] = SHORTCUTS,
+): ShortcutAction | null {
   const mod = isApple ? event.metaKey : event.ctrlKey;
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
   for (const b of bindings) {

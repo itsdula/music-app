@@ -27,7 +27,11 @@ export function MidiDevicesSection() {
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        {open ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5" aria-hidden />}
+        {open ? (
+          <ChevronDown className="size-3.5" aria-hidden />
+        ) : (
+          <ChevronRight className="size-3.5" aria-hidden />
+        )}
         <Cable className="size-3.5" aria-hidden />
         MIDI Devices
       </button>
@@ -37,15 +41,25 @@ export function MidiDevicesSection() {
             {STATUS_TEXT[status]}
           </p>
           {(status === 'idle' || status === 'denied' || status === 'error') && (
-            <Button size="sm" variant="secondary" onClick={() => void session.midi.requestAccess()} data-testid="midi-connect">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void session.midi.requestAccess()}
+              data-testid="midi-connect"
+            >
               Connect MIDI
             </Button>
           )}
-          {status === 'granted' && inputs.length === 0 && <p className="text-text-faint">No MIDI inputs found. Plug in a controller.</p>}
+          {status === 'granted' && inputs.length === 0 && (
+            <p className="text-text-faint">No MIDI inputs found. Plug in a controller.</p>
+          )}
           <ul className="space-y-1">
             {inputs.map((d) => (
               <li key={d.portId} className="flex items-center gap-2" data-testid="midi-device">
-                <span className={`size-1.5 rounded-full ${d.state === 'connected' ? 'bg-success' : 'bg-text-faint'}`} aria-hidden />
+                <span
+                  className={`size-1.5 rounded-full ${d.state === 'connected' ? 'bg-success' : 'bg-text-faint'}`}
+                  aria-hidden
+                />
                 <span className="flex-1 truncate" title={d.name}>
                   {d.displayName}
                 </span>

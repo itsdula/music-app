@@ -7,7 +7,10 @@ import type { Page } from '@playwright/test';
  * It says nothing about how a physical MPK Mini MK3 behaves — hardware verification is a
  * separate, manual protocol (docs/midi-integration.md).
  */
-export async function installFakeMidi(page: Page, ports: ReadonlyArray<{ id: string; name: string; manufacturer?: string }>): Promise<void> {
+export async function installFakeMidi(
+  page: Page,
+  ports: ReadonlyArray<{ id: string; name: string; manufacturer?: string }>,
+): Promise<void> {
   await page.addInitScript((initialPorts) => {
     type Listener = (event: { data: Uint8Array; timeStamp: number }) => void;
     class FakeInput {
@@ -32,8 +35,13 @@ export async function installFakeMidi(page: Page, ports: ReadonlyArray<{ id: str
       }
     }
     const inputs = new Map<string, FakeInput>();
-    for (const p of initialPorts) inputs.set(p.id, new FakeInput(p.id, p.name, p.manufacturer ?? ''));
-    const access = new EventTarget() as EventTarget & { inputs: Map<string, FakeInput>; outputs: Map<string, never>; sysexEnabled: boolean };
+    for (const p of initialPorts)
+      inputs.set(p.id, new FakeInput(p.id, p.name, p.manufacturer ?? ''));
+    const access = new EventTarget() as EventTarget & {
+      inputs: Map<string, FakeInput>;
+      outputs: Map<string, never>;
+      sysexEnabled: boolean;
+    };
     Object.assign(access, { inputs, outputs: new Map(), sysexEnabled: false });
     let requests = 0;
     const fake = {
@@ -95,13 +103,20 @@ export function sendMidiBatch(page: Page, portId: string, messages: number[][]):
   );
 }
 
-export function setMidiPortConnected(page: Page, portId: string, connected: boolean): Promise<void> {
+export function setMidiPortConnected(
+  page: Page,
+  portId: string,
+  connected: boolean,
+): Promise<void> {
   return page.evaluate(
-    ([id, on]) => (window as unknown as { __fakeMidi: FakeMidiHandle }).__fakeMidi.setConnected(id, on),
+    ([id, on]) =>
+      (window as unknown as { __fakeMidi: FakeMidiHandle }).__fakeMidi.setConnected(id, on),
     [portId, connected] as const,
   );
 }
 
 export function lastSysexRequest(page: Page): Promise<boolean | null> {
-  return page.evaluate(() => (window as unknown as { __fakeMidi: FakeMidiHandle }).__fakeMidi.lastSysexRequest);
+  return page.evaluate(
+    () => (window as unknown as { __fakeMidi: FakeMidiHandle }).__fakeMidi.lastSysexRequest,
+  );
 }

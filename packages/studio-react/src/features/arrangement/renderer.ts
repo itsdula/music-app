@@ -19,7 +19,12 @@ import type { TimeAxis } from '../../canvas/time-axis';
 import { CLIP_HEADER_HEIGHT, type ClipBox, type TrackRow } from './geometry';
 
 /** Returns interleaved [min, max] pairs per column for a source frame range, or null if not ready. */
-export type PeakReader = (assetId: AssetId, startFrame: number, endFrame: number, columns: number) => Float32Array | null;
+export type PeakReader = (
+  assetId: AssetId,
+  startFrame: number,
+  endFrame: number,
+  columns: number,
+) => Float32Array | null;
 
 export interface ArrangementViewModel {
   readonly project: Project;
@@ -30,10 +35,20 @@ export interface ArrangementViewModel {
   readonly selectedClipIds: ReadonlySet<ClipId>;
   readonly selectedTrackId: string | null;
   readonly peaks: PeakReader;
-  readonly marquee?: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number } | null;
+  readonly marquee?: {
+    readonly x0: number;
+    readonly y0: number;
+    readonly x1: number;
+    readonly y1: number;
+  } | null;
 }
 
-export function drawLanes(ctx: CanvasRenderingContext2D, width: number, height: number, vm: ArrangementViewModel): void {
+export function drawLanes(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  vm: ArrangementViewModel,
+): void {
   ctx.fillStyle = colors.surface0;
   ctx.fillRect(0, 0, width, height);
   for (const row of vm.rows) {
@@ -47,7 +62,11 @@ export function drawLanes(ctx: CanvasRenderingContext2D, width: number, height: 
   }
   for (const line of computeGridLines(vm.time, width, vm.meter, 14)) {
     ctx.strokeStyle =
-      line.level === 'bar' ? withAlpha(colors.lineStrong, 0.9) : line.level === 'beat' ? withAlpha(colors.line, 0.7) : withAlpha(colors.line, 0.35);
+      line.level === 'bar'
+        ? withAlpha(colors.lineStrong, 0.9)
+        : line.level === 'beat'
+          ? withAlpha(colors.line, 0.7)
+          : withAlpha(colors.line, 0.35);
     vline(ctx, line.x, 0, height);
   }
   drawLoopShade(ctx, width, height, vm.time, vm.project.loop);
@@ -57,11 +76,22 @@ export function drawLanes(ctx: CanvasRenderingContext2D, width: number, height: 
     ctx.fillStyle = withAlpha(colors.accent, 0.1);
     ctx.strokeStyle = withAlpha(colors.accent, 0.8);
     ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0));
-    ctx.strokeRect(Math.min(x0, x1) + 0.5, Math.min(y0, y1) + 0.5, Math.abs(x1 - x0), Math.abs(y1 - y0));
+    ctx.strokeRect(
+      Math.min(x0, x1) + 0.5,
+      Math.min(y0, y1) + 0.5,
+      Math.abs(x1 - x0),
+      Math.abs(y1 - y0),
+    );
   }
 }
 
-function drawLoopShade(ctx: CanvasRenderingContext2D, width: number, height: number, time: TimeAxis, loop: LoopRegion): void {
+function drawLoopShade(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: TimeAxis,
+  loop: LoopRegion,
+): void {
   if (!loop.enabled) return;
   const x0 = time.tickToX(loop.startTick);
   const x1 = time.tickToX(loop.endTick);
@@ -88,7 +118,12 @@ function drawClip(ctx: CanvasRenderingContext2D, box: ClipBox, vm: ArrangementVi
     ctx.font = canvasFont(10, 600);
     ctx.textBaseline = 'middle';
     ctx.fillStyle = colors.surface0;
-    ctx.fillText(clip.name, box.x + 6, box.y + CLIP_HEADER_HEIGHT / 2 + 0.5, Math.max(0, box.w - 12));
+    ctx.fillText(
+      clip.name,
+      box.x + 6,
+      box.y + CLIP_HEADER_HEIGHT / 2 + 0.5,
+      Math.max(0, box.w - 12),
+    );
   }
   const body = { x: box.x, y: box.y + CLIP_HEADER_HEIGHT, w: box.w, h: box.h - CLIP_HEADER_HEIGHT };
   if (clip.kind === 'midi') drawMidiPreview(ctx, clip, body, vm.time, trackColor);
@@ -139,7 +174,10 @@ function drawWaveform(
   const asset = vm.project.assets[clip.assetId];
   if (!asset) return;
   const visibleX0 = Math.max(0, body.x);
-  const visibleX1 = Math.min(ctx.canvas.width / (globalThis.devicePixelRatio || 1), body.x + body.w);
+  const visibleX1 = Math.min(
+    ctx.canvas.width / (globalThis.devicePixelRatio || 1),
+    body.x + body.w,
+  );
   const columns = Math.floor(visibleX1 - visibleX0);
   if (columns <= 0) return;
   const framesPerPx = clip.lengthFrames / Math.max(1, body.w);

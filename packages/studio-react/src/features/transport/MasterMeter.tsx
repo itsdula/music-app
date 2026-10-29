@@ -11,5 +11,13 @@ export function MasterMeter() {
     const meters = session.engine.readMeters();
     meterRef.current?.setLevels(meters.master.peak, meters.master.clipped);
   });
-  return <Meter ref={meterRef} label="Master level" orientation="horizontal" channels={2} className="h-7 w-28" />;
+  return (
+    <Meter
+      ref={meterRef}
+      label="Master level"
+      orientation="horizontal"
+      channels={2}
+      className="h-7 w-28"
+    />
+  );
 }

@@ -41,7 +41,10 @@ export class TimeAxis {
   /** Zooms by `factor` keeping the tick under `anchorX` fixed on screen. */
   zoomAt(factor: number, anchorX: number): TimeAxis {
     const anchorTick = this.xToTick(anchorX);
-    const nextPxPerTick = Math.min(MAX_PX_PER_TICK, Math.max(MIN_PX_PER_TICK, this.pxPerTick * factor));
+    const nextPxPerTick = Math.min(
+      MAX_PX_PER_TICK,
+      Math.max(MIN_PX_PER_TICK, this.pxPerTick * factor),
+    );
     return new TimeAxis(nextPxPerTick, anchorTick - anchorX / nextPxPerTick);
   }
 
@@ -57,7 +60,8 @@ export class TimeAxis {
   reveal(tick: number, widthPx: number, marginPx = 48): TimeAxis {
     const x = this.tickToX(tick);
     if (x < marginPx) return this.withScroll(tick - marginPx / this.pxPerTick);
-    if (x > widthPx - marginPx) return this.withScroll(tick - (widthPx - marginPx) / this.pxPerTick);
+    if (x > widthPx - marginPx)
+      return this.withScroll(tick - (widthPx - marginPx) / this.pxPerTick);
     return this;
   }
 

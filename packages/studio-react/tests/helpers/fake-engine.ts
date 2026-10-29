@@ -47,12 +47,18 @@ export class FakeAudioEngine implements AudioEngine {
   private capabilities: AudioEngineCapabilities | null = null;
 
   readonly live = {
-    noteOn: (trackId: TrackId, pitch: number, velocity: number) => this.live_calls.push({ kind: 'noteOn', trackId, value: pitch, velocity }),
-    noteOff: (trackId: TrackId, pitch: number) => this.live_calls.push({ kind: 'noteOff', trackId, value: pitch }),
-    sustain: (trackId: TrackId, down: boolean) => this.live_calls.push({ kind: 'sustain', trackId, value: down ? 1 : 0 }),
-    pitchBend: (trackId: TrackId, value: number) => this.live_calls.push({ kind: 'pitchBend', trackId, value }),
-    modulation: (trackId: TrackId, value: number) => this.live_calls.push({ kind: 'modulation', trackId, value }),
-    allNotesOff: (trackId?: TrackId) => this.live_calls.push({ kind: 'allNotesOff', ...(trackId ? { trackId } : {}) }),
+    noteOn: (trackId: TrackId, pitch: number, velocity: number) =>
+      this.live_calls.push({ kind: 'noteOn', trackId, value: pitch, velocity }),
+    noteOff: (trackId: TrackId, pitch: number) =>
+      this.live_calls.push({ kind: 'noteOff', trackId, value: pitch }),
+    sustain: (trackId: TrackId, down: boolean) =>
+      this.live_calls.push({ kind: 'sustain', trackId, value: down ? 1 : 0 }),
+    pitchBend: (trackId: TrackId, value: number) =>
+      this.live_calls.push({ kind: 'pitchBend', trackId, value }),
+    modulation: (trackId: TrackId, value: number) =>
+      this.live_calls.push({ kind: 'modulation', trackId, value }),
+    allNotesOff: (trackId?: TrackId) =>
+      this.live_calls.push({ kind: 'allNotesOff', ...(trackId ? { trackId } : {}) }),
   };
 
   private emit(event: AudioEngineEvent): void {
@@ -100,7 +106,16 @@ export class FakeAudioEngine implements AudioEngine {
     this.anchorTick = fromTick ?? this.anchorTick;
     this.anchorTime = this.nowSeconds;
     this.state = 'playing';
-    this.emit({ type: 'transport', transport: { state: 'playing', recording: this.recording !== null, positionTicks: this.anchorTick, bpm: this.project?.bpm ?? 120, loop: this.project!.loop } });
+    this.emit({
+      type: 'transport',
+      transport: {
+        state: 'playing',
+        recording: this.recording !== null,
+        positionTicks: this.anchorTick,
+        bpm: this.project?.bpm ?? 120,
+        loop: this.project!.loop,
+      },
+    });
   }
   async pause(): Promise<void> {
     this.anchorTick = this.getTransportPosition().ticks;
@@ -119,8 +134,16 @@ export class FakeAudioEngine implements AudioEngine {
     this.nowSeconds += seconds;
   }
   getTransportPosition(): TransportPosition {
-    const ticks = this.state === 'playing' ? this.anchorTick + (this.nowSeconds - this.anchorTime) * this.ticksPerSecond() : this.anchorTick;
-    return { state: this.state, recording: this.recording !== null, ticks, engineTime: this.nowSeconds };
+    const ticks =
+      this.state === 'playing'
+        ? this.anchorTick + (this.nowSeconds - this.anchorTime) * this.ticksPerSecond()
+        : this.anchorTick;
+    return {
+      state: this.state,
+      recording: this.recording !== null,
+      ticks,
+      engineTime: this.nowSeconds,
+    };
   }
   readMeters(): MeterSnapshot {
     return { master: { peak: [0, 0], rms: [0, 0], clipped: false }, tracks: {} };
@@ -140,13 +163,23 @@ export class FakeAudioEngine implements AudioEngine {
     }
     this.recording = options;
     this.recordStartTick = this.getTransportPosition().ticks;
-    this.emit({ type: 'recording', status: { phase: 'recording', startedAtTick: this.recordStartTick, trackIds: options.trackIds } });
+    this.emit({
+      type: 'recording',
+      status: {
+        phase: 'recording',
+        startedAtTick: this.recordStartTick,
+        trackIds: options.trackIds,
+      },
+    });
   }
   async stopRecording(): Promise<RecordedTake[]> {
     const options = this.recording;
     this.recording = null;
     if (!options) return [];
-    const seconds = ticksToSeconds(Math.max(0, this.getTransportPosition().ticks - this.recordStartTick), this.project?.bpm ?? 120);
+    const seconds = ticksToSeconds(
+      Math.max(0, this.getTransportPosition().ticks - this.recordStartTick),
+      this.project?.bpm ?? 120,
+    );
     const frames = Math.max(1, Math.round(seconds * 48000));
     const channel = new Float32Array(frames);
     for (let i = 0; i < frames; i++) channel[i] = 0.25 * Math.sin((2 * Math.PI * 220 * i) / 48000);
@@ -163,10 +196,17 @@ export class FakeAudioEngine implements AudioEngine {
   async render(request: RenderRequest): Promise<RenderedAudio> {
     this.renders.push(request);
     const tail = request.tailSeconds === 'auto' ? 1 : request.tailSeconds;
-    const seconds = ticksToSeconds(request.endTick - request.startTick, this.project?.bpm ?? 120) + tail;
+    const seconds =
+      ticksToSeconds(request.endTick - request.startTick, this.project?.bpm ?? 120) + tail;
     const frames = Math.round(seconds * request.sampleRate);
     const channels = Array.from({ length: request.channelCount }, () => new Float32Array(frames));
-    return { pcm: { sampleRate: request.sampleRate, channels }, startTick: request.startTick, endTick: request.endTick, tailSeconds: tail, peak: 0 };
+    return {
+      pcm: { sampleRate: request.sampleRate, channels },
+      startTick: request.startTick,
+      endTick: request.endTick,
+      tailSeconds: tail,
+      peak: 0,
+    };
   }
   subscribe(listener: AudioEngineListener): () => void {
     this.listeners.add(listener);
