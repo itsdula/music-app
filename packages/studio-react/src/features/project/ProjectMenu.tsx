@@ -15,6 +15,7 @@ import {
   AudioWaveform,
   ChevronDown,
   FilePlus2,
+  LayoutGrid,
   FolderOpen,
   PackageOpen,
   Save,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useProjectState, useSession } from '../../session/context';
+import { navigate } from '../../state/ui-store';
 
 export function ProjectMenu() {
   const session = useSession();
@@ -54,6 +56,13 @@ export function ProjectMenu() {
           <ChevronDown className="size-3.5 text-text-muted" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56">
+          <DropdownMenuItem
+            icon={<LayoutGrid />}
+            data-testid="menu-all-projects"
+            onSelect={() => session.uiStore.setState((s) => navigate(s, 'projects'))}
+          >
+            All projects…
+          </DropdownMenuItem>
           <DropdownMenuItem
             icon={<FilePlus2 />}
             onSelect={() => void session.projects.newProject('empty').catch(report)}

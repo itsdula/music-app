@@ -129,6 +129,51 @@ export class ProjectController {
       .then((items) => [...items].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)));
   }
 
+  /** Renames a stored project that is not open (the open one uses `rename`). */
+  async renameStored(id: ProjectId, name: string): Promise<void> {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (id === this.history.present.id) {
+      this.rename(trimmed);
+      return;
+    }
+    const result = await this.platform.projectRepository.load(id);
+    if (result.status !== 'ok')
+      throw new Error('This project could not be read, so it was not renamed.');
+    const saved = await this.platform.projectRepository.save(
+      { ...result.project, name: trimmed, updatedAt: this.platform.now() },
+      { expectedRevision: result.revision },
+    );
+    if (saved.status !== 'saved')
+      throw new Error('The project changed elsewhere; reload and try again.');
+  }
+
+  /** Saves a copy of a stored project under a new id and returns it (assets are shared). */
+  async duplicate(id: ProjectId): Promise<ProjectSummary> {
+    if (id === this.history.present.id) await this.flush();
+    const result = await this.platform.projectRepository.load(id);
+    if (result.status !== 'ok')
+      throw new Error('This project could not be read, so it was not copied.');
+    const now = this.platform.now();
+    const copy: Project = {
+      ...result.project,
+      id: this.ids.create('project'),
+      name: `${result.project.name} (copy)`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const saved = await this.platform.projectRepository.save(copy);
+    if (saved.status !== 'saved') throw new Error('The copy could not be saved.');
+    return {
+      id: copy.id,
+      name: copy.name,
+      createdAt: now,
+      updatedAt: now,
+      trackCount: copy.trackOrder.length,
+      revision: saved.revision,
+    };
+  }
+
   async deleteProject(id: ProjectId): Promise<void> {
     if (id === this.history.present.id) throw new Error('Close the project before deleting it.');
     await this.platform.projectRepository.delete(id);

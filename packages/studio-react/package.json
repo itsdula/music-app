@@ -14,7 +14,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json",
     "build": "node scripts/build-css.mjs",
-    "dev": "node scripts/build-css.mjs --watch"
+    "dev": "node scripts/build-css.mjs --watch",
+    "codegen": "node scripts/codegen.mjs"
   },
   "studio": {
     "packageClass": "C"
