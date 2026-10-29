@@ -21,6 +21,8 @@ export interface EngineStoreState {
   /** Tick where playback starts (cursor) when transport is stopped. */
   readonly cursorTick: number;
   readonly loadingAssets: number;
+  /** Manual recording latency compensation in ms; null = use the backend's estimate. */
+  readonly recordLatencyMs: number | null;
 }
 
 export type EngineStore = StoreApi<EngineStoreState>;
@@ -34,5 +36,6 @@ export function createEngineStore(): EngineStore {
     lastError: null,
     cursorTick: 0,
     loadingAssets: 0,
+    recordLatencyMs: null,
   }));
 }

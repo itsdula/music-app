@@ -147,7 +147,12 @@ export class TransportController {
       this.engineStore.setState({ playState: 'playing' });
       if (audioTracks.length > 0) {
         const first = project.tracks[audioTracks[0]!];
-        await this.engine.startRecording({ trackIds: audioTracks, channelCount: first?.inputChannels ?? 1 });
+        const manualMs = this.engineStore.getState().recordLatencyMs;
+        await this.engine.startRecording({
+          trackIds: audioTracks,
+          channelCount: first?.inputChannels ?? 1,
+          ...(manualMs !== null ? { latencyCompensationSeconds: manualMs / 1000 } : {}),
+        });
         this.audioRecording = true;
       }
       if (midiTracks.length > 0 && this.recordingHooks?.beginMidiRecording(midiTracks, state.cursorTick)) {

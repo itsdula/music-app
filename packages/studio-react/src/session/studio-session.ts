@@ -127,7 +127,8 @@ export function createStudioSession(platform: PlatformServices, config: StudioCo
       if (started) return;
       started = true;
       const capabilities = await engine.initialize();
-      engineStore.setState({ capabilities, lifecycle: engine.getLifecycleState() });
+      const recordLatencyMs = (await platform.settingsRepository.get<number | null>('studio.recording.latencyMs')) ?? null;
+      engineStore.setState({ capabilities, lifecycle: engine.getLifecycleState(), recordLatencyMs });
       await projects.openInitial(config.initialProjectId);
       if (disposed) return;
       await bridge.attach();

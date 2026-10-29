@@ -6,6 +6,7 @@ import { formatBpm, parseBpm } from '../../lib/format';
 import { useEngineState, useProjectState, useSession } from '../../session/context';
 import { ExportDialog } from '../export/ExportDialog';
 import { ProjectMenu } from '../project/ProjectMenu';
+import { SettingsDialog } from '../settings/SettingsDialog';
 import { ShortcutsDialog } from '../shortcuts/ShortcutsDialog';
 import { MasterMeter } from './MasterMeter';
 import { PositionDisplay } from './PositionDisplay';
@@ -120,6 +121,7 @@ export function TransportBar() {
       </ToolbarGroup>
       <MasterMeter />
       <ShortcutsDialog />
+      <SettingsDialog />
       <IconButton label="Export audio" icon={<Download />} variant="secondary" data-testid="open-export" onClick={() => setExportOpen(true)} />
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
     </header>
