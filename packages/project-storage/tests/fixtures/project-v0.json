@@ -1,0 +1,95 @@
+{
+  "assets": {
+    "ast_drumloop": {
+      "byteLength": 1024,
+      "channels": 2,
+      "contentHash": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+      "createdAt": "2025-06-01T10:00:00.000Z",
+      "frames": 96000,
+      "id": "ast_drumloop",
+      "kind": "audio",
+      "mimeType": "audio/wav",
+      "name": "drum loop.wav",
+      "sampleRate": 48000,
+      "source": "import"
+    }
+  },
+  "clips": {
+    "clp_a": {
+      "assetId": "ast_drumloop",
+      "fadeInFrames": 0,
+      "fadeOutFrames": 480,
+      "gainDb": -2,
+      "id": "clp_a",
+      "kind": "audio",
+      "lengthFrames": 96000,
+      "muted": false,
+      "name": "Drum loop",
+      "sourceStartFrame": 0,
+      "startTick": 0,
+      "trackId": "trk_audio"
+    },
+    "clp_m": {
+      "contentOffsetTicks": 0,
+      "id": "clp_m",
+      "kind": "midi",
+      "lengthTicks": 15360,
+      "muted": false,
+      "name": "Chords",
+      "notes": [
+        { "durationTicks": 960, "id": "nte_1", "pitch": 60, "startTick": 0, "velocity": 100 },
+        { "durationTicks": 960, "id": "nte_2", "pitch": 64, "startTick": 0, "velocity": 96 },
+        { "durationTicks": 960, "id": "nte_3", "pitch": 67, "startTick": 960, "velocity": 90 }
+      ],
+      "startTick": 3840,
+      "trackId": "trk_keys"
+    }
+  },
+  "createdAt": "2025-06-01T09:58:00.000Z",
+  "id": "prj_draft",
+  "loopEnabled": true,
+  "loopEnd": 15360,
+  "loopStart": 3840,
+  "master": { "effects": [], "gainDb": 0 },
+  "meter": { "denominator": 4, "numerator": 4 },
+  "metronome": { "countInBars": 1, "enabled": false, "gainDb": -6 },
+  "midiMappings": [],
+  "name": "Draft-era project",
+  "schemaVersion": 0,
+  "tempo": { "bpm": 92 },
+  "trackOrder": ["trk_keys", "trk_audio"],
+  "tracks": {
+    "trk_audio": {
+      "armed": false,
+      "color": "#5EA8FF",
+      "effects": [],
+      "id": "trk_audio",
+      "inputChannels": 1,
+      "kind": "audio",
+      "mixer": { "gainDb": 0, "mute": false, "pan": 0, "solo": false },
+      "monitor": "off",
+      "name": "Drums"
+    },
+    "trk_keys": {
+      "armed": false,
+      "color": "#8B7CF6",
+      "effects": [
+        {
+          "bypass": false,
+          "id": "fx_1",
+          "kind": "reverb",
+          "params": { "decaySeconds": 2.2, "dampingHz": 8000, "mix": 0.25, "preDelayMs": 20 }
+        }
+      ],
+      "id": "trk_keys",
+      "instrument": { "kind": "synth", "params": { "gainDb": -8 }, "presetId": "synth.keys" },
+      "kind": "instrument",
+      "midiInput": { "channel": "all", "transpose": 0 },
+      "mixer": { "gainDb": -1, "mute": false, "pan": 0.1, "solo": false },
+      "monitor": "auto",
+      "name": "Keys"
+    }
+  },
+  "updatedAt": "2025-06-02T12:00:00.000Z",
+  "vocalEdits": {}
+}
