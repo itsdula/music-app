@@ -1,0 +1,9 @@
+export { createBrowserPlatform, type BrowserPlatformOptions } from './create-browser-platform';
+export { createBrowserFileDialogs, guessMime } from './files';
+export { createBrowserPermissions } from './permissions';
+export { createBrowserDeviceInfo, detectHostCapabilities } from './device-info';
+export { BrowserLogger, type LogRecord } from './logger';
+export { createWebCryptoHasher } from './hashing';
+export { createBrowserAudioDecoder } from './audio-decoder';
+export * from './midi';
+export * from './storage';

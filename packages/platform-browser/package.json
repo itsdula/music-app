@@ -1,0 +1,31 @@
+{
+  "name": "@studio/platform-browser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser implementations of PlatformServices (IndexedDB, Web MIDI, file dialogs, permissions).",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json",
+    "codegen": "node scripts/codegen.mjs"
+  },
+  "studio": {
+    "packageClass": "B"
+  },
+  "dependencies": {
+    "@studio/audio-contracts": "workspace:*",
+    "@studio/audio-web": "workspace:*",
+    "@studio/domain": "workspace:*",
+    "@studio/midi-core": "workspace:*",
+    "@studio/platform-contracts": "workspace:*",
+    "@studio/project-storage": "workspace:*",
+    "@studio/vocal-dsp": "workspace:*",
+    "dexie": "4.4.7"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.6"
+  }
+}

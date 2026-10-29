@@ -1,0 +1,37 @@
+{
+  "name": "@studio/electron-host",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron host: secure main process + preload bridge; the renderer mounts the portable <Studio />.",
+  "type": "module",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:host": "node scripts/build.mjs --skip-renderer",
+    "start": "electron .",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:probe": "node scripts/smoke.mjs --probe",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:host": "tsc --noEmit -p tsconfig.host.json"
+  },
+  "dependencies": {
+    "@studio/platform-browser": "workspace:*",
+    "@studio/platform-contracts": "workspace:*",
+    "@studio/react": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "electron": "45.1.0",
+    "esbuild": "0.28.2",
+    "vite": "8.3.5"
+  },
+  "studio": {
+    "packageClass": "host"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@studio/audio-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Web Audio implementation of the AudioEngine port (scheduling, instruments, effects, recording, offline render).",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json",
+    "codegen": "node scripts/codegen.mjs"
+  },
+  "studio": {
+    "packageClass": "B"
+  },
+  "dependencies": {
+    "@studio/audio-contracts": "workspace:*",
+    "@studio/audio-dsp": "workspace:*",
+    "@studio/domain": "workspace:*",
+    "@studio/engine-core": "workspace:*",
+    "@studio/vocal-dsp": "workspace:*"
+  }
+}

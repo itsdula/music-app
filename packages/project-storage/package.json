@@ -1,0 +1,22 @@
+{
+  "name": "@studio/project-storage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Project schema validation, migrations, portable bundles and repository contracts.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  },
+  "dependencies": {
+    "@studio/domain": "workspace:*",
+    "fflate": "0.8.3",
+    "zod": "4.6.7"
+  }
+}

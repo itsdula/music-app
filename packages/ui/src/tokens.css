@@ -1,0 +1,28 @@
+/*
+ * Studio design tokens (dark-first). Mirrors tokens.ts — keep both in sync
+ * (enforced by packages/ui/tests/tokens.test.ts).
+ */
+@theme static {
+  --color-surface-0: #111318;
+  --color-surface-1: #191c23;
+  --color-surface-2: #222630;
+  --color-surface-3: #2a2f3b;
+  --color-line: #30343e;
+  --color-line-strong: #3c414d;
+  --color-text: #f2f3f5;
+  --color-text-muted: #9298a5;
+  --color-text-faint: #8f97ac; /* ≥ 4.5:1 on every surface (WCAG AA small text) */
+  --color-accent: #8b7cf6;
+  --color-accent-strong: #a397ff;
+  --color-record: #f16d75;
+  --color-success: #3cc8b4;
+  --color-warning: #f2c14e;
+
+  --font-sans:
+    'Inter Variable', Inter, Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}

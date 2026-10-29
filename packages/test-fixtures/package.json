@@ -1,0 +1,17 @@
+{
+  "name": "@studio/test-fixtures",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic synthetic audio and MIDI fixtures for tests and cross-implementation contracts.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  }
+}

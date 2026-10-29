@@ -1,0 +1,36 @@
+{
+  "name": "@studio/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design tokens and accessible presentational primitives.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "C"
+  },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "lucide-react": "1.63.0",
+    "radix-ui": "1.8.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@testing-library/react": "16.3.3"
+  }
+}

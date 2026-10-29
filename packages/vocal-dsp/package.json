@@ -1,0 +1,24 @@
+{
+  "name": "@studio/vocal-dsp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monophonic vocal pitch analysis, note segmentation, key estimation and pitch correction.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  },
+  "dependencies": {
+    "@studio/audio-dsp": "workspace:*",
+    "@studio/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@studio/test-fixtures": "workspace:*"
+  }
+}

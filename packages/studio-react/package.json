@@ -1,0 +1,57 @@
+{
+  "name": "@studio/react",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The portable <Studio /> React component.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./dist/studio.css"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json",
+    "build": "node scripts/build-css.mjs",
+    "dev": "node scripts/build-css.mjs --watch"
+  },
+  "studio": {
+    "packageClass": "C"
+  },
+  "dependencies": {
+    "@studio/audio-contracts": "workspace:*",
+    "@studio/audio-dsp": "workspace:*",
+    "@studio/commands": "workspace:*",
+    "@studio/domain": "workspace:*",
+    "@studio/engine-core": "workspace:*",
+    "@studio/midi-akai-mpk-mini-mk3": "workspace:*",
+    "@studio/midi-core": "workspace:*",
+    "@studio/platform-browser": "workspace:*",
+    "@studio/platform-contracts": "workspace:*",
+    "@studio/project-storage": "workspace:*",
+    "@studio/ui": "workspace:*",
+    "@studio/vocal-dsp": "workspace:*",
+    "clsx": "2.1.1",
+    "lucide-react": "1.63.0",
+    "radix-ui": "1.8.1",
+    "zustand": "5.0.16"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3",
+    "@fontsource-variable/inter": "5.3.0",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@vitejs/plugin-react": "6.1.2",
+    "fake-indexeddb": "6.2.6"
+  }
+}

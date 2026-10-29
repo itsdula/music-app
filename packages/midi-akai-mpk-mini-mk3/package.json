@@ -1,0 +1,21 @@
+{
+  "name": "@studio/midi-akai-mpk-mini-mk3",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Researched AKAI Professional MPK Mini MK3 device profile, layout model and default mappings.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  },
+  "dependencies": {
+    "@studio/domain": "workspace:*",
+    "@studio/midi-core": "workspace:*"
+  }
+}
