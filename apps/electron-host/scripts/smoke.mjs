@@ -22,7 +22,7 @@ const repoRoot = join(appDir, '../..');
 const argv = process.argv.slice(2);
 const probeMode = argv.includes('--probe');
 const skipBuild = argv.includes('--no-build');
-const TIMEOUT_MS = 120_000;
+const TIMEOUT_MS = 180_000; // two 45 s launch attempts plus the checks
 
 // --- display -------------------------------------------------------------------------------
 if (process.platform === 'linux' && !process.env.DISPLAY && !process.env.STUDIO_SMOKE_XVFB) {
@@ -72,8 +72,6 @@ if (!skipBuild) {
 // --- launch --------------------------------------------------------------------------------
 const { _electron } = await import('playwright');
 const electronPath = createRequire(join(appDir, 'package.json'))('electron');
-const userDataDir = await mkdtemp(join(tmpdir(), 'studio-electron-smoke-'));
-const savePath = join(userDataDir, 'smoke-take.wav');
 const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
 
 const watchdog = setTimeout(() => {
@@ -81,17 +79,37 @@ const watchdog = setTimeout(() => {
   process.exit(1);
 }, TIMEOUT_MS);
 
-const app = await _electron.launch({
-  executablePath: electronPath,
-  args: [appDir, ...(isRoot ? ['--no-sandbox'] : [])],
-  cwd: appDir,
-  env: {
-    ...process.env,
-    STUDIO_USER_DATA_DIR: userDataDir,
-    ...(probeMode ? { STUDIO_ELECTRON_PROBE: '1' } : {}),
-  },
-  timeout: 60_000,
-});
+/**
+ * Launches Electron with a fresh profile. One CI run hung inside Playwright's launch handshake
+ * (DevTools connected, app `ready` never released, before any Studio window existed) and it
+ * did not reproduce locally, so a launch timeout is retried once with a new profile and
+ * reported. Only the launch is retried; every check below must still pass.
+ */
+async function launch(attempt = 1) {
+  const profileDir = await mkdtemp(join(tmpdir(), 'studio-electron-smoke-'));
+  try {
+    const launched = await _electron.launch({
+      executablePath: electronPath,
+      args: [appDir, ...(isRoot ? ['--no-sandbox'] : [])],
+      cwd: appDir,
+      env: {
+        ...process.env,
+        STUDIO_USER_DATA_DIR: profileDir,
+        ...(probeMode ? { STUDIO_ELECTRON_PROBE: '1' } : {}),
+      },
+      timeout: 45_000,
+    });
+    return { app: launched, userDataDir: profileDir };
+  } catch (error) {
+    await rm(profileDir, { recursive: true, force: true }).catch(() => undefined);
+    if (attempt >= 2 || !(error instanceof Error) || error.name !== 'TimeoutError') throw error;
+    console.error(`smoke: Electron launch timed out (attempt ${attempt}); retrying once`);
+    return launch(attempt + 1);
+  }
+}
+
+const { app, userDataDir } = await launch();
+const savePath = join(userDataDir, 'smoke-take.wav');
 app.process().stderr?.on('data', (chunk) => process.stderr.write(`[electron] ${chunk}`));
 
 let phase = 'load';
