@@ -197,4 +197,26 @@ describe('MIDI integration', () => {
     const offs = platform.engine.live_calls.filter((c) => c.kind === 'noteOff');
     expect(offs.map((c) => c.value)).toEqual([64]);
   });
+
+  it('records MIDI on an armed instrument track and quantizes when configured', async () => {
+    const { session, platform } = await startSession();
+    await connectMpk(session, platform);
+    const trackId = session.history.present.trackOrder[0]!;
+    session.history.execute({ type: 'track.update', trackId, patch: { armed: true } });
+    await session.midi.updateSettings({ recordQuantize: '1/16' });
+    await session.transport.record();
+    platform.engine.advance(0.5); // 0.5 s at 120 BPM = 960 ticks
+    platform.midiPort.input('in-1', [0x90, 62, 100], performance.now());
+    platform.engine.advance(0.25);
+    platform.midiPort.input('in-1', [0x80, 62, 0], performance.now());
+    platform.engine.advance(0.25);
+    await session.transport.stop();
+    const clips = Object.values(session.history.present.clips).filter((c) => c.trackId === trackId && c.kind === 'midi');
+    expect(clips).toHaveLength(1);
+    const clip = clips[0] as MidiClip;
+    expect(clip.notes).toHaveLength(1);
+    // Latency compensation (30 ms ≈ 58 ticks) then 1/16 quantize → back on the 960 grid line.
+    expect(clip.startTick + clip.notes[0]!.startTick).toBe(960);
+    expect(clip.notes[0]!.pitch).toBe(62);
+  });
 });

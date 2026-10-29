@@ -21,6 +21,8 @@ export interface RecordingHooks {
 export class TransportController {
   private tapTimes: number[] = [];
   private recordingHooks: RecordingHooks | null = null;
+  private audioRecording = false;
+  private midiRecording = false;
 
   constructor(
     private readonly engine: AudioEngine,
@@ -62,8 +64,12 @@ export class TransportController {
     this.engineStore.setState({ playState: 'paused', cursorTick: Math.round(position.ticks) });
   }
 
+  get isRecording(): boolean {
+    return this.audioRecording || this.midiRecording;
+  }
+
   async stop(): Promise<void> {
-    if (this.engineStore.getState().recording.phase === 'recording') {
+    if (this.isRecording) {
       await this.stopRecording();
       return;
     }
@@ -117,7 +123,7 @@ export class TransportController {
   /** Starts recording on armed tracks; plays from the cursor (with count-in if configured). */
   async record(): Promise<void> {
     const state = this.engineStore.getState();
-    if (state.recording.phase === 'recording') {
+    if (this.isRecording) {
       await this.stopRecording();
       return;
     }
@@ -142,8 +148,15 @@ export class TransportController {
       if (audioTracks.length > 0) {
         const first = project.tracks[audioTracks[0]!];
         await this.engine.startRecording({ trackIds: audioTracks, channelCount: first?.inputChannels ?? 1 });
+        this.audioRecording = true;
       }
-      this.recordingHooks?.beginMidiRecording(midiTracks, state.cursorTick);
+      if (midiTracks.length > 0 && this.recordingHooks?.beginMidiRecording(midiTracks, state.cursorTick)) {
+        this.midiRecording = true;
+        if (!this.audioRecording) {
+          // The engine only reports audio capture; publish the MIDI-only recording state ourselves.
+          this.engineStore.setState({ recording: { phase: 'recording', startedAtTick: state.cursorTick, trackIds: midiTracks } });
+        }
+      }
     } catch (error) {
       this.logger.error('Recording failed to start', error);
     }
@@ -151,15 +164,21 @@ export class TransportController {
 
   async stopRecording(): Promise<void> {
     const position = this.engine.getTransportPosition();
+    const hadAudio = this.audioRecording;
+    const hadMidi = this.midiRecording;
+    this.audioRecording = false;
+    this.midiRecording = false;
     let takes: RecordedTake[] = [];
-    try {
-      takes = await this.engine.stopRecording();
-    } catch (error) {
-      this.logger.error('Stopping the recording failed', error);
+    if (hadAudio) {
+      try {
+        takes = await this.engine.stopRecording();
+      } catch (error) {
+        this.logger.error('Stopping the recording failed', error);
+      }
     }
-    this.recordingHooks?.endMidiRecording(Math.round(position.ticks));
+    if (hadMidi) this.recordingHooks?.endMidiRecording(Math.round(position.ticks));
     await this.engine.stop();
-    this.engineStore.setState({ playState: 'stopped' });
+    this.engineStore.setState({ playState: 'stopped', ...(hadAudio ? {} : { recording: { phase: 'idle' as const } }) });
     if (takes.length > 0) await this.recordingHooks?.commitAudioTakes(takes);
   }
 }

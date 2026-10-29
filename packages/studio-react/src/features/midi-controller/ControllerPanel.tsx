@@ -17,6 +17,7 @@ export function ControllerPanel() {
   const status = useStore(session.midi.store, (s) => s.status);
   const devices = useStore(session.midi.store, (s) => s.devices);
   const velocityCurve = useStore(session.midi.store, (s) => s.velocityCurve);
+  const recordQuantize = useStore(session.midi.store, (s) => s.recordQuantize);
   const lastError = useStore(session.midi.store, (s) => s.lastError);
   const [view, setView] = useState<View>('hardware');
   const [selected, setSelected] = useState<string | null>('knob.K1');
@@ -44,6 +45,20 @@ export function ControllerPanel() {
             { value: 'soft', label: 'Velocity: soft' },
             { value: 'hard', label: 'Velocity: hard' },
             { value: 'fixed', label: 'Velocity: fixed' },
+          ]}
+        />
+        <Select
+          label="Quantize MIDI recording"
+          size="sm"
+          value={recordQuantize ?? 'off'}
+          onValueChange={(v: string) => void session.midi.updateSettings({ recordQuantize: v === 'off' ? null : (v as '1/16') })}
+          options={[
+            { value: 'off', label: 'Record: no quantize' },
+            { value: '1/8', label: 'Record: quantize 1/8' },
+            { value: '1/16', label: 'Record: quantize 1/16' },
+            { value: '1/32', label: 'Record: quantize 1/32' },
+            { value: '1/8T', label: 'Record: quantize 1/8 T' },
+            { value: '1/16T', label: 'Record: quantize 1/16 T' },
           ]}
         />
         <SegmentedControl

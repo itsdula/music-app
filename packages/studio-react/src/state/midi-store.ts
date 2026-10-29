@@ -1,4 +1,4 @@
-import type { MidiMapping } from '@studio/domain';
+import type { GridDivision, MidiMapping } from '@studio/domain';
 import type { MidiAccessStatus, MidiLearnState, VelocityCurve } from '@studio/midi-core';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
@@ -22,6 +22,8 @@ export interface MidiStoreState {
   readonly velocityCurve: VelocityCurve;
   /** Software transpose applied to all incoming notes (semitones). */
   readonly transpose: number;
+  /** Quantize recorded MIDI note starts to this grid (null = off). */
+  readonly recordQuantize: GridDivision | null;
   readonly lastError: string | null;
 }
 
@@ -36,6 +38,7 @@ export function createMidiStore(supported: boolean): MidiStore {
     globalMappings: [],
     velocityCurve: 'linear',
     transpose: 0,
+    recordQuantize: null,
     lastError: null,
   }));
 }

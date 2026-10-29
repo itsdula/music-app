@@ -5,7 +5,7 @@
  */
 import type { AudioEngine } from '@studio/audio-contracts';
 import type { CommandHistory } from '@studio/commands';
-import { PPQ, type MappingTarget, type MidiMapping, type StudioActionId, type TrackId } from '@studio/domain';
+import { gridDivisionTicks, PPQ, quantizeTick, type GridDivision, type MappingTarget, type MidiMapping, type StudioActionId, type TrackId } from '@studio/domain';
 import { mpkMiniMk3Profile } from '@studio/midi-akai-mpk-mini-mk3';
 import {
   MappingEngine,
@@ -101,7 +101,7 @@ export class MidiController {
     const saved = await this.platform.settingsRepository.get<MidiMapping[]>(GLOBAL_MAPPINGS_KEY);
     const globalMappings = saved ?? this.createDefaultGlobalMappings();
     if (!saved) await this.platform.settingsRepository.set(GLOBAL_MAPPINGS_KEY, globalMappings);
-    const settings = await this.platform.settingsRepository.get<{ velocityCurve: VelocityCurve; transpose: number }>(SETTINGS_KEY);
+    const settings = await this.platform.settingsRepository.get<{ velocityCurve: VelocityCurve; transpose: number; recordQuantize?: GridDivision | null }>(SETTINGS_KEY);
     this.store.setState({ globalMappings, ...(settings ?? {}) });
     this.applyMappings();
     // Reconnect silently when permission was granted in an earlier session (no prompt).
@@ -155,10 +155,10 @@ export class MidiController {
     await this.setGlobalMappings(this.createDefaultGlobalMappings());
   }
 
-  async updateSettings(patch: Partial<{ velocityCurve: VelocityCurve; transpose: number }>): Promise<void> {
+  async updateSettings(patch: Partial<{ velocityCurve: VelocityCurve; transpose: number; recordQuantize: GridDivision | null }>): Promise<void> {
     this.store.setState(patch);
-    const { velocityCurve, transpose } = this.store.getState();
-    await this.platform.settingsRepository.set(SETTINGS_KEY, { velocityCurve, transpose });
+    const { velocityCurve, transpose, recordQuantize } = this.store.getState();
+    await this.platform.settingsRepository.set(SETTINGS_KEY, { velocityCurve, transpose, recordQuantize });
   }
 
   /** All mappings (global + project) for display. */
@@ -391,7 +391,11 @@ export class MidiController {
     this.recorder = null;
     this.recordTrackId = null;
     if (!recorder || !trackId) return;
-    const notes = recorder.finish(endTick);
+    const division = this.store.getState().recordQuantize;
+    const gridTicks = division ? gridDivisionTicks(division, this.history.present.meter) : 0;
+    const notes = recorder.finish(endTick).map((n) =>
+      gridTicks > 0 ? { ...n, startTick: Math.max(0, quantizeTick(n.startTick, { gridTicks, strength: 1 })) } : n,
+    );
     this.edits.commitMidiTake({
       trackId,
       startTick: this.recordStartTick,
