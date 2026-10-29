@@ -10,6 +10,7 @@ import {
   createMemoryProjectRepository,
   createMemorySettingsRepository,
 } from '@studio/project-storage';
+import { createInlineVocalProcessor } from '@studio/vocal-dsp';
 import { FakeAudioEngine } from './fake-engine';
 import { FakeMidiPort } from './fake-midi-port';
 
@@ -43,9 +44,8 @@ export function createTestPlatform(overrides: { projects?: ReturnType<typeof cre
     savedFiles,
     pickFiles: [],
     audioBackendFactory: { kind: 'fake', isSupported: () => true, create: () => engine },
-    createVocalProcessor: () => {
-      throw new Error('Vocal processing is not wired in the session test platform yet');
-    },
+    // Same-thread processor: real analysis and rendering without a Worker.
+    createVocalProcessor: () => createInlineVocalProcessor(),
     midiAccess: midiPort,
     projectRepository: overrides.projects ?? createMemoryProjectRepository({ now: () => new Date(clock).toISOString() }),
     assetRepository: createMemoryAssetRepository(),
