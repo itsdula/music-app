@@ -134,6 +134,19 @@ describe('recording', () => {
     expect(clips[0]).toMatchObject({ kind: 'audio', startTick: PPQ * 4 });
     expect(session.history.undoLabel).toBe('Record Audio');
   });
+
+  it('stops the transport and explains a denied microphone instead of failing silently', async () => {
+    const { session, platform } = await startSession();
+    const audioTrack = session.edits.addTrack('audio');
+    session.history.execute({ type: 'track.update', trackId: audioTrack, patch: { armed: true } });
+    platform.engine.recordingError = { code: 'microphone-denied', message: 'Microphone access was denied' };
+    await session.transport.record();
+    expect(session.transport.isRecording).toBe(false);
+    expect(platform.engine.getTransportPosition().state).toBe('stopped');
+    expect(session.engineStore.getState().playState).toBe('stopped');
+    expect(session.engineStore.getState().lastError?.message).toMatch(/Allow the microphone/);
+    expect(Object.values(session.history.present.clips).filter((c) => c.trackId === audioTrack)).toHaveLength(0);
+  });
 });
 
 describe('MIDI integration', () => {

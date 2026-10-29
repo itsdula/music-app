@@ -164,6 +164,14 @@ export class TransportController {
       }
     } catch (error) {
       this.logger.error('Recording failed to start', error);
+      // Never leave the transport running after a failed start (e.g. microphone denied).
+      this.audioRecording = false;
+      await this.engine.stop().catch(() => undefined);
+      this.engineStore.setState({ playState: 'stopped' });
+      if (!this.engineStore.getState().lastError) {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.engineStore.setState({ lastError: { code: 'internal', message: `Recording could not start: ${reason}` } });
+      }
     }
   }
 

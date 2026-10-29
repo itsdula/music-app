@@ -9,6 +9,7 @@ import type {
   AudioEngineEvent,
   AudioEngineListener,
   AudioGraphChange,
+  EngineError,
   EngineLifecycleState,
   EngineSnapshot,
   MeterSnapshot,
@@ -127,7 +128,16 @@ export class FakeAudioEngine implements AudioEngine {
   async listInputDevices() {
     return [{ deviceId: 'fake-mic', label: 'Fake microphone' }];
   }
+  /** When set, the next startRecording fails like a denied microphone (error event + throw). */
+  recordingError: EngineError | null = null;
   async startRecording(options: RecordingOptions): Promise<void> {
+    if (this.recordingError) {
+      const error = this.recordingError;
+      this.recordingError = null;
+      this.emit({ type: 'recording', status: { phase: 'error', message: error.message } });
+      this.emit({ type: 'error', error });
+      throw Object.assign(new Error(error.message), error);
+    }
     this.recording = options;
     this.recordStartTick = this.getTransportPosition().ticks;
     this.emit({ type: 'recording', status: { phase: 'recording', startedAtTick: this.recordStartTick, trackIds: options.trackIds } });

@@ -16,6 +16,7 @@ import { AssetLibrary } from './asset-library';
 import { createStarterProject } from './demo-project';
 import { EditController } from './edit-controller';
 import { EngineBridge } from './engine-bridge';
+import { userFacingEngineMessage } from './engine-messages';
 import { ExportController } from './export-controller';
 import { MidiController } from './midi-controller';
 import { ProjectController } from './project-controller';
@@ -92,7 +93,7 @@ export function createStudioSession(platform: PlatformServices, config: StudioCo
         engineStore.setState({ recording: event.status });
         break;
       case 'error':
-        engineStore.setState({ lastError: event.error });
+        engineStore.setState({ lastError: { ...event.error, message: userFacingEngineMessage(event.error) } });
         platform.logger.warn(event.error.message, event.error.detail);
         break;
       case 'asset':
