@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assistantConnectSources,
   buildContentSecurityPolicy,
   isAllowedNavigation,
   isAppOrigin,
@@ -141,5 +142,70 @@ describe('buildContentSecurityPolicy', () => {
     expect(headers['Content-Security-Policy']).toBe(buildContentSecurityPolicy());
     expect(headers['X-Content-Type-Options']).toBe('nosniff');
     expect(headers['Content-Type']).toBe('text/html');
+  });
+});
+
+describe('assistant endpoint in connect-src', () => {
+  it('allows exactly the origin of an https assistant URL', () => {
+    expect(assistantConnectSources('https://studio.example.com/api/assistant?x=1')).toEqual([
+      'https://studio.example.com',
+    ]);
+    expect(assistantConnectSources('https://studio.example.com:8443/api/assistant')).toEqual([
+      'https://studio.example.com:8443',
+    ]);
+  });
+
+  it('allows plain http only for loopback development servers', () => {
+    expect(assistantConnectSources('http://localhost:3000/api/assistant')).toEqual([
+      'http://localhost:3000',
+    ]);
+    expect(assistantConnectSources('http://127.0.0.1:3000/api/assistant')).toEqual([
+      'http://127.0.0.1:3000',
+    ]);
+    expect(assistantConnectSources('http://studio.example.com/api/assistant')).toEqual([]);
+  });
+
+  it('adds nothing when unset, invalid, non-http or carrying credentials', () => {
+    for (const url of [
+      undefined,
+      null,
+      '',
+      'not a url',
+      'ws://localhost:3000',
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+      'https://user:pass@studio.example.com/api/assistant',
+    ]) {
+      expect(assistantConnectSources(url)).toEqual([]);
+    }
+  });
+
+  it('keeps every other directive locked when an assistant origin is configured', () => {
+    const csp = buildContentSecurityPolicy({
+      extraConnectSrc: assistantConnectSources('https://studio.example.com/api/assistant'),
+    });
+    const parsed = new Map(
+      csp.split('; ').map((d) => {
+        const [name, ...sources] = d.split(' ');
+        return [name!, sources] as const;
+      }),
+    );
+    expect(parsed.get('connect-src')).toEqual([
+      "'self'",
+      'blob:',
+      'data:',
+      'https://studio.example.com',
+    ]);
+    expect(csp.replace(' https://studio.example.com', '')).toBe(buildContentSecurityPolicy());
+  });
+
+  it('is attached to app responses when passed to securityHeaders', () => {
+    const options = { extraConnectSrc: ['https://studio.example.com'] };
+    expect(securityHeaders('text/html', options)['Content-Security-Policy']).toBe(
+      buildContentSecurityPolicy(options),
+    );
+    expect(securityHeaders('text/html')['Content-Security-Policy']).not.toContain(
+      'studio.example.com',
+    );
   });
 });

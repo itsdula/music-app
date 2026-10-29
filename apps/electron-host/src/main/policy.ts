@@ -62,8 +62,34 @@ export function isPermissionAllowed(
 }
 
 export interface CspOptions {
-  /** Extra `connect-src` sources (e.g. a dev server); none in production. */
+  /**
+   * Extra `connect-src` sources: the configured assistant endpoint origin (see
+   * `assistantConnectSources`) or a dev server. None by default.
+   */
   readonly extraConnectSrc?: readonly string[];
+}
+
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * `connect-src` entry for the AI assistant endpoint baked in at build time
+ * (`STUDIO_ASSISTANT_URL`): exactly its origin, and only for `https:` URLs (plain `http:` is
+ * accepted for loopback hosts, for local development). Anything else yields no source, so the
+ * CSP stays fully locked down.
+ */
+export function assistantConnectSources(url: string | null | undefined): string[] {
+  if (!url) return [];
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return [];
+  }
+  if (parsed.username || parsed.password) return [];
+  const secure = parsed.protocol === 'https:';
+  const loopbackHttp = parsed.protocol === 'http:' && LOOPBACK_HOSTS.has(parsed.hostname);
+  if (!secure && !loopbackHttp) return [];
+  return [parsed.origin];
 }
 
 /**
@@ -93,10 +119,13 @@ export function buildContentSecurityPolicy(options: CspOptions = {}): string {
 }
 
 /** Response headers attached to every `studio://app/` response. */
-export function securityHeaders(contentType: string): Record<string, string> {
+export function securityHeaders(
+  contentType: string,
+  cspOptions: CspOptions = {},
+): Record<string, string> {
   return {
     'Content-Type': contentType,
-    'Content-Security-Policy': buildContentSecurityPolicy(),
+    'Content-Security-Policy': buildContentSecurityPolicy(cspOptions),
     'X-Content-Type-Options': 'nosniff',
     'Cross-Origin-Opener-Policy': 'same-origin',
     'Referrer-Policy': 'no-referrer',
