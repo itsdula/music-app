@@ -157,6 +157,11 @@ export function updateAudioClip(project: Project, command: CommandOf<'clip.updat
     const { loopLengthFrames: _cleared, ...rest } = next;
     next = rest;
   }
+  if (next.loopLengthFrames === undefined && next.sourceStartFrame >= asset.frames) {
+    // A looped clip's window can be trimmed past the end of its audio; once it stops
+    // looping it must start inside the asset again.
+    next = mergeChanged(next, { sourceStartFrame: Math.max(0, asset.frames - 1) });
+  }
   const lengthFrames =
     next.loopLengthFrames === undefined
       ? Math.min(next.lengthFrames, maxAudioLength(asset, next.sourceStartFrame))
