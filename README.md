@@ -9,11 +9,14 @@ a Next.js site (landing page at `/`, the app at `/studio`), a standalone Vite ap
 Electron shell. Audio runs on Web Audio (AudioWorklet where audio-thread code is needed);
 projects and audio live in IndexedDB on your device.
 
-> **Status:** active development. Capabilities are claimed only when tested — see
-> [`docs/implementation-plan.md`](docs/implementation-plan.md) for milestones and
-> [`docs/agent-workstreams.md`](docs/agent-workstreams.md) for test evidence per merge.
-> AKAI MPK Mini MK3 support has **not yet been verified on a physical unit**; see the
-> compatibility matrix in [`docs/midi-device-research.md`](docs/midi-device-research.md).
+> **Status:** phases 0–7 are implemented and covered by automated tests (unit,
+> real-Chromium Web Audio, and Playwright end-to-end on both hosts); phase 8 polish is in
+> progress. Capabilities are claimed only when tested — see
+> [`docs/implementation-plan.md`](docs/implementation-plan.md) for per-phase evidence and
+> limitations, and [`docs/agent-workstreams.md`](docs/agent-workstreams.md) for each merge.
+> AKAI MPK Mini MK3 support has been tested only against a simulated Web MIDI port and has
+> **not yet been verified on a physical unit**; see the compatibility matrix in
+> [`docs/midi-device-research.md`](docs/midi-device-research.md).
 
 ## Quick start
 
@@ -23,6 +26,8 @@ Requirements: Node 22.12+, pnpm 10, a Chromium-based browser for Web MIDI.
 pnpm install
 pnpm dev            # Next.js host → http://localhost:3000 (landing) and /studio
 pnpm dev:vite       # standalone Vite host → http://localhost:3001
+pnpm --filter @studio/electron-host build && pnpm --filter @studio/electron-host start
+                    # desktop shell (Electron)
 ```
 
 ## Repository layout

@@ -74,6 +74,21 @@ never the domain behaviour under test.
 8. Error states: microphone denied, MIDI unsupported/denied, corrupt bundle import.
 9. Keyboard: transport shortcuts, undo/redo, focus order, escape cancels gestures.
 
+Implemented (all green on Chromium, 26 tests, `pnpm test:e2e`):
+
+| Scenario      | Spec                                     | Notes                                                                    |
+| ------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| 1, 2          | `landing.spec.ts`, `portability.spec.ts` | landing on `web`; portability on `web` and `vite`                        |
+| 3, 9 (partly) | `studio/vertical-slice.spec.ts`          | includes undo/redo and Delete-in-piano-roll regression                   |
+| 4             | `studio/persistence-and-audio.spec.ts`   | autosave → reload, `.studio` round trip, Gain effect audibility          |
+| 5             | `studio/recording.spec.ts`               | Chromium fake microphone                                                 |
+| 6             | `studio/midi-controller.spec.ts`         | virtual "MPK mini 3" port: profile, pads, pickup, learn, reload, hotplug |
+| 7             | `studio/vocal.spec.ts`                   | real Worker analysis; exported WAV re-analysed in Node                   |
+| 8             | `studio/error-states.spec.ts`            | no Web MIDI, MIDI denied, microphone denied, corrupt bundle              |
+
+Not yet automated: clip trim/split by mouse in the browser (covered by session integration
+tests instead), a full keyboard focus-order audit, and Firefox/WebKit runs.
+
 ## 6. Performance methodology
 
 Run on CI-like hardware (4 vCPU), Chromium headless, production build:

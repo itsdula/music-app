@@ -20,15 +20,35 @@ Source: `packages/studio-react/tests/performance.integration.test.ts`
 | `readPeaks` 1,600 columns, whole file           | 0.042 ms | 10 ms     | waveform draw at minimum zoom             |
 | `readPeaks` 1,600 columns, 1 s window           | 0.028 ms | 10 ms     | waveform draw at maximum zoom             |
 
-## Audio engine
+## Audio engine (real Chromium 153, headless, 4 vCPU)
 
-See [audio-engine.md](audio-engine.md) (offline render of a 16-track/100-clip project,
-scheduler tick cost, meter read cost) — measured in real Chromium by the engine test suite.
+Source: `packages/audio-web/tests/benchmarks.browser.test.ts` (`pnpm test:browser`); ranges
+over several runs. Details in [audio-engine.md](audio-engine.md).
 
-## Vocal DSP
+| Measurement                                                 | Result                                              |
+| ----------------------------------------------------------- | --------------------------------------------------- |
+| Offline bounce, 16 tracks / 100 clips with effects (72.5 s) | 19.2–21.5 s (3.4–3.8× real time)                    |
+| Same arrangement without effects                            | 7.0–7.5× real time                                  |
+| Scheduler pass (every 25 ms, 120 ms lookahead)              | mean 0.17–0.35 ms, max 7.1 ms, 0 late events        |
+| `readMeters()`, 17 meters                                   | 2.5–3.8 µs back-to-back; 58–133 µs at frame cadence |
+| Drum kit synthesis for a new parameter set (main thread)    | 110–173 ms, then cached                             |
 
-See [vocal-dsp.md](vocal-dsp.md) (analysis and TD-PSOLA render real-time factors, accuracy
-metrics on synthetic fixtures).
+## Vocal DSP (Node 22, one thread)
+
+Source: `VOCAL_BENCH=1 pnpm exec vitest run --project unit packages/vocal-dsp/tests/benchmark.test.ts`
+and the vocal-dsp metric tests. Details in [vocal-dsp.md](vocal-dsp.md).
+
+| Measurement                                    | Target   | Result                                                |
+| ---------------------------------------------- | -------- | ----------------------------------------------------- |
+| Analysis (60 s at 48 kHz, full Viterbi)        | ≤ 0.15×  | 0.040× real time (2.37 s)                             |
+| TD-PSOLA render (preview and final)            | ≤ 0.1×   | 0.013× real time                                      |
+| Raw pitch accuracy (clean synthetic set)       | ≥ 95%    | 98.8% (worst fixture 94.6%, an extreme 59 st/s glide) |
+| Octave errors                                  | ≤ 2%     | 0%                                                    |
+| Median error after +2/−3 st moves, re-analysed | ≤ 10 ¢   | 0.13–0.64 ¢                                           |
+| Key estimation top-1 / top-3 (29 melodies)     | 80 / 95% | 93.1% / 100%                                          |
+
+End to end in the browser (`e2e/studio/vocal.spec.ts`): Auto Tune at 100% moved notes
+detuned by −30/+20/−15 ¢ to −0.1/0.0/−0.3 ¢ in the exported WAV (re-analysed in Node).
 
 ## Not yet measured
 
