@@ -7,7 +7,7 @@ import {
   MonitorSmartphone,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ControllerIllustration } from './illustrations';
+import { ScreenshotFrame } from './ScreenshotFrame';
 import { Container, Pill, SectionHeader } from './primitives';
 
 function Capability({
@@ -59,9 +59,10 @@ export function ControllerSection() {
               <Pill tone="warning">Not yet verified on a physical unit</Pill>
             </div>
           </div>
-          <div className="rounded-2xl border border-line bg-surface-0/60 p-4 sm:p-6">
-            <ControllerIllustration className="h-auto w-full" />
-          </div>
+          <ScreenshotFrame
+            src="/screenshots/controller.png"
+            alt="Studio's controller panel: an original drawing of the MPK Mini MK3 layout, with the selected knob's default message and how well it is documented"
+          />
         </div>
 
         <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-16">

@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowRight } from 'lucide-react';
-import { ArrangementIllustration } from './illustrations';
+import { ScreenshotFrame } from './ScreenshotFrame';
 import { Container, CtaLink, Pill } from './primitives';
 
 export function Hero() {
@@ -41,7 +41,11 @@ export function Hero() {
             aria-hidden="true"
             className="pointer-events-none absolute -inset-8 rounded-[40px] bg-[radial-gradient(closest-side,rgb(139_124_246/0.18),transparent)]"
           />
-          <ArrangementIllustration className="relative h-auto w-full drop-shadow-[0_24px_48px_rgb(0_0_0/0.45)]" />
+          <ScreenshotFrame
+            src="/screenshots/studio-overview.png"
+            alt="Studio showing the built-in demo project: drum, bass and keys clips in the arrangement and the mixer below"
+            className="relative"
+          />
         </div>
       </Container>
     </section>

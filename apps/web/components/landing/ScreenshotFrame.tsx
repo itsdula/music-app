@@ -9,11 +9,9 @@ export interface ScreenshotFrameProps {
 /**
  * Window-style frame for a real product screenshot.
  *
- * Uses a plain <img> so it works without next/image configuration.
- *
- * Currently unused: the landing page shows decorative illustrations instead of
- * screenshots. To use it, put an image in `apps/web/public/screenshots/` and replace an
- * illustration, e.g. `<ScreenshotFrame src="/screenshots/arrangement.png" alt="…" />`.
+ * Uses a plain <img> so it works without next/image configuration. Images live in
+ * `apps/web/public/screenshots/` and are captured from the running app by
+ * `scripts/capture-screenshots.mjs` (original demo content only).
  */
 export function ScreenshotFrame({ src, alt, className }: ScreenshotFrameProps) {
   return (

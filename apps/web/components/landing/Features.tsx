@@ -1,6 +1,6 @@
 import { Download, HardDrive, Layers, Mic, Piano, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { PianoRollIllustration } from './illustrations';
+import { ScreenshotFrame } from './ScreenshotFrame';
 import { Container, SectionHeader, cx } from './primitives';
 
 function FeatureCard({
@@ -87,7 +87,12 @@ export function Features() {
             icon={<Piano />}
             title="Piano roll and instruments"
             className="lg:col-span-2"
-            visual={<PianoRollIllustration className="h-auto w-full" />}
+            visual={
+              <ScreenshotFrame
+                src="/screenshots/piano-roll.png"
+                alt="The piano roll editing the demo bassline, with note velocities shown below"
+              />
+            }
           >
             Draw and edit notes in a piano roll. Play them with a polyphonic synth (pad, bass, lead,
             pluck and keys presets) or a synthesized drum kit.

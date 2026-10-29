@@ -1,5 +1,5 @@
 import { Check, Info } from 'lucide-react';
-import { PitchEditorIllustration } from './illustrations';
+import { ScreenshotFrame } from './ScreenshotFrame';
 import { Container, SectionHeader } from './primitives';
 
 const POINTS = [
@@ -19,7 +19,10 @@ export function VocalSection() {
     >
       <Container className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
         <div className="order-2 lg:order-1">
-          <PitchEditorIllustration className="h-auto w-full" />
+          <ScreenshotFrame
+            src="/screenshots/vocal-editor.png"
+            alt="The vocal pitch editor with four detected notes, the suggested key, and Auto Tune set to 80 percent"
+          />
         </div>
         <div className="order-1 lg:order-2">
           <SectionHeader id="vocal-title" eyebrow="Vocals" title="Vocal pitch editor">
