@@ -8,6 +8,8 @@ import { type PitchTrack } from '../types';
  * the pitch track at the midpoint), then refined by maximising the normalised
  * cross-correlation between the previous period and the candidate period within
  * ±12 % of a period, and finally snapped to the largest |x| within ±4 % of a period.
+ * Marking stops where a period keeps less than 20 % of the previous period's energy
+ * (decaying resonance after the voice stops) or its window would leave the run.
  * Correlation tracking keeps marks at the same waveform feature from period to period,
  * which is what keeps PSOLA grains coherent.
  */
@@ -18,6 +20,8 @@ export const PITCH_MARK_PARAMS = {
   bridgeMaxSemitones: 1,
   searchFraction: 0.12,
   snapFraction: 0.04,
+  /** Energy of the next period relative to the previous one below which marking stops. */
+  minEnergyRatio: 0.2,
 } as const;
 
 export interface VoicedRun {
@@ -117,6 +121,14 @@ export function frameValueAt(
   return curve[i]! + (curve[i + 1]! - curve[i]!) * frac;
 }
 
+function windowEnergy(x: Float32Array, centre: number, half: number): number {
+  let sum = 0;
+  for (let n = Math.max(0, centre - half); n < Math.min(x.length, centre + half); n++) {
+    sum += x[n]! * x[n]!;
+  }
+  return sum;
+}
+
 function normalisedCorrelation(
   x: Float32Array,
   centreA: number,
@@ -168,8 +180,9 @@ export function detectPitchMarks(
     for (;;) {
       const period = periodAt(mark + 0.5 * periodAt(mark));
       const predicted = Math.round(mark + period);
-      if (predicted >= run.endSample) break;
       const half = Math.max(2, Math.round(period / 2));
+      // The comparison window must stay inside the voiced run (decaying tails mislead it).
+      if (predicted + half >= run.endSample) break;
       const radius = Math.max(1, Math.round(PITCH_MARK_PARAMS.searchFraction * period));
       let best = predicted;
       let bestScore = Number.NEGATIVE_INFINITY;
@@ -181,6 +194,13 @@ export function detectPitchMarks(
           bestScore = score;
           best = candidate;
         }
+      }
+      // Stop in decaying tails: the candidate period must keep a fifth of the energy.
+      if (
+        windowEnergy(mono, best, half) <
+        PITCH_MARK_PARAMS.minEnergyRatio * windowEnergy(mono, mark, half)
+      ) {
+        break;
       }
       const snap = Math.max(1, Math.round(PITCH_MARK_PARAMS.snapFraction * period));
       let snapped = best;

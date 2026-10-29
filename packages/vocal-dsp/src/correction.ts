@@ -207,7 +207,7 @@ export function computeTargetPitchCurve(
     const onset = timeOf(firstVoiced);
     for (let k = 0; k < note.voiced.length; k++) {
       const i = note.voiced[k]!;
-      const w = rampSeconds > 0 ? smoothRamp((timeOf(i) - onset + hop) / rampSeconds) : 1;
+      const w = rampSeconds > 0 ? smoothRamp((timeOf(i) - onset) / rampSeconds) : 1;
       offset[i] = startValue + (values[k]! - startValue) * w;
     }
     previousLast = note.voiced[note.voiced.length - 1]!;
