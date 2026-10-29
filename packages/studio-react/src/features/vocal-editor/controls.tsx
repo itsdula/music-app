@@ -262,8 +262,10 @@ export function VocalInspector({
         <LabeledSlider
           label="Formant shift"
           value={capabilities.formantShift ? c.formantShiftSemitones : 0}
-          min={-12}
-          max={12}
+          // Limited to ±3 st: formant shift has only been validated with objective measures
+          // (no listening tests yet), see docs/vocal-dsp.md.
+          min={-3}
+          max={3}
           step={0.5}
           format={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} st`}
           disabled={!capabilities.formantShift}
@@ -271,7 +273,7 @@ export function VocalInspector({
           onChangeEnd={correction.end}
           hint={
             capabilities.formantShift
-              ? 'Darker (−) or brighter (+) timbre without changing pitch.'
+              ? 'Experimental: darker (−) or brighter (+) timbre without changing pitch.'
               : 'Not supported by the current processing engine.'
           }
         />
