@@ -88,9 +88,10 @@ module.exports = {
     {
       name: 'no-circular',
       severity: 'error',
-      comment: 'Circular dependencies hide coupling and break incremental ports.',
+      comment:
+        'Circular dependencies hide coupling and break incremental ports. Cycles that only close through `import type` are erased at runtime and allowed.',
       from: {},
-      to: { circular: true },
+      to: { circular: true, viaOnly: { dependencyTypesNot: ['type-only'] } },
     },
     {
       name: 'portable-no-frameworks',
