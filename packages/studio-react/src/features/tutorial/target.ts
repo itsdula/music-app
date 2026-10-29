@@ -81,6 +81,35 @@ export function matchesTarget(root: ParentNode, target: string, el: Element): bo
   return candidates(root, parsed).some((c) => c.contains(el));
 }
 
+/**
+ * Scrolls the target into view within its scrollable containers (lists, panels) between it
+ * and `root`. Unlike `scrollIntoView`, it never scrolls the root or `overflow: hidden`
+ * containers, which would shift Studio's fixed layout.
+ */
+export function revealTarget(el: Element, root: Element): void {
+  const view = el.ownerDocument.defaultView;
+  if (!view) return;
+  const MARGIN_PX = 8;
+  for (let node = el.parentElement; node && node !== root; node = node.parentElement) {
+    const style = view.getComputedStyle(node);
+    const canY = /auto|scroll/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
+    const canX = /auto|scroll/.test(style.overflowX) && node.scrollWidth > node.clientWidth;
+    if (!canX && !canY) continue;
+    const r = el.getBoundingClientRect();
+    const p = node.getBoundingClientRect();
+    if (canY) {
+      if (r.top < p.top) node.scrollTop -= p.top - r.top + MARGIN_PX;
+      else if (r.bottom > p.bottom)
+        node.scrollTop += Math.min(r.bottom - p.bottom + MARGIN_PX, r.top - p.top);
+    }
+    if (canX) {
+      if (r.left < p.left) node.scrollLeft -= p.left - r.left + MARGIN_PX;
+      else if (r.right > p.right)
+        node.scrollLeft += Math.min(r.right - p.right + MARGIN_PX, r.left - p.left);
+    }
+  }
+}
+
 // --- placement -----------------------------------------------------------------------------
 
 export interface Box {

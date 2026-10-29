@@ -17,6 +17,7 @@ import {
   matchesTarget,
   placeCard,
   resolveTarget,
+  revealTarget,
   TUTORIAL_LAYER_ATTR,
   type Box,
   type CardPosition,
@@ -66,6 +67,10 @@ interface Layout {
   readonly missing: boolean;
   /** The target is inside a modal dialog: lift the card and ring above it. */
   readonly raised: boolean;
+  /** The root's own scroll offset (it can be scrolled programmatically despite overflow: hidden). */
+  readonly scroll: { readonly x: number; readonly y: number };
+  /** Size of the root's visible area. */
+  readonly view: { readonly width: number; readonly height: number };
 }
 
 function TutorialOverlay({
@@ -93,7 +98,7 @@ function TutorialOverlay({
     const startedAt = Date.now();
     let element: HTMLElement | null = null;
     let frame = 0;
-    let scrolled = false;
+    let revealed = false;
     let last = '';
     let cancel: () => void = () => undefined;
     const tick = () => {
@@ -103,25 +108,19 @@ function TutorialOverlay({
       frame += 1;
       let spot: Box | null = null;
       if (element) {
+        if (!revealed) {
+          revealed = true;
+          revealTarget(element, root);
+        }
         const r = element.getBoundingClientRect();
         if (r.width > 0 || r.height > 0) {
-          if (!scrolled) {
-            scrolled = true;
-            const outside =
-              r.top < rootBox.top ||
-              r.bottom > rootBox.bottom ||
-              r.left < rootBox.left ||
-              r.right > rootBox.right;
-            if (outside) element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-          }
+          // Coordinates within the visible part of the Studio root.
           const left = Math.max(0, r.left - rootBox.left - SPOT_PADDING);
           const top = Math.max(0, r.top - rootBox.top - SPOT_PADDING);
-          spot = {
-            left,
-            top,
-            width: Math.min(rootBox.width - left, r.width + SPOT_PADDING * 2),
-            height: Math.min(rootBox.height - top, r.height + SPOT_PADDING * 2),
-          };
+          const right = Math.min(rootBox.width, r.right - rootBox.left + SPOT_PADDING);
+          const bottom = Math.min(rootBox.height, r.bottom - rootBox.top + SPOT_PADDING);
+          if (right > left && bottom > top)
+            spot = { left, top, width: right - left, height: bottom - top };
         }
       }
       const card = cardRef.current;
@@ -133,6 +132,8 @@ function TutorialOverlay({
         card: placeCard(spot, size, rootBox, step.placement),
         missing: Boolean(step.target) && !spot && Date.now() - startedAt >= TARGET_TIMEOUT_MS,
         raised: Boolean(spot && element?.closest('[role="dialog"]')),
+        scroll: { x: root.scrollLeft, y: root.scrollTop },
+        view: { width: rootBox.width, height: rootBox.height },
       };
       const key = JSON.stringify(next);
       if (key !== last) {
@@ -196,6 +197,12 @@ function TutorialOverlay({
   const waitingForTarget = Boolean(step.target) && !layout?.spot && !layout?.missing;
   const hidden = !layout || waitingForTarget;
   const spot = layout?.spot ?? null;
+  // The layer scrolls with the root's content; keep everything on the root's visible area.
+  const shift = <T extends { left: number; top: number }>(b: T): T => ({
+    ...b,
+    left: b.left + (layout?.scroll.x ?? 0),
+    top: b.top + (layout?.scroll.y ?? 0),
+  });
   const z = layout?.raised ? 'z-[60]' : 'z-[45]';
   const motion =
     'motion-safe:transition-[left,top,width,height] motion-safe:duration-200 motion-safe:ease-out';
@@ -204,23 +211,30 @@ function TutorialOverlay({
     <div
       ref={layerRef}
       {...layerProps}
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0"
       data-testid="tutorial-layer"
     >
       {spot ? (
         <div
           aria-hidden
           className={`absolute z-40 rounded-md ${motion}`}
-          style={{ ...spot, boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.45)' }}
+          style={{ ...shift(spot), boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.6)' }}
         />
       ) : (
-        !hidden && <div aria-hidden className="absolute inset-0 z-40 bg-black/30" />
+        layout &&
+        !hidden && (
+          <div
+            aria-hidden
+            className="absolute z-40 bg-black/50"
+            style={shift({ left: 0, top: 0, ...layout.view })}
+          />
+        )
       )}
       {spot && (
         <div
           aria-hidden
           className={`absolute ${z} rounded-md ring-2 ring-accent ring-offset-0 ${motion}`}
-          style={spot}
+          style={shift(spot)}
           data-testid="tutorial-spotlight"
         />
       )}
@@ -233,7 +247,8 @@ function TutorialOverlay({
         tabIndex={-1}
         onKeyDown={onKeyDown}
         className={`absolute ${z} flex w-80 max-w-[calc(100%-16px)] flex-col gap-2 rounded-lg border border-accent/40 bg-surface-2 p-3 text-text shadow-2xl shadow-black/60 outline-none ${motion} ${hidden ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'}`}
-        style={{ left: layout?.card.left ?? 0, top: layout?.card.top ?? 0 }}
+        style={layout ? shift({ left: layout.card.left, top: layout.card.top }) : undefined}
+        data-placement={layout?.card.side}
         data-testid="tutorial-card"
         data-tutorial-id={tutorial.id}
         data-step-id={step.id}
