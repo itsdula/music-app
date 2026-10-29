@@ -23,6 +23,9 @@ describe('planScheduleSegments', () => {
     expect(segments[0]!.boundaryTick).toBe(Number.POSITIVE_INFINITY);
     expect(segments[0]!.startTime).toBe(0);
     expect(segmentTimeAtTick(segments[0]!, 480)).toBeCloseTo(0.25, 12);
+    // Round musical positions map to exact engine times (division, not a reciprocal).
+    for (let beat = 0; beat <= 64; beat++)
+      expect(segmentTimeAtTick(segments[0]!, beat * 960)).toBe(beat / 2);
     expect(planScheduleSegments(clock, 500, 500)).toEqual([]);
   });
 

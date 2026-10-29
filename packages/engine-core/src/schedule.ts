@@ -20,8 +20,10 @@ export interface ScheduleSegment {
   readonly startUnwrapped: number;
   /** Engine time (s) of `startTick` in this pass. */
   readonly startTime: number;
-  /** Seconds per tick at the clock tempo. */
+  /** Seconds per tick at the clock tempo (informational; times are computed by division). */
   readonly secondsPerTick: number;
+  /** Ticks per second at the clock tempo (`bpm · PPQ / 60`). */
+  readonly ticksPerSecond: number;
   /**
    * Timeline tick at which everything started in this pass must stop: the loop end
    * when looping, else the render end (`options.endTick`) or +∞.
@@ -61,7 +63,8 @@ export function planScheduleSegments(
 ): ScheduleSegment[] {
   const segments: ScheduleSegment[] = [];
   const loop = clock.loop;
-  const secondsPerTick = 1 / ticksPerSecond(clock.bpm);
+  const tps = ticksPerSecond(clock.bpm);
+  const secondsPerTick = 1 / tps;
   let to = toUnwrapped;
   if (!loop && options.endTick !== undefined) to = Math.min(to, options.endTick);
   if (!(to > fromUnwrapped)) return segments;
@@ -78,6 +81,7 @@ export function planScheduleSegments(
         startUnwrapped: cursor,
         startTime: timeAtUnwrappedTick(clock, cursor),
         secondsPerTick,
+        ticksPerSecond: tps,
         boundaryTick: loop ? loop.endTick : linearBoundary,
         discontinuity: first && options.startIsDiscontinuity === true,
         iteration: 0,
@@ -95,6 +99,7 @@ export function planScheduleSegments(
         startUnwrapped: cursor,
         startTime: timeAtUnwrappedTick(clock, cursor),
         secondsPerTick,
+        ticksPerSecond: tps,
         boundaryTick: loop.endTick,
         discontinuity: cursor === passStart || (first && options.startIsDiscontinuity === true),
         iteration,
@@ -108,8 +113,11 @@ export function planScheduleSegments(
 
 /**
  * Engine time of a timeline tick inside a segment:
- * `startTime + (tick − startTick) · secondsPerTick`. O(1).
+ * `startTime + (tick − startTick) / ticksPerSecond`. Division (not multiplication by a
+ * rounded reciprocal) keeps musically round positions exact — e.g. 1920 ticks at
+ * 120 bpm is exactly 1 s — so repeated loop passes start on identical sample offsets.
+ * O(1).
  */
 export function segmentTimeAtTick(segment: ScheduleSegment, tick: number): number {
-  return segment.startTime + (tick - segment.startTick) * segment.secondsPerTick;
+  return segment.startTime + (tick - segment.startTick) / segment.ticksPerSecond;
 }
