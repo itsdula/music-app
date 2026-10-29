@@ -147,6 +147,9 @@ importers:
 
   apps/vite-host:
     dependencies:
+      '@studio/platform-browser':
+        specifier: workspace:*
+        version: link:../../packages/platform-browser
       '@studio/react':
         specifier: workspace:*
         version: link:../../packages/studio-react
