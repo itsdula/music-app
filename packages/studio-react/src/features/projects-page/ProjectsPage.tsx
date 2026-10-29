@@ -56,8 +56,18 @@ export function ProjectsPage() {
   }, [session]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh, currentName]);
+    let cancelled = false;
+    void session.projects
+      .flush()
+      .catch(() => undefined)
+      .then(() => session.projects.list())
+      .then((list) => {
+        if (!cancelled) setProjects(list);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session, currentName]);
 
   const run = async (label: string, action: () => Promise<unknown>, thenOpenStudio = false) => {
     setBusy(label);
