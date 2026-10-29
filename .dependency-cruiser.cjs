@@ -47,6 +47,7 @@ const ALLOWED = {
   'test-fixtures': ['domain', 'audio-dsp'],
   'audio-web': ['domain', 'audio-contracts', 'audio-dsp', 'engine-core', 'vocal-dsp'],
   'platform-browser': [
+    'assistant-core',
     'domain',
     'audio-contracts',
     'audio-dsp',

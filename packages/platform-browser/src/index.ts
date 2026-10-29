@@ -5,5 +5,6 @@ export { createBrowserDeviceInfo, detectHostCapabilities } from './device-info';
 export { BrowserLogger, type LogRecord } from './logger';
 export { createWebCryptoHasher } from './hashing';
 export { createBrowserAudioDecoder } from './audio-decoder';
+export * from './assistant';
 export * from './midi';
 export * from './storage';
