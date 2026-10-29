@@ -3,7 +3,7 @@
  * ProjectGraph. Used unchanged by realtime playback (lookahead windows) and offline
  * rendering (chunks between suspend points).
  */
-import type { TrackId } from '@studio/domain';
+import type { ClipId, TrackId } from '@studio/domain';
 import {
   metronomeClicksInRange,
   segmentTimeAtTick,
@@ -20,6 +20,8 @@ import type { EngineModel } from '../model';
 export interface ScheduleOptions {
   /** Restrict to these tracks (default: every track). */
   readonly tracks?: Iterable<TrackId>;
+  /** Restrict to events of these clips (re-scheduling after a clip edit). */
+  readonly clipIds?: ReadonlySet<ClipId>;
   /** Treat every segment as a discontinuity for audio (start overlapping clips mid-way). */
   readonly forceOverlap?: boolean;
   /** Skip audio segments that already have a voice sounding at their start time. */
@@ -51,18 +53,18 @@ export class EventScheduler {
         const channel = this.graph.channel(trackId);
         const timeline = this.model.timeline(trackId);
         if (!channel || !timeline) continue;
-        this.scheduleNotes(
-          segment,
-          channel,
-          timeline.notesStartingIn(segment.startTick, segment.endTick),
-          options,
-          stats,
-        );
+        const clipIds = options.clipIds;
+        let notes = timeline.notesStartingIn(segment.startTick, segment.endTick);
+        if (clipIds) notes = notes.filter((n) => clipIds.has(n.clipId));
+        this.scheduleNotes(segment, channel, notes, options, stats);
         const audio =
           segment.discontinuity || options.forceOverlap
             ? timeline.audioOverlapping(segment.startTick, segment.endTick)
             : timeline.audioStartingIn(segment.startTick, segment.endTick);
-        for (const event of audio) this.scheduleAudio(segment, channel, event, options, stats);
+        for (const event of audio) {
+          if (clipIds && !clipIds.has(event.clipId)) continue;
+          this.scheduleAudio(segment, channel, event, options, stats);
+        }
       }
       if (options.metronome) {
         for (const click of metronomeClicksInRange(

@@ -184,8 +184,13 @@ describe('benchmarks', () => {
       tightLoopUsPerRead: Number((perRead * 1000).toFixed(1)),
       withRequestsMeanUs: Number(((frameTotal / frames) * 1000).toFixed(1)),
     };
-    await waitMs(40); // meters lag one request round trip
-    expect(engine.readMeters().master.peak[0]!).toBeGreaterThan(0);
+    // Meters lag one request round trip (longer under load): poll briefly.
+    let masterPeak = 0;
+    for (let i = 0; i < 50 && masterPeak === 0; i++) {
+      await waitMs(20);
+      masterPeak = engine.readMeters().master.peak[0]!;
+    }
+    expect(masterPeak).toBeGreaterThan(0);
     expect(Number.isFinite(sink)).toBe(true);
     expect(perRead).toBeLessThan(5);
     await engine.dispose();

@@ -201,6 +201,23 @@ describe('transport on the realtime clock', () => {
     expect(engine.getDiagnostics().schedulerTicks).toBeGreaterThan(3);
   });
 
+  it('editing one clip while playing does not double notes of other clips on the track', async () => {
+    const synth = instrumentTrack('trk_s', 'synth', SINE_SYNTH);
+    const a = midiClip('clp_a', 'trk_s', 0, [note('na', 960, 4 * 3840, 69)]);
+    const b = midiClip('clp_b', 'trk_s', 0, [note('nb', 60_000, 960, 72)]);
+    const project = makeProject([synth], [a, b]);
+    const engine = await playing(project);
+    // clp_a's note starts ~31 ms after play — inside the first scheduled window.
+    await engine.play(900);
+    const edited: Project = {
+      ...project,
+      clips: { ...project.clips, [b.id]: { ...b, notes: [note('nb', 61_000, 960, 72)] } },
+    };
+    await engine.applyChanges(diffProjects(project, edited));
+    await waitMs(300);
+    expect(engine.getDiagnostics().activeVoices).toBe(1);
+  });
+
   it('tempo and loop edits while playing keep the position continuous', async () => {
     const project = makeProject([]);
     const engine = await playing(project);

@@ -623,8 +623,10 @@ export class WebAudioEngine implements AudioEngine {
           const segments = planScheduleSegments(clock, fromU, this.scheduledUntilU, {
             startIsDiscontinuity: true,
           });
+          // Only the edited clips were cancelled, so only they are re-scheduled.
           const stats = scheduler.schedule(segments, {
             tracks: [trackId],
+            ...(clipIds ? { clipIds } : {}),
             forceOverlap: true,
             skipSounding: true,
             metronome: false,
