@@ -15,6 +15,7 @@ import type {
   SettingsRepository,
 } from '@studio/project-storage';
 import type { VocalProcessor } from '@studio/vocal-dsp';
+import type { AssistantTransport } from './assistant';
 
 export type HostKind = 'browser' | 'electron' | 'tauri' | 'test';
 
@@ -111,6 +112,8 @@ export interface PlatformServices {
   readonly randomId: () => string;
   /** ISO timestamp source; injectable for deterministic tests. */
   readonly now: () => string;
+  /** AI assistant route; absent when the host has none (the chat panel then explains why). */
+  readonly assistant?: AssistantTransport;
   /** Releases host resources (MIDI access, DB connections). */
   dispose(): Promise<void>;
 }
