@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     '@studio/midi-akai-mpk-mini-mk3',
     '@studio/project-storage',
     '@studio/platform-contracts',
+    '@studio/assistant-core',
     '@studio/platform-browser',
     '@studio/audio-web',
   ],

@@ -17,6 +17,7 @@ const PORTABLE_PACKAGES = [
   'midi-akai-mpk-mini-mk3',
   'project-storage',
   'platform-contracts',
+  'assistant-core',
   'test-fixtures',
 ];
 

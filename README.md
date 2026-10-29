@@ -48,6 +48,7 @@ pnpm --filter @studio/electron-host build && pnpm --filter @studio/electron-host
 | `packages/midi-akai-mpk-mini-mk3` | Researched MPK Mini MK3 profile, layout model, capability matrix                 |
 | `packages/project-storage`        | Schema validation, migrations, project bundles, autosave                         |
 | `packages/platform-contracts`     | `PlatformServices`: what each host provides                                      |
+| `packages/assistant-core`         | AI assistant provider core: OpenAI-compatible client, guards (OpenRouter/local)  |
 | `packages/platform-browser`       | Browser services: IndexedDB, Web MIDI, file dialogs, permissions, workers        |
 | `packages/ui`                     | Design tokens and accessible primitives                                          |
 | `packages/studio-react`           | `<Studio />`: session, stores, editors, mixer, controller panel                  |

@@ -213,6 +213,12 @@ importers:
         specifier: 4.3.3
         version: 4.3.3
 
+  packages/assistant-core:
+    dependencies:
+      '@studio/platform-contracts':
+        specifier: workspace:*
+        version: link:../platform-contracts
+
   packages/audio-contracts:
     dependencies:
       '@studio/audio-dsp':
