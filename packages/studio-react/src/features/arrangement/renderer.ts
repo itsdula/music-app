@@ -16,7 +16,7 @@ import { colors } from '@studio/ui';
 import { canvasFont, hline, roundRect, shade, vline, withAlpha } from '../../canvas/draw-utils';
 import { computeGridLines } from '../../canvas/ruler';
 import type { TimeAxis } from '../../canvas/time-axis';
-import { CLIP_HEADER_HEIGHT, type ClipBox, type TrackRow } from './geometry';
+import { CLIP_HEADER_HEIGHT, type ClipBox, type ClipHitRegion, type TrackRow } from './geometry';
 
 /** Returns interleaved [min, max] pairs per column for a source frame range, or null if not ready. */
 export type PeakReader = (
@@ -41,6 +41,8 @@ export interface ArrangementViewModel {
     readonly x1: number;
     readonly y1: number;
   } | null;
+  /** Clip region under the pointer (or being dragged): drawn as an edge/handle highlight. */
+  readonly hover?: { readonly clipId: ClipId; readonly region: ClipHitRegion } | null;
 }
 
 export function drawLanes(
@@ -133,7 +135,67 @@ function drawClip(ctx: CanvasRenderingContext2D, box: ClipBox, vm: ArrangementVi
   ctx.strokeStyle = selected ? colors.text : withAlpha(trackColor, 0.9);
   ctx.lineWidth = selected ? 1.5 : 1;
   ctx.stroke();
+  const looping =
+    clip.kind === 'midi' ? clip.loopLengthTicks !== undefined : clip.loopLengthFrames !== undefined;
+  const hover = vm.hover && vm.hover.clipId === clip.id ? vm.hover.region : null;
+  if (looping || hover) drawLoopHandle(ctx, box, hover === 'loop-end', looping);
+  if (hover === 'start-edge' || hover === 'end-edge') drawEdgeHighlight(ctx, box, hover);
   ctx.restore();
+}
+
+/** Accent bar along the edge a trim drag would move. */
+function drawEdgeHighlight(
+  ctx: CanvasRenderingContext2D,
+  box: ClipBox,
+  region: 'start-edge' | 'end-edge',
+): void {
+  const w = Math.min(3, Math.max(1, box.w / 4));
+  const x = region === 'start-edge' ? box.x + 1 : box.x + box.w - 1 - w;
+  ctx.fillStyle = colors.text;
+  ctx.globalAlpha = 0.9;
+  ctx.fillRect(x, box.y + 2, w, box.h - 4);
+}
+
+/**
+ * Loop handle in the clip's top-right corner: a small circular-arrow glyph, shown while the
+ * clip is hovered (to advertise the handle) and always on looping clips.
+ */
+function drawLoopHandle(
+  ctx: CanvasRenderingContext2D,
+  box: ClipBox,
+  active: boolean,
+  looping: boolean,
+): void {
+  if (box.w < 22) return;
+  const size = Math.min(CLIP_HEADER_HEIGHT, box.h / 2);
+  const cx = box.x + box.w - size / 2 - 2;
+  const cy = box.y + size / 2;
+  if (active) {
+    ctx.fillStyle = withAlpha(colors.text, 0.9);
+    roundRect(ctx, cx - size / 2, box.y + 1, size, size - 1, 3);
+    ctx.fill();
+  }
+  ctx.strokeStyle = active
+    ? colors.surface0
+    : looping
+      ? colors.surface0
+      : withAlpha(colors.surface0, 0.6);
+  ctx.lineWidth = 1.5;
+  const r = Math.max(2, size / 2 - 3.5);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI * 0.15, Math.PI * 1.75);
+  ctx.stroke();
+  // Arrow head at the arc end.
+  const ax = cx + r * Math.cos(Math.PI * 1.75);
+  const ay = cy + r * Math.sin(Math.PI * 1.75);
+  ctx.beginPath();
+  ctx.moveTo(ax + 2.5, ay - 0.5);
+  ctx.lineTo(ax - 0.5, ay - 2.5);
+  ctx.lineTo(ax - 0.5, ay + 1.5);
+  ctx.closePath();
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fill();
+  ctx.lineWidth = 1;
 }
 
 function drawMidiPreview(
