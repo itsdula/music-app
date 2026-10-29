@@ -26,7 +26,8 @@ import {
  *    durations are preserved exactly);
  *  - overlap-add with window-sum normalisation out = Σg / max(Σw, WINDOW_FLOOR), which
  *    is exact reconstruction for β = 1 and keeps the level constant for β > 1;
- *  - a short-time gain (30 ms energy windows) matches the output level to the original;
+ *  - a short-time gain (100 ms energy windows) matches the output level to the original
+ *    (shorter windows modulate the output: 30 ms costs ≈ 3 dB of harmonic-to-noise ratio);
  *  - the processed span starts at an analysis mark (seamless) and is cross-faded back
  *    to the original over one period after the last synthesis mark.
  * Formants are preserved intrinsically (grains are not resampled). Optional formant
@@ -42,7 +43,7 @@ import {
 export const PSOLA_PARAMS = {
   windowFloor: 0.5,
   /** Window of the short-time level matching (at least two periods). */
-  levelWindowSeconds: 0.03,
+  levelWindowSeconds: 0.1,
   /** Ratio departures smaller than this are treated as 1. */
   ratioEpsilon: 1e-6,
 } as const;
