@@ -397,3 +397,47 @@ Studio plan values are proposals for the lead to confirm.
 | Firmware update                         | No                                  | Proprietary updater / bootloader                      | Unsupported (link users to Akai)                                     | Documented                                                                    |
 | Browsers without Web MIDI (Safari/iOS)  | —                                   | —                                                     | Unsupported (show message)                                           | Documented (compat data)                                                      |
 | Tauri macOS / Linux                     | Web MIDI not exposed                | —                                                     | Software-only equivalent via native midir bridge, if Tauri is chosen | Documented (Tauri source)                                                     |
+
+---
+
+## Studio implementation status
+
+Added by agent-midi on 2026-10-29, after the research above. It records what Studio implements
+(`@studio/midi-core`, `@studio/midi-akai-mpk-mini-mk3`, `@studio/platform-browser/src/midi`)
+and how well each item is evidenced. **No physical MK3 has been tested.** "Unit-tested" means
+tested in Node against simulated MIDI, not against the device. Studio makes no
+"fully compatible" claim; the hardware protocol is in `docs/midi-integration.md` §10.
+
+Verification uses the profile's levels: **documented** (official text or a vendor guide as
+classified above), **community** (community code/notes), **unverified** (no adequate source),
+**verified-hardware** (tested on a unit; currently none).
+
+| Feature                                    | Works via standard MIDI          | Needs SysEx / proprietary                | Studio support                                                                      | Verification                                                  |
+| ------------------------------------------ | -------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Device detection by port name              | Yes                              | No                                       | Supported ("MPK mini 3", case/spacing tolerant; siblings rejected)                  | Community; Windows names unverified                           |
+| Keys → notes + velocity                    | Yes                              | No                                       | Supported (routed to the armed/selected instrument track)                           | Documented (existence); channel 1 / lowest note 48 unverified |
+| Octave / transpose (device-side)           | Yes (shifted notes arrive)       | Changing defaults: editor/SysEx          | Supported (passive) + Studio transpose                                              | Community                                                     |
+| Velocity curve                             | Yes (affects sent velocity)      | Hidden on-device menu                    | Software equivalent (`applyVelocityCurve`: linear/soft/hard/fixed)                  | Community                                                     |
+| Pads → notes, Bank A/B (36–51, ch 10)      | Yes                              | No                                       | Supported (identified as `pad.A1`–`pad.B8`; not mapped, played as notes)            | Community                                                     |
+| Pad aftertouch                             | Yes (if enabled in program)      | Enabling: editor/SysEx                   | Supported if received (parsed; no default use)                                      | Community                                                     |
+| Pad CC mode                                | Yes                              | No                                       | Supported via MIDI Learn                                                            | Documented (behaviour); numbers/values unverified             |
+| Pad PROG CHANGE mode                       | Yes                              | No                                       | Supported via MIDI Learn (program-change sources → actions)                         | Documented (behaviour); numbers unverified                    |
+| FULL LEVEL                                 | Yes (velocity 127 arrives)       | No                                       | Supported (passive)                                                                 | Documented                                                    |
+| Knobs K1–K8 absolute (CC 70–77, Program 1) | Yes                              | No                                       | Supported: default global mappings with pickup takeover; MIDI Learn                 | Documented (vendor guide, SECONDARY) + community              |
+| Knobs relative                             | Yes                              | Switching mode: editor/SysEx             | Supported: twos-complement / signed-bit / binary-offset decoders; Learn auto-detect | Unverified (MK3 encoding unknown)                             |
+| Joystick X pitch bend / Y CC1              | Yes                              | Re-assignment: editor/SysEx              | Supported as live instrument expression (identified as `joystick.x` / `joystick.y`) | Documented; Y-down unverified                                 |
+| Sustain pedal                              | Yes (presumably CC64)            | No                                       | Supported (CC64 in recording, tracking and panic)                                   | Unverified                                                    |
+| Arpeggiator / Note Repeat (device-side)    | Yes (resulting notes arrive)     | Settings: device buttons or editor/SysEx | Supported (passive)                                                                 | Documented                                                    |
+| Arp / Note Repeat sync to Studio clock     | Yes (Studio sends clock)         | Clock Source = External: editor/SysEx    | Experimental (`MidiClockGenerator`, opt-in, off by default)                         | Unverified                                                    |
+| Device sends clock / tap tempo             | Unknown                          | —                                        | Unsupported                                                                         | Unverified                                                    |
+| Program switching (PROG SELECT)            | Unknown whether anything is sent | —                                        | Unsupported (device-internal; Studio cannot detect the program)                     | Unverified                                                    |
+| Read / write programs                      | No                               | Yes (undocumented SysEx)                 | Unsupported; Studio never sends SysEx                                               | Community (protocol knowledge only)                           |
+| OLED text from host                        | No known method                  | Unknown                                  | Unsupported                                                                         | Unverified                                                    |
+| Pad LED feedback from host                 | Unknown                          | Unknown                                  | Unsupported                                                                         | Unverified                                                    |
+| Firmware update                            | No                               | Proprietary updater                      | Unsupported (use Akai's updater)                                                    | Documented                                                    |
+| Hotplug / stuck-note protection            | Yes                              | No                                       | Supported (synthetic noteOff + CC64 0 on disconnect; polling fallback for Firefox)  | Unit-tested only                                              |
+| Hardware-style panel                       | —                                | —                                        | Layout data only (original geometry from §6; no artwork)                            | Measured from a reference photo (±0.01)                       |
+
+Open items needing a unit (from §9): exact port names per OS, factory channels and lowest
+key, sustain CC/polarity, joystick Y-down, knob relative encoding, pad CC/PC values, external
+clock following, anything sent by buttons or program select, and LED/OLED response.
