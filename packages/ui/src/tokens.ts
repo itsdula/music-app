@@ -11,7 +11,7 @@ export const colors = {
   lineStrong: '#3C414D',
   text: '#F2F3F5',
   textMuted: '#9298A5',
-  textFaint: '#6B7180',
+  textFaint: '#8F97AC',
   accent: '#8B7CF6',
   accentStrong: '#A397FF',
   record: '#F16D75',

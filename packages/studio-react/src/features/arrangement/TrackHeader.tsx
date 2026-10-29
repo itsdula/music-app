@@ -81,8 +81,9 @@ export function TrackHeader({
           onPointerDown={() => uiStore.setState((s) => selectTrack(s, track.id))}
           data-testid="track-header"
           data-track-id={track.id}
-          aria-selected={selected}
-          role="row"
+          role="listitem"
+          aria-label={`${track.name} track`}
+          aria-current={selected ? 'true' : undefined}
         >
           <span className="w-1 shrink-0" style={{ backgroundColor: track.color }} aria-hidden />
           <button

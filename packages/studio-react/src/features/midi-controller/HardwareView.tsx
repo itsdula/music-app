@@ -148,9 +148,10 @@ export function HardwareView({
         const common = {
           ref: register(el.controlId),
           tabIndex: el.shape === 'display' ? -1 : 0,
-          role: el.shape === 'display' ? undefined : 'button',
+          // The display is a picture, not a control: role img, no pressed state.
+          role: el.shape === 'display' ? 'img' : 'button',
           'aria-label': labelFor(el),
-          'aria-pressed': selected,
+          'aria-pressed': el.shape === 'display' ? undefined : selected,
           className: 'mpk-control cursor-pointer outline-none',
           'data-control': el.controlId,
           'data-active': 'false',

@@ -11,7 +11,7 @@
   --color-line-strong: #3c414d;
   --color-text: #f2f3f5;
   --color-text-muted: #9298a5;
-  --color-text-faint: #6b7180;
+  --color-text-faint: #8f97ac; /* ≥ 4.5:1 on every surface (WCAG AA small text) */
   --color-accent: #8b7cf6;
   --color-accent-strong: #a397ff;
   --color-record: #f16d75;

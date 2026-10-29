@@ -116,6 +116,9 @@ export function ControllerPanel() {
         <div
           className="min-h-0 flex-1 overflow-auto p-3 text-[12px]"
           data-testid="mpk-compatibility"
+          tabIndex={0}
+          role="region"
+          aria-label="Compatibility matrix"
         >
           <p className="mb-2 text-text-muted">
             What Studio does with this controller and how well each item is evidenced. Nothing below

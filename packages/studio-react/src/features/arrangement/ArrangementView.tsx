@@ -33,10 +33,8 @@ export function ArrangementView() {
         <div
           className="relative shrink-0 overflow-hidden border-r border-line bg-surface-1"
           style={{ width: TRACK_HEADER_WIDTH }}
-          role="grid"
-          aria-label="Tracks"
         >
-          <div style={{ transform: `translateY(${-scrollY}px)` }}>
+          <div role="list" aria-label="Tracks" style={{ transform: `translateY(${-scrollY}px)` }}>
             {tracks.map((track) => (
               <TrackHeader
                 key={track.id}

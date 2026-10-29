@@ -1,7 +1,7 @@
-import { decodeWav, encodeWav, type PcmAudio } from '@studio/audio-dsp';
-import { melodyF0, synthesizeVowel } from '@studio/test-fixtures';
+import { decodeWav } from '@studio/audio-dsp';
 import { analyzeVocal } from '@studio/vocal-dsp';
 import { expect, test } from '@playwright/test';
+import { detunedVocalWav, VOCAL_NOTES } from '../audio-fixtures';
 import { openStudio, readDownload, resetStorage } from '../helpers';
 
 /**
@@ -10,27 +10,7 @@ import { openStudio, readDownload, resetStorage } from '../helpers';
  * the correction is audible — not just drawn. The input is a synthetic vowel with known,
  * deliberately detuned pitches (no recorded voices are used).
  */
-const NOTES = [57, 60, 64]; // A3, C4, E4
-const DETUNE_CENTS = [-30, 20, -15];
-
-function detunedVocalWav(): Buffer {
-  const f0 = melodyF0(
-    NOTES.map((midi, i) => ({ midi, startSeconds: 0.1 + i * 0.48, durationSeconds: 0.38 })),
-    { detuneCents: DETUNE_CENTS },
-  );
-  const pcm = synthesizeVowel({
-    sampleRate: 44_100,
-    durationSeconds: 1.5,
-    f0,
-    vowel: 'a',
-    seed: 7,
-  });
-  const audio: PcmAudio = {
-    sampleRate: pcm.sampleRate,
-    channels: pcm.channels.map((c) => c.slice()),
-  };
-  return Buffer.from(encodeWav(audio, { bitDepth: 16 }));
-}
+const NOTES = VOCAL_NOTES;
 
 /** Detected note centres (fractional MIDI) of a WAV, by the same analysis Studio uses. */
 function noteCentres(bytes: Uint8Array): number[] {

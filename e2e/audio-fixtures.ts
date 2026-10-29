@@ -1,4 +1,5 @@
-import { decodeWav, encodeWav } from '@studio/audio-dsp';
+import { decodeWav, encodeWav, type PcmAudio } from '@studio/audio-dsp';
+import { melodyF0, synthesizeVowel } from '@studio/test-fixtures';
 
 /** A mono 16-bit sine WAV (deterministic) for import tests. */
 export function sineWav({
@@ -41,4 +42,28 @@ export function wavStats(bytes: Uint8Array): WavStats {
     sampleRate: pcm.sampleRate,
     channelCount: pcm.channels.length,
   };
+}
+
+/** Pitches (MIDI) and detuning (cents) of the synthetic vocal phrase. */
+export const VOCAL_NOTES = [57, 60, 64]; // A3, C4, E4
+export const VOCAL_DETUNE_CENTS = [-30, 20, -15];
+
+/** A synthetic sung vowel with known, deliberately detuned pitches (no recorded voices). */
+export function detunedVocalWav(): Buffer {
+  const f0 = melodyF0(
+    VOCAL_NOTES.map((midi, i) => ({ midi, startSeconds: 0.1 + i * 0.48, durationSeconds: 0.38 })),
+    { detuneCents: VOCAL_DETUNE_CENTS },
+  );
+  const pcm = synthesizeVowel({
+    sampleRate: 44_100,
+    durationSeconds: 1.5,
+    f0,
+    vowel: 'a',
+    seed: 7,
+  });
+  const audio: PcmAudio = {
+    sampleRate: pcm.sampleRate,
+    channels: pcm.channels.map((c) => c.slice()),
+  };
+  return Buffer.from(encodeWav(audio, { bitDepth: 16 }));
 }
