@@ -138,6 +138,7 @@ flowchart BT
   pcontracts --> storage
   pcontracts --> midicore
   pcontracts --> vocal
+  assistant["assistant-core (A)"] --> pcontracts
   fixtures["test-fixtures (A, tests only)"]
   audioweb["audio-web (B)"] --> enginecore
   audioweb --> vocal
@@ -165,6 +166,7 @@ flowchart BT
 | `midi-akai-mpk-mini-mk3` | A     | MK3 profile: port matching, controls + verification, default mappings, layout geometry, capability matrix                                       | domain, midi-core                                                                             |
 | `project-storage`        | A     | zod schema, migrations, bundle format, repository ports + memory impls, autosave                                                                | domain                                                                                        |
 | `platform-contracts`     | A     | `PlatformServices` and host capability ports                                                                                                    | the A contracts above                                                                         |
+| `assistant-core`         | A     | AI assistant provider core: OpenAI-compatible chat client (injected `fetch`), OpenRouter/local presets, request guards (see docs/assistant.md)  | platform-contracts (types)                                                                    |
 | `test-fixtures`          | A     | deterministic synthetic audio/MIDI fixtures                                                                                                     | domain, audio-dsp                                                                             |
 | `audio-web`              | B     | Web Audio `AudioEngine`, instruments, effects, recorder worklet, offline render, decoding                                                       | A packages                                                                                    |
 | `platform-browser`       | B     | `createBrowserPlatform()`: IndexedDB, Web MIDI, pickers, permissions, worker hosts                                                              | A packages, audio-web                                                                         |
@@ -208,7 +210,8 @@ packages/
   midi-akai-mpk-mini-mk3/src/  profile, controls, layout, capabilities
   project-storage/src/         repositories (ports), schema, migrations, bundle, memory,
                                autosave
-  platform-contracts/src/      platform.ts (PlatformServices et al.)
+  platform-contracts/src/      platform.ts (PlatformServices et al.), assistant.ts
+  assistant-core/src/          client (OpenAI-compatible), mapping, guards, errors, presets
   platform-browser/src/        create-browser-platform, storage/ (Dexie), midi/ (Web MIDI),
                                files, permissions, device-info, logger, hashing, workers/
   ui/src/                      tokens.ts/.css, components/, hooks/

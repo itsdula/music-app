@@ -5,6 +5,9 @@
 //   dist/probe/              security probe page (smoke tests; no Studio packages)
 //   dist/renderer/           <Studio /> renderer (Vite, relative asset paths)
 // Usage: node scripts/build.mjs [--skip-renderer]
+// Optional build-time environment (see src/shared/build-defines.d.ts and docs/assistant.md):
+//   STUDIO_ASSISTANT_URL    https URL of a Studio /api/assistant endpoint (http only for loopback)
+//   STUDIO_ASSISTANT_TOKEN  shared secret for that endpoint (shipped in the renderer bundle)
 // The renderer needs workspace codegen and @studio/react's CSS: prefer
 // `pnpm turbo run build --filter=@studio/electron-host...` from the repo root.
 import { copyFile, mkdir, rm } from 'node:fs/promises';
@@ -18,6 +21,34 @@ const appDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(appDir, 'src');
 const dist = join(appDir, 'dist');
 const skipRenderer = process.argv.includes('--skip-renderer');
+
+/** Validates STUDIO_ASSISTANT_URL so a typo fails the build instead of shipping a broken CSP. */
+function assistantUrlFromEnv() {
+  const raw = process.env.STUDIO_ASSISTANT_URL?.trim() ?? '';
+  if (!raw) return '';
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`STUDIO_ASSISTANT_URL is not a valid URL: ${raw}`);
+  }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
+    throw new Error('STUDIO_ASSISTANT_URL must use https: (http: is allowed only for localhost)');
+  }
+  if (url.username || url.password) {
+    throw new Error('STUDIO_ASSISTANT_URL must not contain credentials');
+  }
+  return url.href;
+}
+
+const assistantUrl = assistantUrlFromEnv();
+const assistantDefines = {
+  __STUDIO_ASSISTANT_URL__: JSON.stringify(assistantUrl),
+  __STUDIO_ASSISTANT_TOKEN__: JSON.stringify(
+    assistantUrl ? (process.env.STUDIO_ASSISTANT_TOKEN?.trim() ?? '') : '',
+  ),
+};
 
 const shared = { bundle: true, sourcemap: true, logLevel: 'warning', legalComments: 'none' };
 
@@ -34,6 +65,8 @@ async function buildHost() {
       format: 'esm',
       target: 'node24',
       external: ['electron'],
+      // Main needs only the URL (for the CSP); the token stays out of the main bundle.
+      define: { __STUDIO_ASSISTANT_URL__: assistantDefines.__STUDIO_ASSISTANT_URL__ },
     }),
     esbuild({
       ...shared,
@@ -66,6 +99,7 @@ async function buildRenderer() {
     publicDir: false,
     logLevel: 'warn',
     plugins: [react()],
+    define: assistantDefines,
     build: {
       outDir: join(dist, 'renderer'),
       emptyOutDir: true,
@@ -77,6 +111,7 @@ async function buildRenderer() {
   console.log('built dist/renderer');
 }
 
+if (assistantUrl) console.log(`assistant endpoint: ${new URL(assistantUrl).origin}`);
 await buildHost();
 if (!skipRenderer) {
   try {

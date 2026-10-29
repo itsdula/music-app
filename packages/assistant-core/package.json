@@ -1,0 +1,20 @@
+{
+  "name": "@studio/assistant-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portable AI assistant provider core: OpenAI-compatible chat-completions client (OpenRouter, local servers), request guards and error normalisation.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  },
+  "dependencies": {
+    "@studio/platform-contracts": "workspace:*"
+  }
+}

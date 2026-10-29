@@ -18,6 +18,7 @@ const PORTABLE = [
   'midi-akai-mpk-mini-mk3',
   'project-storage',
   'platform-contracts',
+  'assistant-core',
   'test-fixtures',
 ].join('|');
 
@@ -42,9 +43,11 @@ const ALLOWED = {
     'midi-core',
     'vocal-dsp',
   ],
+  'assistant-core': ['platform-contracts'],
   'test-fixtures': ['domain', 'audio-dsp'],
   'audio-web': ['domain', 'audio-contracts', 'audio-dsp', 'engine-core', 'vocal-dsp'],
   'platform-browser': [
+    'assistant-core',
     'domain',
     'audio-contracts',
     'audio-dsp',
@@ -129,11 +132,16 @@ module.exports = {
     {
       name: 'apps-only-public-entry-points',
       severity: 'error',
-      comment: 'Hosts mount <Studio /> and may use @studio/ui; everything else is internal.',
+      comment:
+        'Hosts mount <Studio /> and may use @studio/ui; assistant-core is the public provider core for server/Tauri routes; everything else is internal.',
       from: { path: '^apps/' },
       to: {
         path: '^packages/',
-        pathNot: ['^packages/(studio-react|ui)/', '^packages/platform-browser/'],
+        pathNot: [
+          '^packages/(studio-react|ui)/',
+          '^packages/platform-browser/',
+          '^packages/assistant-core/',
+        ],
       },
     },
     ...packageRules,

@@ -147,6 +147,9 @@ importers:
 
   apps/vite-host:
     dependencies:
+      '@studio/platform-browser':
+        specifier: workspace:*
+        version: link:../../packages/platform-browser
       '@studio/react':
         specifier: workspace:*
         version: link:../../packages/studio-react
@@ -178,6 +181,12 @@ importers:
       '@fontsource-variable/inter':
         specifier: 5.3.0
         version: 5.3.0
+      '@studio/assistant-core':
+        specifier: workspace:*
+        version: link:../../packages/assistant-core
+      '@studio/platform-browser':
+        specifier: workspace:*
+        version: link:../../packages/platform-browser
       '@studio/react':
         specifier: workspace:*
         version: link:../../packages/studio-react
@@ -212,6 +221,12 @@ importers:
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
+
+  packages/assistant-core:
+    dependencies:
+      '@studio/platform-contracts':
+        specifier: workspace:*
+        version: link:../platform-contracts
 
   packages/audio-contracts:
     dependencies:
@@ -276,6 +291,9 @@ importers:
 
   packages/platform-browser:
     dependencies:
+      '@studio/assistant-core':
+        specifier: workspace:*
+        version: link:../assistant-core
       '@studio/audio-contracts':
         specifier: workspace:*
         version: link:../audio-contracts

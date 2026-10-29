@@ -16,6 +16,7 @@
     "packageClass": "B"
   },
   "dependencies": {
+    "@studio/assistant-core": "workspace:*",
     "@studio/audio-contracts": "workspace:*",
     "@studio/audio-web": "workspace:*",
     "@studio/domain": "workspace:*",
