@@ -48,6 +48,10 @@ export function checkProjectInvariants(project: Project): InvariantViolation[] {
       push(`tracks.${id}.effects`, 'duplicate effect id');
   }
 
+  const masterEffectIds = new Set(project.master.effects.map((e) => e.id));
+  if (masterEffectIds.size !== project.master.effects.length)
+    push('master.effects', 'duplicate effect id');
+
   for (const [id, clip] of Object.entries(project.clips)) {
     const path = `clips.${id}`;
     if (clip.id !== id) push(path, 'clip id does not match its key');

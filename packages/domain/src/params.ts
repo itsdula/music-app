@@ -35,11 +35,25 @@ export type ParamValues = Readonly<Record<string, number>>;
 /** Floor used by the `db` curve: positions at 0 map to `min` (treated as -inf when min <= -60). */
 const DB_CURVE_EXPONENT = 2.5;
 
+/** Number of decimal places in a number's shortest decimal representation. */
+function decimalPlaces(n: number): number {
+  if (!Number.isFinite(n) || Number.isInteger(n)) return 0;
+  const text = String(n);
+  const exp = text.indexOf('e-');
+  const mantissa = exp >= 0 ? text.slice(0, exp) : text;
+  const dot = mantissa.indexOf('.');
+  const fraction = dot >= 0 ? mantissa.length - dot - 1 : 0;
+  return fraction + (exp >= 0 ? Number(text.slice(exp + 2)) : 0);
+}
+
 export function clampParam(spec: ParamSpec, value: number): number {
   if (!Number.isFinite(value)) return spec.default;
   let v = Math.min(spec.max, Math.max(spec.min, value));
   if (spec.step !== undefined && spec.step > 0) {
     v = spec.min + Math.round((v - spec.min) / spec.step) * spec.step;
+    // Remove binary floating-point noise (e.g. 26.990000000000002 for a 0.01 step).
+    const places = Math.min(20, Math.max(decimalPlaces(spec.step), decimalPlaces(spec.min)));
+    v = Number(v.toFixed(places));
     v = Math.min(spec.max, Math.max(spec.min, v));
   }
   return v;

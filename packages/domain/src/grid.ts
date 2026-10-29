@@ -61,7 +61,8 @@ export function snapTick(tick: number, gridTicks: Ticks, mode: SnapMode = 'round
   const steps = tick / gridTicks;
   const snapped =
     mode === 'floor' ? Math.floor(steps) : mode === 'ceil' ? Math.ceil(steps) : Math.round(steps);
-  return snapped * gridTicks;
+  // `|| 0` normalizes -0 (e.g. rounding -0.1 steps), which would otherwise leak into positions.
+  return snapped * gridTicks || 0;
 }
 
 /**
