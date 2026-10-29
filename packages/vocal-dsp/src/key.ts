@@ -5,7 +5,7 @@ import { type KeyCandidate, type PitchClass, type VocalNoteSegment } from '@stud
  * an ensemble of the Aarden–Essen profile (Pearson correlation) and the
  * Albrecht–Shanahan profile (negative Euclidean distance). Each model's 24 scores are
  * z-normalised, averaged and turned into probabilities by a temperature softmax whose
- * temperature was fitted on KNOWN_MELODIES (maximum likelihood; see docs).
+ * temperature was chosen next to the maximum-likelihood fit on KNOWN_MELODIES (see docs).
  * Thin evidence shrinks all confidences (sum < 1): the missing mass means "no
  * confident key". Works for vocal note segments and for MIDI notes alike.
  */
