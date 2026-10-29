@@ -193,7 +193,9 @@ export class VocalController {
         source: copyPcm(source),
         analysis,
         edits: doc,
-        quality: 'preview',
+        // The override is also what bounces play, and in JS 'final' costs the same as
+        // 'preview' (docs/vocal-dsp.md §7), so render playback at final quality.
+        quality: 'final',
       });
       if (this.previewVersions.get(assetId) !== version) return; // a newer edit superseded this render
       await this.engine.setAssetOverride(assetId, rendered);

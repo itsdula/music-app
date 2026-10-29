@@ -152,8 +152,8 @@ export produces corrected WAV.
 bit-identical; formant peaks move 0.2–4.0% with TD-PSOLA vs 10.9–17.5% for naive
 resampling; render 0.013× real time. Remains: monophonic only; legato repeated notes
 merge (split manually); pitch-down beyond −7 st sounds buzzy; formant shift judged by
-objective measures only (no listening test), so the UI limits it; arrangement bounces
-use the preview-quality render, while "Export corrected WAV" uses the final render.
+objective measures only (no listening test), so the UI limits it to ±3 st (experimental);
+playback, bounces and "Export corrected WAV" all use the final-quality render.
 
 ## Phase 8 — Polish and portability (in progress)
 
@@ -168,9 +168,12 @@ job; Tauri backend design in [hosts.md](hosts.md); landing page with authentic s
 captured from the running app; baselines in [benchmarks.md](benchmarks.md). Bugs found only
 in a real browser and fixed: Tailwind cascade-layer order (utilities were overridden by
 the scoped reset), hidden Radix tab panels taking space, the browser panel's import button
-hidden by overflow, and global Delete deleting the edited clip. Remains: a formal
-accessibility audit (axe + screen-reader pass), real-hardware MIDI and latency checks,
-and Firefox/Safari runs (CI covers Chromium only).
+hidden by overflow, and global Delete deleting the edited clip. Accessibility: an axe
+WCAG 2.1 A/AA spec covers the arrangement, mixer, every controller view, the dialogs and
+the vocal editor with zero violations (its findings were fixed: list semantics for tracks,
+AA contrast for the faint text tier, labelled scroll regions). Remains: a manual
+screen-reader pass, real-hardware MIDI and latency checks, and Firefox/Safari runs (CI
+covers Chromium only).
 
 ## Reporting format per phase
 
