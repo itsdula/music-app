@@ -1,5 +1,6 @@
 import { ResizeHandle } from '@studio/ui';
 import { useEffect, useRef } from 'react';
+import { useNativeMenuGuard } from './context-menu';
 import { ArrangementView } from '../features/arrangement/ArrangementView';
 import { AssistantPanel } from '../features/assistant/AssistantPanel';
 import { ProjectsPage } from '../features/projects-page/ProjectsPage';
@@ -19,6 +20,8 @@ export function StudioShell() {
   const assistantOpen = useUiState((s) => s.assistantOpen);
   const rootRef = useRef<HTMLDivElement>(null);
   useKeyboardShortcuts(rootRef);
+  // Studio handles every right-click itself (text fields keep the browser menu for copy/paste).
+  useNativeMenuGuard(rootRef);
 
   // Browsers require a user gesture before audio can start: resume on the first interaction.
   useEffect(() => {

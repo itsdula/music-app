@@ -136,7 +136,7 @@ export function ProjectMenu() {
       ) : (
         <button
           type="button"
-          className="h-7 max-w-56 truncate rounded-md px-2 text-[13px] text-text-muted hover:bg-surface-3 hover:text-text"
+          className="h-7 max-w-28 truncate @6xl:max-w-56 rounded-md px-2 text-[13px] text-text-muted hover:bg-surface-3 hover:text-text"
           onDoubleClick={() => setEditing(true)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === 'F2') setEditing(true);
