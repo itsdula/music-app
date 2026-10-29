@@ -16,7 +16,7 @@ import {
   resolveVocalAnalysisParams,
   VocalJobCancelledError,
 } from '../src/index';
-import { createSeededRandom } from '../../test-fixtures/src/index';
+import { createSeededRandom } from '@studio/test-fixtures';
 
 describe('fft', () => {
   it('matches a direct DFT', () => {

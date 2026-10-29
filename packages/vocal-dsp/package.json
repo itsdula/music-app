@@ -17,5 +17,8 @@
   "dependencies": {
     "@studio/audio-dsp": "workspace:*",
     "@studio/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@studio/test-fixtures": "workspace:*"
   }
 }

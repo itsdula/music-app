@@ -3,6 +3,8 @@
  *   import '@studio/react/styles.css';
  * No global preflight: base styles are scoped to .studio-root so Studio can be embedded.
  */
+/* Layer order is fixed by first declaration: utilities must beat the scoped base reset. */
+@layer theme, base, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import '@studio/ui/tokens.css';
@@ -56,6 +58,11 @@
   .studio-root canvas,
   .studio-root svg {
     display: block;
+  }
+
+  /* From Tailwind preflight: `hidden` must win over display utilities (e.g. inactive tabs). */
+  .studio-root [hidden]:where(:not([hidden='until-found'])) {
+    display: none !important;
   }
 
   .studio-root :focus-visible {

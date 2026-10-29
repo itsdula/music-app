@@ -153,7 +153,7 @@ export function BrowserPanel() {
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="browser-panel">
       <div className="flex items-center gap-1 border-b border-line p-2">
-        <div className="flex h-7 flex-1 items-center gap-1.5 rounded-md border border-line bg-surface-0 px-2">
+        <div className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-line bg-surface-0 px-2">
           <Search className="size-3.5 text-text-faint" aria-hidden />
           <input
             type="search"

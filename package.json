@@ -1,7 +1,7 @@
 {
   "name": "studio-monorepo",
   "private": true,
-  "description": "Studio — a local-first, portable digital audio workstation.",
+  "description": "Studio \u2014 a local-first, portable digital audio workstation.",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -30,6 +30,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
+    "@studio/audio-dsp": "workspace:*",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@types/node": "22.20.5",

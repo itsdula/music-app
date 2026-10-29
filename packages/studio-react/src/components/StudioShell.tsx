@@ -43,7 +43,7 @@ export function StudioShell() {
           <>
             <aside
               id="studio-browser"
-              className="flex shrink-0 flex-col border-r border-line bg-surface-1"
+              className="flex shrink-0 flex-col overflow-hidden border-r border-line bg-surface-1"
               style={{ width: panels.browserWidth }}
             >
               <BrowserPanel />

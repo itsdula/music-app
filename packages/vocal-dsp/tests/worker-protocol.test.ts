@@ -9,7 +9,7 @@ import {
   type VocalWorkerResponse,
 } from '../src/index';
 import { PROGRESS_MESSAGE_STEP, transferablesOf } from '../src/worker-protocol';
-import * as fx from '../../test-fixtures/src/index';
+import * as fx from '@studio/test-fixtures';
 import { editDoc } from './helpers/docs';
 
 // Fixture synthesis + analysis is slow under coverage instrumentation.

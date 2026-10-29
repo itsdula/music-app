@@ -26,10 +26,17 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   })) as unknown as typeof window.matchMedia;
 }
 if (typeof Element !== 'undefined') {
-  Element.prototype.hasPointerCapture ??= () => false;
-  Element.prototype.setPointerCapture ??= () => undefined;
-  Element.prototype.releasePointerCapture ??= () => undefined;
-  Element.prototype.scrollIntoView ??= () => undefined;
+  const stubs: Partial<Record<keyof Element, () => unknown>> = {
+    hasPointerCapture: () => false,
+    setPointerCapture: () => undefined,
+    releasePointerCapture: () => undefined,
+    scrollIntoView: () => undefined,
+  };
+  for (const [name, value] of Object.entries(stubs)) {
+    if (!(name in Element.prototype)) {
+      Object.defineProperty(Element.prototype, name, { value, configurable: true, writable: true });
+    }
+  }
 }
 
 afterEach(() => {

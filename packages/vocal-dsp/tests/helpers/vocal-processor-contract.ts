@@ -7,7 +7,7 @@ import {
   type AbortSignalLike,
   type VocalProcessor,
 } from '../../src/index';
-import * as fx from '../../../test-fixtures/src/index';
+import * as fx from '@studio/test-fixtures';
 import { bytesEqual, copyPcm, editDoc } from './docs';
 
 /** Minimal AbortController equivalent built on the structural `AbortSignalLike`. */

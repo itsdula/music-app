@@ -15,6 +15,7 @@
     "packageClass": "A"
   },
   "dependencies": {
-    "@studio/domain": "workspace:*"
+    "@studio/domain": "workspace:*",
+    "@studio/audio-contracts": "workspace:*"
   }
 }

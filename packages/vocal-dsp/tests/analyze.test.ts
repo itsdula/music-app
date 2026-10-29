@@ -6,7 +6,7 @@ import {
   VOCAL_ALGORITHM_VERSION,
   VocalJobCancelledError,
 } from '../src/index';
-import * as fx from '../../test-fixtures/src/index';
+import * as fx from '@studio/test-fixtures';
 import { bytesEqual, editDoc } from './helpers/docs';
 
 // Fixture synthesis + analysis is slow under coverage instrumentation.

@@ -14,6 +14,9 @@ importers:
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
+      '@studio/audio-dsp':
+        specifier: workspace:*
+        version: link:packages/audio-dsp
       '@testing-library/jest-dom':
         specifier: 7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
@@ -234,6 +237,9 @@ importers:
 
   packages/engine-core:
     dependencies:
+      '@studio/audio-contracts':
+        specifier: workspace:*
+        version: link:../audio-contracts
       '@studio/domain':
         specifier: workspace:*
         version: link:../domain
@@ -440,6 +446,10 @@ importers:
       '@studio/domain':
         specifier: workspace:*
         version: link:../domain
+    devDependencies:
+      '@studio/test-fixtures':
+        specifier: workspace:*
+        version: link:../test-fixtures
 
 packages:
 

@@ -26,7 +26,7 @@ await page.waitForTimeout(800);
 const shot = async (name, locator) => {
   await page.waitForTimeout(300);
   await (locator ?? page).screenshot({ path: join(out, `${name}.png`) });
-  console.log(`saved ${name}.png`);
+  process.stdout.write(`saved ${name}.png\n`);
 };
 
 await shot('studio-overview');

@@ -12,7 +12,7 @@ import {
   trackPitch,
   type PitchTrack,
 } from '../src/index';
-import * as fx from '../../test-fixtures/src/index';
+import * as fx from '@studio/test-fixtures';
 
 // Fixture synthesis + analysis is slow under coverage instrumentation.
 vi.setConfig({ testTimeout: 120_000 });
