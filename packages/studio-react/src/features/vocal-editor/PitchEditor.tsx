@@ -16,6 +16,7 @@ import {
 import { canvasFont, drawPlayhead, vline, withAlpha } from '../../canvas/draw-utils';
 import { computeGridLines } from '../../canvas/ruler';
 import type { TimeAxis } from '../../canvas/time-axis';
+import { StudioContextMenu } from '../../components/context-menu';
 import { startDragGesture } from '../../lib/drag-gesture';
 import { useFrame } from '../../lib/use-frame';
 import { useProjectState, useSession, useUiState } from '../../session/context';
@@ -46,6 +47,7 @@ import {
 import { drawVocalEditor, type VocalCanvasViewModel, type VocalNoteView } from './renderer';
 import { handleVocalKey } from './keys';
 import { useNativeKeyDown, useVocalAxes } from './use-vocal';
+import { vocalMenu } from './vocal-menus';
 import { scalePitchClasses } from '@studio/domain';
 
 export interface PitchEditorProps {
@@ -418,28 +420,48 @@ export function PitchEditor({
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <VocalRuler time={time} map={map} />
-        <div
-          ref={hostRef}
-          className="relative min-h-0 min-w-0 flex-1 outline-none focus-visible:ring-1 focus-visible:ring-accent/60"
-          tabIndex={0}
-          role="application"
-          aria-roledescription="pitch editor"
-          aria-label={`Pitch editor for ${clip.name}. Click a note to select it, arrow up or down to move by a semitone (Shift for 10 cents), Delete to reset, S to split, M to merge, Escape to deselect.`}
-          aria-describedby={describedBy}
-          data-testid="vocal-canvas"
-          onPointerDown={onPointerDown}
-          onPointerMove={onHover}
-          onPointerLeave={() => setHovered(null)}
-          onDoubleClick={onDoubleClick}
-          onWheel={onWheel}
+        <StudioContextMenu
+          target="vocal-note"
+          resolve={(e) => {
+            const { x, y } = point(e);
+            const hit = hitTestVocalNote(rects, x, y);
+            return {
+              target: hit ? 'vocal-note' : 'vocal-grid',
+              entries: vocalMenu(actions, {
+                noteId: hit?.id ?? null,
+                pointerSeconds: tickToSourceSeconds(time.xToTick(x), map),
+              }),
+            };
+          }}
         >
-          <CanvasSurface draw={draw} version={vm} onResize={setSize} className="absolute inset-0" />
-          <CanvasSurface
-            ref={overlayRef}
-            draw={() => undefined}
-            className="pointer-events-none absolute inset-0"
-          />
-        </div>
+          <div
+            ref={hostRef}
+            className="relative min-h-0 min-w-0 flex-1 outline-none focus-visible:ring-1 focus-visible:ring-accent/60"
+            tabIndex={0}
+            role="application"
+            aria-roledescription="pitch editor"
+            aria-label={`Pitch editor for ${clip.name}. Click a note to select it, arrow up or down to move by a semitone (Shift for 10 cents), Delete to reset, S to split, M to merge, Escape to deselect.`}
+            aria-describedby={describedBy}
+            data-testid="vocal-canvas"
+            onPointerDown={onPointerDown}
+            onPointerMove={onHover}
+            onPointerLeave={() => setHovered(null)}
+            onDoubleClick={onDoubleClick}
+            onWheel={onWheel}
+          >
+            <CanvasSurface
+              draw={draw}
+              version={vm}
+              onResize={setSize}
+              className="absolute inset-0"
+            />
+            <CanvasSurface
+              ref={overlayRef}
+              draw={() => undefined}
+              className="pointer-events-none absolute inset-0"
+            />
+          </div>
+        </StudioContextMenu>
       </div>
     </div>
   );
