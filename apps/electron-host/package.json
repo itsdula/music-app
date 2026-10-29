@@ -7,7 +7,13 @@
   "main": "dist/main/main.js",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "build:host": "node scripts/build.mjs --skip-renderer",
+    "start": "electron .",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:probe": "node scripts/smoke.mjs --probe",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:host": "tsc --noEmit -p tsconfig.host.json"
   },
   "dependencies": {
     "@studio/platform-browser": "workspace:*",

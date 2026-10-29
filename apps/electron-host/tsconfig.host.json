@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/main",
+    "src/preload",
+    "src/shared",
+    "src/probe",
+    "src/renderer/file-dialogs.ts",
+    "tests",
+    "vitest.config.ts"
+  ]
+}
