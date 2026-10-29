@@ -63,6 +63,26 @@ test.describe('Phase 2 vertical slice: MIDI clip → piano roll → synth → lo
     await expect(page.getByTestId('export-result')).toContainText('Exported');
   });
 
+  test('Delete in the piano roll removes the selected notes, not the clip being edited', async ({
+    page,
+  }) => {
+    const box = (await page.getByTestId('arrangement-lanes').boundingBox())!;
+    await page.mouse.dblclick(box.x + 30, box.y + 30); // creates, selects and opens a clip
+    const grid = page.getByTestId('piano-roll-grid');
+    const g = (await grid.boundingBox())!;
+    await page.mouse.dblclick(g.x + g.width * 0.2, g.y + g.height * 0.4);
+    await page.mouse.dblclick(g.x + g.width * 0.5, g.y + g.height * 0.5);
+    await expect(grid.locator('.sr-only')).toContainText('2 notes');
+    await grid.focus();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.press('Delete');
+    await expect(grid.locator('.sr-only')).toContainText('0 notes');
+    // The global Delete shortcut must not also delete the selected clip behind the editor.
+    await expect(grid).toBeVisible();
+    await page.keyboard.press('ControlOrMeta+z');
+    await expect(grid.locator('.sr-only')).toContainText('2 notes');
+  });
+
   test('undo and redo restore piano-roll edits', async ({ page }) => {
     const box = (await page.getByTestId('arrangement-lanes').boundingBox())!;
     await page.mouse.dblclick(box.x + 30, box.y + 30);

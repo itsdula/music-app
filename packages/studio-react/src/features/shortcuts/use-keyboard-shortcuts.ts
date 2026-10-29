@@ -114,14 +114,19 @@ export function useKeyboardShortcuts(rootRef: RefObject<HTMLElement | null>): vo
           return false; // handled by the piano roll when focused
       }
     };
+    // Listen on the document, i.e. after React's delegated handlers, so an editor can claim
+    // a key (Delete, arrows…) with stopPropagation()/preventDefault() in its React onKeyDown.
+    // Only keys pressed inside this Studio instance count; the embedding page keeps its own.
+    const doc = root.ownerDocument;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.target instanceof Node) || !root.contains(event.target)) return;
       if (event.defaultPrevented || isTextEntryTarget(event.target)) return;
       const action = matchShortcut(event, apple);
       if (!action) return;
       if (event.repeat && action !== 'zoomIn' && action !== 'zoomOut') return;
       if (run(action)) event.preventDefault();
     };
-    root.addEventListener('keydown', onKeyDown);
-    return () => root.removeEventListener('keydown', onKeyDown);
+    doc.addEventListener('keydown', onKeyDown);
+    return () => doc.removeEventListener('keydown', onKeyDown);
   }, [rootRef, session]);
 }

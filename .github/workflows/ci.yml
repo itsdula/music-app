@@ -53,3 +53,30 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
+
+  electron:
+    name: Electron host (unit tests + headless smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install (frozen lockfile, with the Electron binary)
+        run: pnpm install --frozen-lockfile
+      - name: Xvfb and Chromium sandbox prerequisites
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+          # Ubuntu 24.04 restricts unprivileged user namespaces, which Chromium's sandbox needs.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: Codegen
+        run: pnpm codegen
+      - name: Host unit tests
+        run: pnpm --filter @studio/electron-host test
+      - name: Smoke test (real Electron under Xvfb; probe page, then the full Studio)
+        run: |
+          pnpm --filter @studio/electron-host smoke:probe
+          pnpm --filter @studio/electron-host smoke

@@ -17,7 +17,13 @@ export interface VocalStoreState {
 
 export type VocalStore = StoreApi<VocalStoreState>;
 
-export const IDLE_VOCAL_STATE: VocalAssetState = { phase: 'idle', progress: 0, error: null, rendering: false, analysisVersion: 0 };
+export const IDLE_VOCAL_STATE: VocalAssetState = {
+  phase: 'idle',
+  progress: 0,
+  error: null,
+  rendering: false,
+  analysisVersion: 0,
+};
 
 export function createVocalStore(): VocalStore {
   return createStore<VocalStoreState>()(() => ({ assets: {} }));

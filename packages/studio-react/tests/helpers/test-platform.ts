@@ -31,7 +31,9 @@ function fnv1a(bytes: Uint8Array): string {
   return h.toString(16).padStart(8, '0').repeat(8);
 }
 
-export function createTestPlatform(overrides: { projects?: ReturnType<typeof createMemoryProjectRepository> } = {}): TestPlatform {
+export function createTestPlatform(
+  overrides: { projects?: ReturnType<typeof createMemoryProjectRepository> } = {},
+): TestPlatform {
   let counter = 0;
   let clock = Date.parse('2026-10-29T10:00:00.000Z');
   const engine = new FakeAudioEngine();
@@ -47,7 +49,9 @@ export function createTestPlatform(overrides: { projects?: ReturnType<typeof cre
     // Same-thread processor: real analysis and rendering without a Worker.
     createVocalProcessor: () => createInlineVocalProcessor(),
     midiAccess: midiPort,
-    projectRepository: overrides.projects ?? createMemoryProjectRepository({ now: () => new Date(clock).toISOString() }),
+    projectRepository:
+      overrides.projects ??
+      createMemoryProjectRepository({ now: () => new Date(clock).toISOString() }),
     assetRepository: createMemoryAssetRepository(),
     derivedCache: createMemoryDerivedCache(),
     settingsRepository: createMemorySettingsRepository(),
@@ -64,9 +68,23 @@ export function createTestPlatform(overrides: { projects?: ReturnType<typeof cre
       platform: 'test',
       userAgent: 'vitest',
       coarsePointer: false,
-      capabilities: { webMidi: true, audioWorklet: false, offlineAudioContext: false, getUserMedia: false, fileSystemAccess: false, sharedArrayBuffer: false, indexedDb: false },
+      capabilities: {
+        webMidi: true,
+        audioWorklet: false,
+        offlineAudioContext: false,
+        getUserMedia: false,
+        fileSystemAccess: false,
+        sharedArrayBuffer: false,
+        indexedDb: false,
+      },
     },
-    logger: { log: () => undefined, debug: () => undefined, info: () => undefined, warn: () => undefined, error: () => undefined },
+    logger: {
+      log: () => undefined,
+      debug: () => undefined,
+      info: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+    },
     audioDecoder: {
       canDecode: (mime, name) => mime === 'audio/wav' || name.toLowerCase().endsWith('.wav'),
       decode: async (bytes) => decodeWav(bytes),

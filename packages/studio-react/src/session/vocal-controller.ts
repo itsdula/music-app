@@ -7,7 +7,12 @@
 import type { AudioEngine } from '@studio/audio-contracts';
 import { encodeWav, type PcmAudio } from '@studio/audio-dsp';
 import type { CommandHistory } from '@studio/commands';
-import { DEFAULT_VOCAL_CORRECTION, type AssetId, type Project, type VocalEditDoc } from '@studio/domain';
+import {
+  DEFAULT_VOCAL_CORRECTION,
+  type AssetId,
+  type Project,
+  type VocalEditDoc,
+} from '@studio/domain';
 import type { PlatformServices } from '@studio/platform-contracts';
 import { derivedCacheKey } from '@studio/project-storage';
 import {
@@ -17,7 +22,12 @@ import {
   type VocalAnalysis,
   type VocalProcessor,
 } from '@studio/vocal-dsp';
-import { IDLE_VOCAL_STATE, createVocalStore, type VocalAssetState, type VocalStore } from '../state/vocal-store';
+import {
+  IDLE_VOCAL_STATE,
+  createVocalStore,
+  type VocalAssetState,
+  type VocalStore,
+} from '../state/vocal-store';
 import type { AssetLibrary } from './asset-library';
 import { safeFileName } from './export-controller';
 
@@ -62,7 +72,9 @@ export class VocalController {
   }
 
   private patch(assetId: AssetId, patch: Partial<VocalAssetState>): void {
-    this.store.setState((s) => ({ assets: { ...s.assets, [assetId]: { ...(s.assets[assetId] ?? IDLE_VOCAL_STATE), ...patch } } }));
+    this.store.setState((s) => ({
+      assets: { ...s.assets, [assetId]: { ...(s.assets[assetId] ?? IDLE_VOCAL_STATE), ...patch } },
+    }));
   }
 
   getAnalysis(assetId: AssetId): VocalAnalysis | undefined {
@@ -109,7 +121,10 @@ export class VocalController {
         this.patch(assetId, { phase: 'idle', progress: 0 });
         return null;
       }
-      this.patch(assetId, { phase: 'error', error: error instanceof Error ? error.message : String(error) });
+      this.patch(assetId, {
+        phase: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     } finally {
       if (this.aborts.get(assetId) === abort) this.aborts.delete(assetId);
@@ -174,7 +189,12 @@ export class VocalController {
     this.patch(assetId, { rendering: true });
     try {
       const source = await this.assets.load(assetId);
-      const rendered = await this.getProcessor().render({ source: copyPcm(source), analysis, edits: doc, quality: 'preview' });
+      const rendered = await this.getProcessor().render({
+        source: copyPcm(source),
+        analysis,
+        edits: doc,
+        quality: 'preview',
+      });
       if (this.previewVersions.get(assetId) !== version) return; // a newer edit superseded this render
       await this.engine.setAssetOverride(assetId, rendered);
       // A successful render clears a previous preview failure shown in the editor.
@@ -193,11 +213,20 @@ export class VocalController {
     const doc = this.history.present.vocalEdits[assetId];
     const analysis = this.analyses.get(assetId);
     const asset = this.history.present.assets[assetId];
-    if (!doc || !analysis || !asset) throw new Error('Analyze the vocal before exporting the correction.');
+    if (!doc || !analysis || !asset)
+      throw new Error('Analyze the vocal before exporting the correction.');
     const source = await this.assets.load(assetId);
-    const rendered = await this.getProcessor().render({ source: copyPcm(source), analysis, edits: { ...doc, enabled: true }, quality: 'final' });
+    const rendered = await this.getProcessor().render({
+      source: copyPcm(source),
+      analysis,
+      edits: { ...doc, enabled: true },
+      quality: 'final',
+    });
     const bytes = encodeWav(rendered, { bitDepth: 24 });
-    return this.platform.fileDialogs.saveFile(bytes, { suggestedName: `${safeFileName(asset.name)} (corrected).wav`, mimeType: 'audio/wav' });
+    return this.platform.fileDialogs.saveFile(bytes, {
+      suggestedName: `${safeFileName(asset.name)} (corrected).wav`,
+      mimeType: 'audio/wav',
+    });
   }
 
   dispose(): void {

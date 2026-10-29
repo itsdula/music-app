@@ -25,7 +25,8 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['packages/*/tests/**/*.test.ts'],
+          // apps/electron-host/tests cover its pure main-process policy (no Electron runtime).
+          include: ['packages/*/tests/**/*.test.ts', 'apps/electron-host/tests/**/*.test.ts'],
           exclude: ['**/node_modules/**', 'packages/{ui,studio-react}/**', ...nonUnitSuffixes],
         },
       },
@@ -70,7 +71,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.{ts,tsx}'],
-      exclude: ['**/src/generated/**', '**/index.ts', '**/*.d.ts'],
+      // audio-web runs only in real Chromium (the `browser` project), so Node coverage omits it.
+      exclude: ['**/src/generated/**', '**/index.ts', '**/*.d.ts', 'packages/audio-web/src/**'],
       reporter: ['text-summary', 'json-summary', 'html'],
       reportsDirectory: './coverage',
     },

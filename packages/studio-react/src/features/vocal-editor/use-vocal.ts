@@ -18,11 +18,10 @@ export function useVocalAxes(): { time: TimeAxis; pitch: PitchAxis } {
 }
 
 /**
- * Native keydown handling for an editor surface. The Studio's global shortcuts listen on
- * the shell element with a native listener, which runs *before* React's delegated
- * handlers, so `stopPropagation` in a React `onKeyDown` cannot keep e.g. Delete from also
- * deleting the selected clip. Handling the key natively on the (descendant) element and
- * stopping it there does. `handler` returns true for keys it consumed.
+ * Native keydown handling for an editor surface: consumed keys are prevented and stopped
+ * at the element, so the Studio's global shortcuts (a document-level listener) never see
+ * them — e.g. Delete removes the selected notes, not the selected clip. `handler` returns
+ * true for keys it consumed.
  */
 export function useNativeKeyDown(
   ref: RefObject<HTMLElement | null>,

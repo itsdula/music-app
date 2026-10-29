@@ -17,6 +17,12 @@ importers:
       '@studio/audio-dsp':
         specifier: workspace:*
         version: link:packages/audio-dsp
+      '@studio/test-fixtures':
+        specifier: workspace:*
+        version: link:packages/test-fixtures
+      '@studio/vocal-dsp':
+        specifier: workspace:*
+        version: link:packages/vocal-dsp
       '@testing-library/jest-dom':
         specifier: 7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
