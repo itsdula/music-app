@@ -38,7 +38,7 @@ jobs:
       - name: Unit, react, integration and contract tests (with coverage)
         run: pnpm test:coverage
       - name: Browser tests (real Chromium Web Audio)
-        run: pnpm exec vitest run --project browser
+        run: pnpm test:browser
       - name: Build
         run: pnpm build
       - name: End-to-end tests

@@ -9,3 +9,4 @@ test-results
 packages/*/src/generated
 .claude
 docs/research
+.vitest

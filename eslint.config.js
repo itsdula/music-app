@@ -35,6 +35,7 @@ export default defineConfig(
     'playwright-report/**',
     'test-results/**',
     'docs/**',
+    '**/.vitest/**',
   ]),
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
@@ -86,6 +87,7 @@ export default defineConfig(
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/require-await': 'off',
       'no-console': 'off',
     },
   },

@@ -31,3 +31,7 @@ blob-report/
 !.env.example
 .DS_Store
 *.log
+
+# vitest browser-mode artifacts
+.vitest/
+__screenshots__/
