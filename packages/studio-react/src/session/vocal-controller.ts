@@ -177,6 +177,8 @@ export class VocalController {
       const rendered = await this.getProcessor().render({ source: copyPcm(source), analysis, edits: doc, quality: 'preview' });
       if (this.previewVersions.get(assetId) !== version) return; // a newer edit superseded this render
       await this.engine.setAssetOverride(assetId, rendered);
+      // A successful render clears a previous preview failure shown in the editor.
+      if (this.store.getState().assets[assetId]?.error) this.patch(assetId, { error: null });
     } catch (error) {
       if (!(error instanceof VocalJobCancelledError)) {
         this.patch(assetId, { error: error instanceof Error ? error.message : String(error) });
