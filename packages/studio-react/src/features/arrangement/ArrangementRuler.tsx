@@ -6,6 +6,8 @@ import { drawPlayhead } from '../../canvas/draw-utils';
 import { startDragGesture } from '../../lib/drag-gesture';
 import { useFrame } from '../../lib/use-frame';
 import { useProjectState, useSession, useUiState } from '../../session/context';
+import { StudioContextMenu } from '../../components/context-menu';
+import { rulerMenu } from './arrangement-menus';
 import { loopCommand } from './clip-gestures';
 import { LOOP_BAR_HEIGHT, RULER_HEIGHT } from './geometry';
 import { drawRuler } from './renderer';
@@ -115,23 +117,55 @@ export function ArrangementRuler() {
     });
   };
 
+  /** Loop strip: resize cursor on its edges, grab on its body, crosshair to draw a new loop. */
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.buttons !== 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    let cursor = 'text';
+    if (y <= LOOP_BAR_HEIGHT + 2) {
+      const x0 = axis.tickToX(loop.startTick);
+      const x1 = axis.tickToX(loop.endTick);
+      cursor =
+        Math.abs(x - x0) < 6 || Math.abs(x - x1) < 6
+          ? 'ew-resize'
+          : x > x0 && x < x1
+            ? 'grab'
+            : 'crosshair';
+    }
+    e.currentTarget.style.cursor = cursor;
+  };
+
+  const resolveMenu = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const raw = Math.max(0, axis.xToTick(e.clientX - rect.left));
+    return rulerMenu(
+      session,
+      gridTicks > 0 ? Math.round(raw / gridTicks) * gridTicks : Math.round(raw),
+    );
+  };
+
   return (
-    <div
-      className="relative min-w-0 flex-1 cursor-text"
-      style={{ height: RULER_HEIGHT }}
-      onPointerDown={onPointerDown}
-      data-testid="arrangement-ruler"
-      aria-label="Timeline ruler: click to move the playhead, drag the top strip to set the loop"
-      role="slider"
-      aria-valuetext="Playhead"
-      tabIndex={-1}
-    >
-      <CanvasSurface draw={draw} className="absolute inset-0" />
-      <CanvasSurface
-        ref={overlayRef}
-        draw={() => undefined}
-        className="pointer-events-none absolute inset-0"
-      />
-    </div>
+    <StudioContextMenu target="ruler" resolve={resolveMenu}>
+      <div
+        className="relative min-w-0 flex-1 cursor-text"
+        style={{ height: RULER_HEIGHT }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        data-testid="arrangement-ruler"
+        aria-label="Timeline ruler: click to move the playhead, drag the top strip to set the loop"
+        role="slider"
+        aria-valuetext="Playhead"
+        tabIndex={-1}
+      >
+        <CanvasSurface draw={draw} className="absolute inset-0" />
+        <CanvasSurface
+          ref={overlayRef}
+          draw={() => undefined}
+          className="pointer-events-none absolute inset-0"
+        />
+      </div>
+    </StudioContextMenu>
   );
 }

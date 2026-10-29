@@ -12,6 +12,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
+import { StudioContextMenu, type MenuEntryInput } from '../../components/context-menu';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import {
   BROWSER_DRAG_MIME,
@@ -63,35 +64,42 @@ function ItemRow({
   icon,
   onActivate,
   hint,
+  menu,
 }: {
   item: BrowserItem;
   icon: ReactNode;
   onActivate: () => void;
   hint: string;
+  menu: () => MenuEntryInput[];
 }) {
   return (
-    <li>
-      <button
-        type="button"
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.setData(BROWSER_DRAG_MIME, encodeBrowserItem(item));
-          e.dataTransfer.effectAllowed = 'copy';
-        }}
-        onDoubleClick={onActivate}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') onActivate();
-        }}
-        className="group flex w-full items-center gap-2 px-3 py-1 text-left text-[12px] text-text hover:bg-surface-3 focus-visible:bg-surface-3"
-        title={hint}
-      >
-        <span className="text-text-faint [&_svg]:size-3.5" aria-hidden>
-          {icon}
-        </span>
-        <span className="flex-1 truncate">{item.label}</span>
-        <Plus className="size-3.5 text-text-faint opacity-0 group-hover:opacity-100" aria-hidden />
-      </button>
-    </li>
+    <StudioContextMenu target="browser-item" resolve={menu}>
+      <li data-testid="browser-item" data-browser-kind={item.kind}>
+        <button
+          type="button"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData(BROWSER_DRAG_MIME, encodeBrowserItem(item));
+            e.dataTransfer.effectAllowed = 'copy';
+          }}
+          onDoubleClick={onActivate}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onActivate();
+          }}
+          className="group flex w-full items-center gap-2 px-3 py-1 text-left text-[12px] text-text hover:bg-surface-3 focus-visible:bg-surface-3"
+          title={hint}
+        >
+          <span className="text-text-faint [&_svg]:size-3.5" aria-hidden>
+            {icon}
+          </span>
+          <span className="flex-1 truncate">{item.label}</span>
+          <Plus
+            className="size-3.5 text-text-faint opacity-0 group-hover:opacity-100"
+            aria-hidden
+          />
+        </button>
+      </li>
+    </StudioContextMenu>
   );
 }
 
@@ -135,6 +143,44 @@ export function BrowserPanel() {
           : null;
       session.edits.placeAsset(item.assetId, trackId, engineStore.getState().cursorTick);
     }
+  };
+
+  /** Right-click actions for a browser item (valid targets depend on the selection). */
+  const itemMenu = (item: BrowserItem): MenuEntryInput[] => {
+    const project = session.history.present;
+    const selected = selectedTrackId ? project.tracks[selectedTrackId] : undefined;
+    const cursor = session.engineStore.getState().cursorTick;
+    if (item.kind === 'instrument')
+      return [
+        { id: 'browser-add-track', label: 'Add as new track', onSelect: () => activate(item) },
+      ];
+    if (item.kind === 'effect')
+      return [
+        {
+          id: 'browser-add-effect-track',
+          label: selected ? `Add to ${selected.name}` : 'Add to selected track',
+          disabled: !selected,
+          onSelect: () => selected && session.edits.addEffect(selected.id, item.effect),
+        },
+        {
+          id: 'browser-add-effect-master',
+          label: 'Add to master',
+          onSelect: () => session.edits.addEffect('master', item.effect),
+        },
+      ];
+    const audioTarget = selected && selected.kind !== 'instrument' ? selected : undefined;
+    return [
+      {
+        id: 'browser-place-asset',
+        label: audioTarget ? `Place on ${audioTarget.name} at playhead` : 'Place at playhead',
+        onSelect: () => session.edits.placeAsset(item.assetId, audioTarget?.id ?? null, cursor),
+      },
+      {
+        id: 'browser-place-asset-new',
+        label: 'Place on a new audio track',
+        onSelect: () => session.edits.placeAsset(item.assetId, null, cursor),
+      },
+    ];
   };
 
   const importFiles = async () => {
@@ -183,6 +229,7 @@ export function BrowserPanel() {
               }
               hint="Double-click or drag into the arrangement to add a track"
               onActivate={() => activate(item)}
+              menu={() => itemMenu(item)}
             />
           ))}
         </Section>
@@ -194,6 +241,7 @@ export function BrowserPanel() {
               icon={<SlidersHorizontal />}
               hint="Double-click to add to the selected track, or drag onto a track"
               onActivate={() => activate(item)}
+              menu={() => itemMenu(item)}
             />
           ))}
         </Section>
@@ -214,6 +262,7 @@ export function BrowserPanel() {
                 icon={<AudioLines />}
                 hint="Drag onto an audio track or double-click to place at the cursor"
                 onActivate={() => activate(item)}
+                menu={() => itemMenu(item)}
               />
             ))
           )}

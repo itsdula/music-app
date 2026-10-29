@@ -1,6 +1,10 @@
 import type { MidiClip, MidiNote, NoteId } from '@studio/domain';
 import type { TimeAxis } from '../../canvas/time-axis';
+import { classifyEdge, type EdgeZoneSpec } from '../../lib/edge-zones';
 import { EDGE_HIT_PX, noteRect, type PitchAxis } from './geometry';
+
+/** Note edge zones: up to 6 px inside, at least 3 px, plus 3 px of slop outside. */
+export const NOTE_EDGE_ZONES: EdgeZoneSpec = { max: EDGE_HIT_PX, min: 3, outer: 3 };
 
 export type NoteHitRegion = 'body' | 'start-edge' | 'end-edge';
 
@@ -21,14 +25,19 @@ export function hitTestNote(
   x: number,
   y: number,
 ): NoteHit | null {
-  for (let i = clip.notes.length - 1; i >= 0; i--) {
-    const note = clip.notes[i]!;
-    const r = noteRect(note, clip, time, pitch);
-    if (y < r.y || y >= r.y + r.h || x < r.x || x >= r.x + r.w) continue;
-    const edge = Math.min(EDGE_HIT_PX, r.w / 3);
-    if (x >= r.x + r.w - edge) return { note, region: 'end-edge' };
-    if (x < r.x + edge && r.w > 12) return { note, region: 'start-edge' };
-    return { note, region: 'body' };
+  // Inside a note first (top-most wins), then the slop just outside a note edge.
+  for (const includeOuter of [false, true]) {
+    for (let i = clip.notes.length - 1; i >= 0; i--) {
+      const note = clip.notes[i]!;
+      const r = noteRect(note, clip, time, pitch);
+      if (y < r.y || y >= r.y + r.h) continue;
+      const side = classifyEdge(x, r.x, r.w, NOTE_EDGE_ZONES, includeOuter);
+      if (!side) continue;
+      return {
+        note,
+        region: side === 'end' ? 'end-edge' : side === 'start' ? 'start-edge' : 'body',
+      };
+    }
   }
   return null;
 }

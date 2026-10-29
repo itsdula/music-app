@@ -14,6 +14,7 @@ import {
   Switch,
 } from '@studio/ui';
 import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { SEPARATOR, StudioContextMenu } from '../../components/context-menu';
 import { useSession } from '../../session/context';
 import { ParamControl } from './ParamControl';
 
@@ -30,83 +31,141 @@ function EffectUnit({
 }) {
   const session = useSession();
   const specs = EFFECT_PARAM_SPECS[slot.kind];
+  const label = EFFECT_LABELS[slot.kind];
+  const resolveMenu = () => [
+    { kind: 'label' as const, label },
+    {
+      id: 'effect-enabled',
+      label: 'Enabled',
+      checked: !slot.bypass,
+      onSelect: () =>
+        session.history.execute(
+          { type: 'effect.setBypass', target, effectId: slot.id, bypass: !slot.bypass },
+          { label: slot.bypass ? 'Enable Effect' : 'Bypass Effect' },
+        ),
+    },
+    SEPARATOR,
+    {
+      id: 'effect-move-left',
+      label: 'Move left',
+      disabled: index === 0,
+      onSelect: () =>
+        session.history.execute(
+          { type: 'effect.move', target, effectId: slot.id, toIndex: index - 1 },
+          { label: 'Reorder Effect' },
+        ),
+    },
+    {
+      id: 'effect-move-right',
+      label: 'Move right',
+      disabled: index === count - 1,
+      onSelect: () =>
+        session.history.execute(
+          { type: 'effect.move', target, effectId: slot.id, toIndex: index + 1 },
+          { label: 'Reorder Effect' },
+        ),
+    },
+    SEPARATOR,
+    {
+      id: 'effect-duplicate',
+      label: 'Duplicate',
+      onSelect: () => session.edits.duplicateEffect(target, slot.id),
+    },
+    {
+      id: 'effect-reset',
+      label: 'Reset parameters',
+      onSelect: () => session.edits.resetEffect(target, slot.id),
+    },
+    {
+      id: 'effect-remove',
+      label: 'Remove effect',
+      danger: true,
+      onSelect: () =>
+        session.history.execute(
+          { type: 'effect.remove', target, effectId: slot.id },
+          { label: 'Remove Effect' },
+        ),
+    },
+  ];
   return (
-    <section
-      className={`flex shrink-0 flex-col gap-2 rounded-lg border p-3 ${slot.bypass ? 'border-line bg-surface-1 opacity-70' : 'border-line bg-surface-2'}`}
-      aria-label={`${EFFECT_LABELS[slot.kind]} effect`}
-      data-testid="effect-unit"
-      data-effect-kind={slot.kind}
-    >
-      <header className="flex items-center gap-1.5">
-        <Switch
-          label={`${EFFECT_LABELS[slot.kind]} on`}
-          checked={!slot.bypass}
-          onCheckedChange={(on) =>
-            session.history.execute(
-              { type: 'effect.setBypass', target, effectId: slot.id, bypass: !on },
-              { label: on ? 'Enable Effect' : 'Bypass Effect' },
-            )
-          }
-        />
-        <h4 className="flex-1 text-[12px] font-semibold">{EFFECT_LABELS[slot.kind]}</h4>
-        <IconButton
-          label="Move left"
-          icon={<ChevronLeft />}
-          size="sm"
-          variant="ghost"
-          disabled={index === 0}
-          onClick={() =>
-            session.history.execute(
-              { type: 'effect.move', target, effectId: slot.id, toIndex: index - 1 },
-              { label: 'Reorder Effect' },
-            )
-          }
-        />
-        <IconButton
-          label="Move right"
-          icon={<ChevronRight />}
-          size="sm"
-          variant="ghost"
-          disabled={index === count - 1}
-          onClick={() =>
-            session.history.execute(
-              { type: 'effect.move', target, effectId: slot.id, toIndex: index + 1 },
-              { label: 'Reorder Effect' },
-            )
-          }
-        />
-        <IconButton
-          label="Remove effect"
-          icon={<Trash2 />}
-          size="sm"
-          variant="ghost"
-          onClick={() =>
-            session.history.execute(
-              { type: 'effect.remove', target, effectId: slot.id },
-              { label: 'Remove Effect' },
-            )
-          }
-        />
-      </header>
-      <div className="flex flex-wrap items-end gap-3">
-        {specs.map((spec) => (
-          <ParamControl
-            key={spec.id}
-            spec={spec}
-            value={slot.params[spec.id] ?? spec.default}
-            gestureKey={`fx:${slot.id}:${spec.id}`}
-            address={{ scope: 'effect', trackId: target, effectId: slot.id, param: spec.id }}
-            size="sm"
-            command={(v) => ({
-              type: 'effect.setParams',
-              target,
-              effectId: slot.id,
-              params: { [spec.id]: v },
-            })}
+    <StudioContextMenu target="effect" resolve={resolveMenu}>
+      <section
+        className={`flex shrink-0 flex-col gap-2 rounded-lg border p-3 ${slot.bypass ? 'border-line bg-surface-1 opacity-70' : 'border-line bg-surface-2'}`}
+        aria-label={`${EFFECT_LABELS[slot.kind]} effect`}
+        data-testid="effect-unit"
+        data-effect-kind={slot.kind}
+      >
+        <header className="flex items-center gap-1.5">
+          <Switch
+            label={`${EFFECT_LABELS[slot.kind]} on`}
+            checked={!slot.bypass}
+            onCheckedChange={(on) =>
+              session.history.execute(
+                { type: 'effect.setBypass', target, effectId: slot.id, bypass: !on },
+                { label: on ? 'Enable Effect' : 'Bypass Effect' },
+              )
+            }
           />
-        ))}
-      </div>
-    </section>
+          <h4 className="flex-1 text-[12px] font-semibold">{EFFECT_LABELS[slot.kind]}</h4>
+          <IconButton
+            label="Move left"
+            icon={<ChevronLeft />}
+            size="sm"
+            variant="ghost"
+            disabled={index === 0}
+            onClick={() =>
+              session.history.execute(
+                { type: 'effect.move', target, effectId: slot.id, toIndex: index - 1 },
+                { label: 'Reorder Effect' },
+              )
+            }
+          />
+          <IconButton
+            label="Move right"
+            icon={<ChevronRight />}
+            size="sm"
+            variant="ghost"
+            disabled={index === count - 1}
+            onClick={() =>
+              session.history.execute(
+                { type: 'effect.move', target, effectId: slot.id, toIndex: index + 1 },
+                { label: 'Reorder Effect' },
+              )
+            }
+          />
+          <IconButton
+            label="Remove effect"
+            icon={<Trash2 />}
+            size="sm"
+            variant="ghost"
+            onClick={() =>
+              session.history.execute(
+                { type: 'effect.remove', target, effectId: slot.id },
+                { label: 'Remove Effect' },
+              )
+            }
+          />
+        </header>
+        <div className="flex flex-wrap items-end gap-3">
+          {specs.map((spec) => (
+            <ParamControl
+              key={spec.id}
+              spec={spec}
+              value={slot.params[spec.id] ?? spec.default}
+              gestureKey={`fx:${slot.id}:${spec.id}`}
+              address={{ scope: 'effect', trackId: target, effectId: slot.id, param: spec.id }}
+              size="sm"
+              command={(v) => ({
+                type: 'effect.setParams',
+                target,
+                effectId: slot.id,
+                params: { [spec.id]: v },
+              })}
+            />
+          ))}
+        </div>
+      </section>
+    </StudioContextMenu>
   );
 }
 
