@@ -1,5 +1,5 @@
 import type { Transaction } from '@studio/commands';
-import { gridDivisionTicks, type MidiClip, type NoteId } from '@studio/domain';
+import { gridDivisionTicks, type MidiClip, type MidiNote, type NoteId } from '@studio/domain';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CanvasSurface,
@@ -7,8 +7,11 @@ import {
   type CanvasSurfaceHandle,
 } from '../../canvas/canvas-surface';
 import { drawPlayhead } from '../../canvas/draw-utils';
+import { StudioContextMenu, type MenuResolution } from '../../components/context-menu';
 import { startDragGesture } from '../../lib/drag-gesture';
+import { resolveCursor, type CursorTarget } from '../../lib/pointer-cursor';
 import { useFrame } from '../../lib/use-frame';
+import { useAltKey } from '../../lib/use-modifier-keys';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import { selectNotes } from '../../state/ui-store';
 import { auditionNote } from './audition';
@@ -17,12 +20,22 @@ import {
   clampTopPitch,
   editableContentRange,
   timelineToContent,
+  visibleRowCount,
   yToPitch,
 } from './geometry';
-import { hitTestNote, notesInRect } from './hit-test';
+import { hitTestNote, notesInRect, type NoteHit, type NoteHitRegion } from './hit-test';
+import { gridMenu, noteMenu, noteSelectionForContextClick } from './note-menus';
 import { moveNotes, nudgeNotes, resizeNoteEnds, resizeNoteStarts } from './note-edits';
 import { drawNoteGrid } from './renderer';
 import { usePianoRollAxes } from './use-piano-roll-view';
+
+type Hover = { readonly noteId: NoteId; readonly region: NoteHitRegion } | null;
+
+const CURSOR_TARGET: Record<NoteHitRegion, CursorTarget> = {
+  body: 'body',
+  'start-edge': 'start-edge',
+  'end-edge': 'end-edge',
+};
 
 export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }) {
   const session = useSession();
@@ -36,10 +49,12 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
     null,
   );
+  const [hover, setHover] = useState<Hover>(null);
   const [size, setSize] = useState<CanvasSize>({ width: 0, height: 0, dpr: 1 });
   const lastLength = useRef<number | null>(null);
   const overlayRef = useRef<CanvasSurfaceHandle>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  const pointer = useRef({ x: 0, y: 0, inside: false, dragging: false });
   const gridTicks = snap ? gridDivisionTicks(grid, meter) : 0;
   const stepTicks = gridDivisionTicks(grid, meter);
 
@@ -52,9 +67,10 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
       pitch,
       selected,
       marquee,
+      hover,
       scaleHighlight: new Set<number>(),
     }),
-    [clip, color, meter, time, pitch, selected, marquee],
+    [clip, color, meter, time, pitch, selected, marquee, hover],
   );
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D, s: CanvasSize) => drawNoteGrid(ctx, s.width, s.height, vm),
@@ -81,14 +97,25 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
-  const createNoteAt = (x: number, y: number) => {
+  const setCursor = (cursor: string) => {
+    if (hostRef.current) hostRef.current.style.cursor = cursor;
+  };
+
+  /** Snapped content tick of a grid x position, or null outside the editable range. */
+  const contentTickAt = (x: number): number | null => {
     const contentTick = timelineToContent(clip, time.xToTick(x));
     const start = Math.max(
       0,
       gridTicks > 0 ? Math.floor(contentTick / gridTicks) * gridTicks : Math.round(contentTick),
     );
     const range = editableContentRange(clip);
-    if (start < range.start || start >= range.end) return null;
+    return start < range.start || start >= range.end ? null : start;
+  };
+
+  const createNoteAt = (x: number, y: number) => {
+    const start = contentTickAt(x);
+    if (start === null) return null;
+    const range = editableContentRange(clip);
     const p = clampPitch(yToPitch(y, pitch));
     const duration = Math.max(1, Math.min(lastLength.current ?? stepTicks, range.end - start));
     const [created] = session.edits.addNotes(clip.id, [
@@ -101,6 +128,31 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     return created ?? null;
   };
 
+  const hoverCursor = (hit: NoteHit | null, x: number, alt: boolean) =>
+    hit
+      ? resolveCursor({ target: CURSOR_TARGET[hit.region], tool, modifiers: { alt } })
+      : resolveCursor({
+          target: 'empty',
+          tool,
+          modifiers: { alt },
+          // Drawing outside the clip's editable window is not possible.
+          allowed: tool !== 'draw' || contentTickAt(x) !== null,
+        });
+
+  const refreshHover = (x: number, y: number, alt: boolean) => {
+    const hit = hitTestNote(clip, time, pitch, x, y);
+    const next: Hover = hit ? { noteId: hit.note.id, region: hit.region } : null;
+    setHover((prev) =>
+      prev?.noteId === next?.noteId && prev?.region === next?.region ? prev : next,
+    );
+    setCursor(hoverCursor(hit, x, alt));
+  };
+
+  useAltKey((alt) => {
+    const p = pointer.current;
+    if (p.inside && !p.dragging) refreshHover(p.x, p.y, alt);
+  });
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     hostRef.current?.focus({ preventScroll: true });
@@ -110,13 +162,9 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     if (!hit) {
       if (tool === 'draw') {
         // Draw = add a note and drag its length: one transaction, one undo entry.
-        const contentTick = timelineToContent(clip, time.xToTick(x));
-        const start = Math.max(
-          0,
-          gridTicks > 0 ? Math.floor(contentTick / gridTicks) * gridTicks : Math.round(contentTick),
-        );
+        const start = contentTickAt(x);
+        if (start === null) return;
         const range = editableContentRange(clip);
-        if (start < range.start || start >= range.end) return;
         const p = clampPitch(yToPitch(y, pitch));
         const note = {
           id: session.ids.create('note'),
@@ -133,6 +181,8 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
         }
         uiStore.setState((s) => selectNotes(s, [note.id]));
         auditionNote(engine, clip.trackId, p);
+        pointer.current.dragging = true;
+        setCursor(resolveCursor({ target: 'end-edge', tool, modifiers: { alt: false } }));
         startDragGesture(e.nativeEvent, e.currentTarget, {
           threshold: 2,
           onDrag: (dx) => {
@@ -151,17 +201,22 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
                 : []),
             ]);
           },
-          onEnd: ({ committed, dragged }) => {
+          onEnd: ({ committed, dragged, event }) => {
+            pointer.current.dragging = false;
             if (!committed) {
               tx.cancel();
-              return;
+            } else {
+              tx.commit();
+              if (dragged) {
+                const after = history.present.clips[clip.id];
+                const drawn =
+                  after?.kind === 'midi' ? after.notes.find((n) => n.id === note.id) : undefined;
+                if (drawn) lastLength.current = drawn.durationTicks;
+              }
             }
-            tx.commit();
-            if (dragged) {
-              const after = history.present.clips[clip.id];
-              const drawn =
-                after?.kind === 'midi' ? after.notes.find((n) => n.id === note.id) : undefined;
-              if (drawn) lastLength.current = drawn.durationTicks;
+            if (event && hostRef.current) {
+              const at = point(event);
+              refreshHover(at.x, at.y, event.altKey);
             }
           },
         });
@@ -172,6 +227,12 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
       const sy = y;
       startDragGesture(e.nativeEvent, e.currentTarget, {
         threshold: 3,
+        onDragStart: () => {
+          pointer.current.dragging = true;
+          setCursor(
+            resolveCursor({ target: 'empty', tool, modifiers: { alt: false }, dragging: true }),
+          );
+        },
         onDrag: (dx, dy) => {
           const rect = { x0: sx, y0: sy, x1: sx + dx, y1: sy + dy };
           setMarquee(rect);
@@ -179,7 +240,11 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
             selectNotes(s, notesInRect(clip, time, pitch, rect), additive ? 'add' : 'replace'),
           );
         },
-        onEnd: () => setMarquee(null),
+        onEnd: () => {
+          pointer.current.dragging = false;
+          setMarquee(null);
+          setCursor(hoverCursor(null, sx, false));
+        },
       });
       return;
     }
@@ -193,14 +258,26 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     if (hit.region === 'body')
       auditionNote(engine, clip.trackId, hit.note.pitch, hit.note.velocity);
     const startClip = clip;
+    // Alt/Option-drag on a body duplicates: copies follow the pointer, originals stay put.
+    const duplicate = e.altKey && hit.region === 'body';
+    const copyIds = new Map<NoteId, NoteId>();
+    const target = CURSOR_TARGET[hit.region];
     let tx: Transaction | null = null;
     let lastPitchDelta = 0;
     startDragGesture(e.nativeEvent, e.currentTarget, {
       threshold: 3,
       onDragStart: () => {
+        pointer.current.dragging = true;
         tx = history.beginTransaction(
-          hit.region === 'body' ? (ids.size > 1 ? 'Move Notes' : 'Move Note') : 'Resize Notes',
+          hit.region === 'body'
+            ? duplicate
+              ? 'Duplicate Notes'
+              : ids.size > 1
+                ? 'Move Notes'
+                : 'Move Note'
+            : 'Resize Notes',
         );
+        setCursor(resolveCursor({ target, tool, modifiers: { alt: duplicate }, dragging: true }));
       },
       onDrag: (dx, dy) => {
         if (!tx) return;
@@ -219,6 +296,24 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
               160,
             );
           }
+          if (duplicate) {
+            const byId = new Map(startClip.notes.map((n) => [n.id, n]));
+            const copies: MidiNote[] = [];
+            for (const patch of patches) {
+              const original = byId.get(patch.id);
+              if (!original) continue;
+              let id = copyIds.get(patch.id);
+              if (!id) {
+                id = session.ids.create('note');
+                copyIds.set(patch.id, id);
+              }
+              copies.push({ ...original, ...patch, id });
+            }
+            tx.applyFromStart(
+              copies.length > 0 ? [{ type: 'notes.add', clipId: clip.id, notes: copies }] : [],
+            );
+            return;
+          }
         } else if (hit.region === 'end-edge') {
           patches = resizeNoteEnds(startClip, ids, noteId, dt, { gridTicks });
         } else {
@@ -228,18 +323,26 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
           patches.length > 0 ? [{ type: 'notes.update', clipId: clip.id, patches }] : [],
         );
       },
-      onEnd: ({ committed }) => {
+      onEnd: ({ committed, event }) => {
+        pointer.current.dragging = false;
         const active = tx as Transaction | null;
-        if (!active) return;
-        if (committed) {
-          active.commit();
-          if (hit.region !== 'body') {
-            const after = history.present.clips[clip.id];
-            const note =
-              after?.kind === 'midi' ? after.notes.find((n) => n.id === noteId) : undefined;
-            if (note) lastLength.current = note.durationTicks;
-          }
-        } else active.cancel();
+        if (active) {
+          if (committed) {
+            active.commit();
+            if (duplicate && copyIds.size > 0)
+              uiStore.setState((s) => selectNotes(s, [...copyIds.values()]));
+            if (hit.region !== 'body') {
+              const after = history.present.clips[clip.id];
+              const note =
+                after?.kind === 'midi' ? after.notes.find((n) => n.id === noteId) : undefined;
+              if (note) lastLength.current = note.durationTicks;
+            }
+          } else active.cancel();
+        }
+        if (event && hostRef.current) {
+          const at = point(event);
+          refreshHover(at.x, at.y, event.altKey);
+        }
       },
     });
   };
@@ -249,10 +352,7 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     const { x, y } = point(e);
     const hit = hitTestNote(clip, time, pitch, x, y);
     if (hit) {
-      history.execute(
-        { type: 'notes.remove', clipId: clip.id, noteIds: [hit.note.id] },
-        { label: 'Delete Note' },
-      );
+      session.edits.deleteNotes(clip.id, [hit.note.id]);
       return;
     }
     createNoteAt(x, y);
@@ -261,12 +361,10 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const ids = uiStore.getState().selection.noteIds;
     const mod = e.metaKey || e.ctrlKey;
+    const key = e.key.toLowerCase();
     let handled = true;
     if ((e.key === 'Delete' || e.key === 'Backspace') && ids.size > 0) {
-      history.execute(
-        { type: 'notes.remove', clipId: clip.id, noteIds: [...ids] },
-        { label: ids.size > 1 ? 'Delete Notes' : 'Delete Note' },
-      );
+      session.edits.deleteNotes(clip.id, ids);
     } else if (e.key.startsWith('Arrow') && ids.size > 0) {
       const dt = e.key === 'ArrowLeft' ? -stepTicks : e.key === 'ArrowRight' ? stepTicks : 0;
       const dp =
@@ -285,43 +383,30 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
           { type: 'notes.update', clipId: clip.id, patches },
           { label: 'Nudge Notes', coalesceKey: `nudge:${clip.id}` },
         );
-    } else if (mod && e.key.toLowerCase() === 'a') {
+    } else if (mod && key === 'a') {
       uiStore.setState((s) =>
         selectNotes(
           s,
           clip.notes.map((n) => n.id),
         ),
       );
-    } else if (!mod && e.key.toLowerCase() === 'q') {
+    } else if (!mod && key === 'q') {
       const target = ids.size > 0 ? [...ids] : clip.notes.map((n) => n.id);
-      if (target.length > 0)
-        history.execute(
-          {
-            type: 'notes.quantize',
-            clipId: clip.id,
-            noteIds: target,
-            options: { gridTicks: stepTicks, strength: 1 },
-          },
-          { label: 'Quantize' },
-        );
-    } else if (mod && e.key.toLowerCase() === 'd' && ids.size > 0) {
-      const chosen = clip.notes.filter((n) => ids.has(n.id));
-      const start = Math.min(...chosen.map((n) => n.startTick));
-      const end = Math.max(...chosen.map((n) => n.startTick + n.durationTicks));
-      const created = session.edits.addNotes(
+      if (target.length > 0) session.edits.quantizeNotes(clip.id, target, stepTicks);
+    } else if (mod && key === 'd' && ids.size > 0) {
+      session.edits.duplicateNotes(clip.id, ids);
+    } else if (mod && key === 'c' && ids.size > 0) {
+      session.edits.copyNotes(clip.id, ids);
+    } else if (mod && key === 'x' && ids.size > 0) {
+      session.edits.cutNotes(clip.id, ids);
+    } else if (mod && key === 'v' && session.edits.hasNoteClipboard) {
+      // Paste at the playhead when it is inside the clip, else at the clip's content start.
+      const cursor = timelineToContent(clip, session.engineStore.getState().cursorTick);
+      const range = editableContentRange(clip);
+      const at = cursor >= range.start && cursor < range.end ? cursor : range.start;
+      session.edits.pasteNotes(
         clip.id,
-        chosen.map((n) => ({
-          startTick: n.startTick + (end - start),
-          durationTicks: n.durationTicks,
-          pitch: n.pitch,
-          velocity: n.velocity,
-        })),
-      );
-      uiStore.setState((s) =>
-        selectNotes(
-          s,
-          created.map((n) => n.id),
-        ),
+        gridTicks > 0 ? Math.floor(at / gridTicks) * gridTicks : at,
       );
     } else if (e.key === 'Escape') {
       uiStore.setState((s) => selectNotes(s, []));
@@ -357,42 +442,83 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     }
   };
 
-  const onHover = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.buttons !== 0) return;
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const { x, y } = point(e);
-    const hit = hitTestNote(clip, time, pitch, x, y);
-    e.currentTarget.style.cursor = hit
-      ? hit.region === 'body'
-        ? 'grab'
-        : 'ew-resize'
-      : tool === 'draw'
-        ? 'crosshair'
-        : 'default';
+    pointer.current = { ...pointer.current, x, y, inside: true };
+    if (e.buttons !== 0) return;
+    refreshHover(x, y, e.altKey);
+  };
+
+  const onPointerLeave = () => {
+    pointer.current.inside = false;
+    if (!pointer.current.dragging) setHover(null);
+  };
+
+  /** Right-click: a note (acting on the note selection when it is selected) or the grid. */
+  const resolveMenu = (e: React.MouseEvent<HTMLElement>): MenuResolution => {
+    const { x, y } = point(e);
+    const inside = x >= 0 && y >= 0 && x <= size.width && y <= size.height;
+    const hit = inside ? hitTestNote(clip, time, pitch, x, y) : null;
+    const atContentTick = inside ? contentTickAt(x) : null;
+    if (hit) {
+      return {
+        target: 'note',
+        entries: noteMenu(session, clip, {
+          noteIds: noteSelectionForContextClick(session, clip, hit.note.id),
+          anchorId: hit.note.id,
+          atContentTick: atContentTick ?? hit.note.startTick,
+        }),
+      };
+    }
+    // Context-menu key on a selection: the note menu for the selected notes.
+    const selectedIds = clip.notes.filter((n) => selected.has(n.id)).map((n) => n.id);
+    if (!inside && selectedIds.length > 0)
+      return {
+        target: 'note',
+        entries: noteMenu(session, clip, {
+          noteIds: selectedIds,
+          anchorId: selectedIds[0]!,
+          atContentTick: editableContentRange(clip).start,
+        }),
+      };
+    return {
+      target: 'grid',
+      entries: gridMenu(session, clip, {
+        atContentTick,
+        addNote: atContentTick !== null ? () => void createNoteAt(x, y) : null,
+      }),
+    };
   };
 
   return (
-    <div
-      ref={hostRef}
-      className="relative min-h-0 min-w-0 flex-1 outline-none focus-visible:ring-1 focus-visible:ring-accent/60"
-      tabIndex={0}
-      role="application"
-      aria-label={`Piano roll for ${clip.name}. Double-click to add or delete notes, drag to move, drag note edges to resize, arrows to nudge, Q to quantize.`}
-      data-testid="piano-roll-grid"
-      onPointerDown={onPointerDown}
-      onPointerMove={onHover}
-      onDoubleClick={onDoubleClick}
-      onKeyDown={onKeyDown}
-      onWheel={onWheel}
-    >
-      <CanvasSurface draw={draw} version={vm} onResize={setSize} className="absolute inset-0" />
-      <CanvasSurface
-        ref={overlayRef}
-        draw={() => undefined}
-        className="pointer-events-none absolute inset-0"
-      />
-      <span className="sr-only" aria-live="polite">
-        {clip.notes.length} notes, {selected.size} selected
-      </span>
-    </div>
+    <StudioContextMenu target="grid" resolve={resolveMenu}>
+      <div
+        ref={hostRef}
+        className="relative min-h-0 min-w-0 flex-1 outline-none focus-visible:ring-1 focus-visible:ring-accent/60"
+        tabIndex={0}
+        role="application"
+        aria-label={`Piano roll for ${clip.name}. Double-click to add or delete notes, drag to move (Alt to copy), drag note edges to resize, arrows to nudge, Q to quantize. Right-click for more actions.`}
+        data-testid="piano-roll-grid"
+        data-row-height={pitch.rowHeight}
+        data-visible-rows={visibleRowCount(size.height, pitch.rowHeight)}
+        data-hover-region={hover?.region ?? ''}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerLeave={onPointerLeave}
+        onDoubleClick={onDoubleClick}
+        onKeyDown={onKeyDown}
+        onWheel={onWheel}
+      >
+        <CanvasSurface draw={draw} version={vm} onResize={setSize} className="absolute inset-0" />
+        <CanvasSurface
+          ref={overlayRef}
+          draw={() => undefined}
+          className="pointer-events-none absolute inset-0"
+        />
+        <span className="sr-only" aria-live="polite">
+          {clip.notes.length} notes, {selected.size} selected
+        </span>
+      </div>
+    </StudioContextMenu>
   );
 }

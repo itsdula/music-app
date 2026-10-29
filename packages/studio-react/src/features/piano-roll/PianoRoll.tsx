@@ -1,13 +1,29 @@
 import { gridDivisionTicks, ticksPerBar, type MidiClip } from '@studio/domain';
 import { IconButton, SegmentedControl, ToggleButton } from '@studio/ui';
-import { Expand, MousePointer2, Pencil, Repeat, Wand2 } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Expand,
+  MousePointer2,
+  Pencil,
+  Repeat,
+  Wand2,
+} from 'lucide-react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { CanvasSurface, type CanvasSize } from '../../canvas/canvas-surface';
 import { computeGridLines } from '../../canvas/ruler';
 import { canvasFont, vline } from '../../canvas/draw-utils';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import { GridControls } from '../arrangement/ArrangementToolbar';
-import { contentToTimeline, editableContentRange, KEYBOARD_WIDTH, RULER_HEIGHT } from './geometry';
+import { usePersistentToggle } from '../../lib/use-persistent-toggle';
+import { ExpandEditorButton } from '../bottom-panel/ExpandEditorButton';
+import {
+  contentToTimeline,
+  editableContentRange,
+  fitPitchAxis,
+  KEYBOARD_WIDTH,
+  RULER_HEIGHT,
+} from './geometry';
 import { PianoKeyboard } from './PianoKeyboard';
 import { PianoRollGrid } from './PianoRollGrid';
 import { usePianoRollAxes } from './use-piano-roll-view';
@@ -55,45 +71,67 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
   const meter = useProjectState((s) => s.project.meter);
   const tool = useUiState((s) => s.tool);
   const grid = useUiState((s) => s.grid);
+  const view = useUiState((s) => s.view);
   const { pitch } = usePianoRollAxes();
   const fittedFor = useRef<string | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  const gridAreaRef = useRef<HTMLDivElement>(null);
   const color = clip.color ?? track?.color ?? colors.accent;
+  // The velocity lane starts collapsed in the bottom panel (room for notes) and open in the
+  // full-height editor; the choice is remembered per place.
+  const [velocityOpen, setVelocityOpen] = usePersistentToggle(
+    `pianoRoll.velocityLane.${view === 'editor' ? 'editor' : 'panel'}`,
+    view === 'editor',
+  );
+
+  /** Fits the note range vertically (at least two octaves; C4 for empty clips). */
+  const fitPitch = useCallback(() => {
+    const height = (gridAreaRef.current?.clientHeight ?? 240) - RULER_HEIGHT;
+    const axis = fitPitchAxis(
+      clip.notes.map((n) => n.pitch),
+      height,
+    );
+    session.uiStore.setState((s) => ({ pianoRoll: { ...s.pianoRoll, ...axis } }));
+  }, [clip.notes, session]);
 
   const fit = useCallback(() => {
     const width = Math.max(200, (hostRef.current?.clientWidth ?? 800) - KEYBOARD_WIDTH);
     const range = editableContentRange(clip);
     const span = Math.max(range.end - range.start, ticksPerBar(meter));
     const pxPerTick = (width * 0.94) / span;
-    const pitches = clip.notes.map((n) => n.pitch);
-    const center = pitches.length > 0 ? (Math.min(...pitches) + Math.max(...pitches)) / 2 : 60;
-    const visibleRows =
-      ((hostRef.current?.clientHeight ?? 300) - RULER_HEIGHT - 64) /
-      session.uiStore.getState().pianoRoll.rowHeight;
     session.uiStore.setState((s) => ({
       pianoRoll: {
         ...s.pianoRoll,
         pxPerTick,
         scrollTick: Math.max(0, contentToTimeline(clip, range.start) - (width * 0.03) / pxPerTick),
-        topPitch: Math.min(127, Math.round(center + visibleRows / 2)),
       },
     }));
-  }, [clip, meter, session]);
+    fitPitch();
+  }, [clip, meter, session, fitPitch]);
 
-  useEffect(() => {
+  // Fit when a clip opens; refit vertically when the available height changes (full editor,
+  // velocity lane toggled).
+  useLayoutEffect(() => {
     if (fittedFor.current === clip.id) return;
     fittedFor.current = clip.id;
     fit();
   }, [clip.id, fit]);
+  const layoutKey = `${view}:${velocityOpen}`;
+  const lastLayout = useRef(layoutKey);
+  useLayoutEffect(() => {
+    if (lastLayout.current === layoutKey) return;
+    lastLayout.current = layoutKey;
+    fitPitch();
+  }, [layoutKey, fitPitch]);
 
   const looping = clip.loopLengthTicks !== undefined;
 
   return (
     <div ref={hostRef} className="flex min-h-0 flex-1 flex-col" data-testid="piano-roll">
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line px-2">
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-line px-2">
         <span className="size-2.5 rounded-sm" style={{ backgroundColor: color }} aria-hidden />
         <span className="max-w-48 truncate text-[12px] font-semibold">{clip.name}</span>
-        <span className="text-[11px] text-text-faint">{track?.name}</span>
+        <span className="truncate text-[11px] text-text-faint">{track?.name}</span>
         <div className="flex-1" />
         <SegmentedControl
           label="Edit tool"
@@ -115,15 +153,7 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
           onClick={() => {
             const selected = session.uiStore.getState().selection.noteIds;
             const ids = selected.size > 0 ? [...selected] : clip.notes.map((n) => n.id);
-            session.history.execute(
-              {
-                type: 'notes.quantize',
-                clipId: clip.id,
-                noteIds: ids,
-                options: { gridTicks: gridDivisionTicks(grid, meter), strength: 1 },
-              },
-              { label: 'Quantize' },
-            );
+            session.edits.quantizeNotes(clip.id, ids, gridDivisionTicks(grid, meter));
           }}
         />
         <ToggleButton
@@ -150,6 +180,7 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
           variant="ghost"
           onClick={fit}
         />
+        <ExpandEditorButton />
       </div>
       <div className="flex min-h-0 flex-1">
         <div className="flex shrink-0 flex-col" style={{ width: KEYBOARD_WIDTH }}>
@@ -157,22 +188,41 @@ export function PianoRoll({ clip }: { clip: MidiClip }) {
             className="shrink-0 border-r border-b border-line bg-surface-1"
             style={{ height: RULER_HEIGHT }}
           />
-          <PianoKeyboard trackId={clip.trackId} pitch={pitch} />
+          <PianoKeyboard clip={clip} pitch={pitch} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div ref={gridAreaRef} className="flex min-w-0 flex-1 flex-col">
           <PianoRollRuler clip={clip} />
           <PianoRollGrid clip={clip} color={color} />
         </div>
       </div>
-      <div className="flex shrink-0 border-t border-line">
+      <div className="flex shrink-0 border-t border-line" data-testid="velocity-lane-area">
         <div
-          className="shrink-0 border-r border-line bg-surface-1 px-2 pt-1 text-[10px] text-text-faint"
+          className="flex shrink-0 items-start border-r border-line bg-surface-1"
           style={{ width: KEYBOARD_WIDTH }}
         >
-          Velocity
+          <button
+            type="button"
+            className="flex w-full items-center gap-0.5 px-1 py-0.5 text-left text-[10px] text-text-faint hover:text-text"
+            aria-expanded={velocityOpen}
+            aria-controls="piano-roll-velocity-lane"
+            onClick={() => setVelocityOpen(!velocityOpen)}
+            data-testid="velocity-lane-toggle"
+            title={velocityOpen ? 'Hide velocity lane' : 'Show velocity lane'}
+          >
+            {velocityOpen ? (
+              <ChevronDown className="size-3" aria-hidden />
+            ) : (
+              <ChevronRight className="size-3" aria-hidden />
+            )}
+            Velocity
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <VelocityLane clip={clip} color={color} />
+        <div className="min-w-0 flex-1" id="piano-roll-velocity-lane">
+          {velocityOpen ? (
+            <VelocityLane clip={clip} color={color} />
+          ) : (
+            <div className="h-5" aria-hidden />
+          )}
         </div>
       </div>
     </div>

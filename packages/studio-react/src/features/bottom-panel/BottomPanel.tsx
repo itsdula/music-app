@@ -9,6 +9,7 @@ import {
 } from '@studio/ui';
 import { ChevronDown, Piano } from 'lucide-react';
 import type { AudioClip } from '@studio/domain';
+import { NativeContextMenuGuard } from '../../components/context-menu';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import type { BottomPanel as BottomPanelId } from '../../state/ui-store';
 import { AudioClipEditor } from '../audio-editor/AudioClipEditor';
@@ -17,6 +18,7 @@ import { TrackDevicePanel } from '../devices/TrackDevicePanel';
 import { Mixer } from '../mixer/Mixer';
 import { PianoRoll } from '../piano-roll/PianoRoll';
 import { VocalEditor } from '../vocal-editor/VocalEditor';
+import { ExpandEditorButton } from './ExpandEditorButton';
 
 function EditorContent() {
   const editorClipId = useUiState((s) => s.selection.editorClipId);
@@ -30,15 +32,39 @@ function EditorContent() {
   if (clip?.kind === 'midi') return <PianoRoll clip={clip} />;
   if (clip?.kind === 'audio')
     return <AudioEditorSwitch clip={clip} vocalTrack={clipTrack?.kind === 'vocal'} />;
-  if (selectedTrack) return <TrackDevicePanel track={selectedTrack} />;
+  if (selectedTrack)
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <PianoRollHint />
+        <TrackDevicePanel track={selectedTrack} />
+      </div>
+    );
   return (
-    <div className="flex flex-1 items-center justify-center">
-      <EmptyState
-        icon={<Piano />}
-        title="Nothing to edit"
-        description="Double-click a clip to edit notes or audio, or select a track to see its instrument and effects."
-      />
+    <div className="flex flex-1 flex-col">
+      <PianoRollHint />
+      <div className="flex flex-1 items-center justify-center">
+        <EmptyState
+          icon={<Piano />}
+          title="Nothing to edit"
+          description="Click a clip to edit its notes or audio here, or select a track to see its instrument and effects."
+        />
+      </div>
     </div>
+  );
+}
+
+/** Shown on the Track tab while no clip is open, so the piano roll is easy to find. */
+function PianoRollHint() {
+  return (
+    <p
+      className="flex shrink-0 items-center gap-1.5 border-b border-line bg-accent/10 px-3 py-1.5 text-[11px] text-text-muted"
+      data-testid="piano-roll-hint"
+      role="note"
+    >
+      <Piano className="size-3.5 text-accent" aria-hidden />
+      Select a MIDI clip to edit notes in the piano roll
+      <span className="text-text-faint">(double-click an empty instrument lane to create one)</span>
+    </p>
   );
 }
 
@@ -59,6 +85,8 @@ function AudioEditorSwitch({ clip, vocalTrack }: { clip: AudioClip; vocalTrack: 
             { value: 'pitch', label: 'Pitch (vocal)' },
           ]}
         />
+        <div className="flex-1" />
+        <ExpandEditorButton />
       </div>
       {mode === 'pitch' ? <VocalEditor clip={clip} /> : <AudioClipEditor clip={clip} />}
     </div>
@@ -69,6 +97,7 @@ export function BottomPanel() {
   const session = useSession();
   const panel = useUiState((s) => s.panels.bottomPanel);
   const editorClipId = useUiState((s) => s.selection.editorClipId);
+  const view = useUiState((s) => s.view);
   const setPanel = (bottomPanel: BottomPanelId) =>
     session.uiStore.setState((s) => ({ ...s, panels: { ...s.panels, bottomPanel } }));
   return (
@@ -98,17 +127,24 @@ export function BottomPanel() {
             Show track devices
           </button>
         )}
-        <IconButton
-          label="Hide panel"
-          shortcut="Mod+J"
-          icon={<ChevronDown />}
-          size="sm"
-          variant="ghost"
-          onClick={() =>
-            session.uiStore.setState((s) => ({ ...s, panels: { ...s.panels, bottomOpen: false } }))
-          }
-        />
+        {view === 'editor' && !(panel === 'editor' && editorClipId) && <ExpandEditorButton />}
+        {view !== 'editor' && (
+          <IconButton
+            label="Hide panel"
+            shortcut="Mod+J"
+            icon={<ChevronDown />}
+            size="sm"
+            variant="ghost"
+            onClick={() =>
+              session.uiStore.setState((s) => ({
+                ...s,
+                panels: { ...s.panels, bottomOpen: false },
+              }))
+            }
+          />
+        )}
       </div>
+      <NativeContextMenuGuard />
       <TabsContent value="editor" className="flex min-h-0 flex-1 flex-col">
         <EditorContent />
       </TabsContent>
