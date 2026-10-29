@@ -11,6 +11,8 @@ import {
   createInstrumentConfig,
   createMidiClip,
   createTrack,
+  defaultParamValues,
+  EFFECT_PARAM_SPECS,
   orderedTracks,
   PPQ,
   ticksPerBar,
@@ -22,14 +24,18 @@ import {
   type IdFactory,
   type InstrumentKind,
   type MappingId,
+  type MidiClip,
   type MidiNote,
+  type NoteId,
   type Project,
+  type TrackColor,
   type TrackId,
   type TrackKind,
 } from '@studio/domain';
 import type { PickedFile } from '@studio/platform-contracts';
+import { clipPatchCommand, setClipLoopCommand } from '../lib/clip-commands';
 import type { UiStore } from '../state/ui-store';
-import { openClipInEditor, selectClips, selectTrack } from '../state/ui-store';
+import { openClipInEditor, selectClips, selectNotes, selectTrack } from '../state/ui-store';
 import type { AssetLibrary } from './asset-library';
 
 export interface RecordedMidiTake {
@@ -58,6 +64,7 @@ const KIND_NAMES: Record<TrackKind, string> = {
 
 export class EditController {
   private clipboard: ClipboardContent | null = null;
+  private noteClipboard: readonly MidiNote[] | null = null;
 
   constructor(
     private readonly history: CommandHistory,
@@ -411,5 +418,335 @@ export class EditController {
     const selected = selectedId ? project.tracks[selectedId] : undefined;
     if (selected?.kind === 'instrument') return selected.id;
     return null;
+  }
+
+  // --- context-menu operations (each is one undo entry) -----------------------------------
+
+  private existingClips(clipIds: readonly ClipId[]): Clip[] {
+    return clipIds.map((id) => this.project.clips[id]).filter((c): c is Clip => Boolean(c));
+  }
+
+  private run(commands: readonly Command[], label: string): boolean {
+    if (commands.length === 0) return false;
+    const result =
+      commands.length === 1
+        ? this.history.execute(commands[0]!, { label })
+        : this.history.executeBatch(commands, { label });
+    return result.ok;
+  }
+
+  renameClip(clipId: ClipId, name: string): boolean {
+    const clip = this.project.clips[clipId];
+    const trimmed = name.trim();
+    if (!clip || !trimmed || trimmed === clip.name) return false;
+    return this.run([clipPatchCommand(clip, { name: trimmed })], 'Rename Clip');
+  }
+
+  setClipsColor(clipIds: readonly ClipId[], color: TrackColor): boolean {
+    const clips = this.existingClips(clipIds).filter((c) => c.color !== color);
+    return this.run(
+      clips.map((c) => clipPatchCommand(c, { color })),
+      clips.length > 1 ? 'Recolor Clips' : 'Recolor Clip',
+    );
+  }
+
+  setClipsMuted(clipIds: readonly ClipId[], muted: boolean): boolean {
+    const clips = this.existingClips(clipIds).filter((c) => c.muted !== muted);
+    const noun = clips.length > 1 ? 'Clips' : 'Clip';
+    return this.run(
+      clips.map((c) => clipPatchCommand(c, { muted })),
+      muted ? `Mute ${noun}` : `Unmute ${noun}`,
+    );
+  }
+
+  setClipsLooping(clipIds: readonly ClipId[], on: boolean): boolean {
+    const commands = this.existingClips(clipIds)
+      .map((c) => setClipLoopCommand(c, on))
+      .filter((c): c is Command => c !== null);
+    const noun = commands.length > 1 ? 'Clips' : 'Clip';
+    return this.run(commands, on ? `Loop ${noun}` : `Unloop ${noun}`);
+  }
+
+  /** Quantizes every note of the given MIDI clips (audio clips are ignored). */
+  quantizeClips(clipIds: readonly ClipId[], gridTicks: number): boolean {
+    const commands: Command[] = [];
+    for (const clip of this.existingClips(clipIds)) {
+      if (clip.kind !== 'midi' || clip.notes.length === 0) continue;
+      commands.push({
+        type: 'notes.quantize',
+        clipId: clip.id,
+        noteIds: clip.notes.map((n) => n.id),
+        options: { gridTicks: Math.max(1, Math.round(gridTicks)), strength: 1 },
+      });
+    }
+    return this.run(commands, 'Quantize');
+  }
+
+  /** Selects every clip on a track (UI only, not an undo entry). */
+  selectAllOnTrack(trackId: TrackId): ClipId[] {
+    const ids = Object.values(this.project.clips)
+      .filter((c) => c.trackId === trackId)
+      .map((c) => c.id);
+    this.ui.setState((s) => selectClips(selectTrack(s, trackId), ids));
+    return ids;
+  }
+
+  /** Enables the transport loop over the span of the given clips. */
+  setLoopToClips(clipIds: readonly ClipId[]): boolean {
+    const clips = this.existingClips(clipIds);
+    if (clips.length === 0) return false;
+    const startTick = Math.min(...clips.map((c) => c.startTick));
+    const endTick = Math.max(...clips.map((c) => Math.ceil(clipEndTick(c, this.project))));
+    if (endTick <= startTick) return false;
+    return this.run(
+      [{ type: 'project.setLoop', loop: { enabled: true, startTick, endTick } }],
+      'Loop Selection',
+    );
+  }
+
+  setLoopEnabled(enabled: boolean): boolean {
+    if (this.project.loop.enabled === enabled) return false;
+    return this.run(
+      [{ type: 'project.setLoop', loop: { enabled } }],
+      enabled ? 'Loop On' : 'Loop Off',
+    );
+  }
+
+  renameTrack(trackId: TrackId, name: string): boolean {
+    const track = this.project.tracks[trackId];
+    const trimmed = name.trim();
+    if (!track || !trimmed || trimmed === track.name) return false;
+    return this.run([{ type: 'track.update', trackId, patch: { name: trimmed } }], 'Rename Track');
+  }
+
+  setTrackColor(trackId: TrackId, color: TrackColor): boolean {
+    const track = this.project.tracks[trackId];
+    if (!track || track.color === color) return false;
+    return this.run([{ type: 'track.update', trackId, patch: { color } }], 'Recolor Track');
+  }
+
+  /** Moves a track up (-1) or down (+1) in the track order. */
+  moveTrack(trackId: TrackId, delta: number): boolean {
+    const order = this.project.trackOrder;
+    const index = order.indexOf(trackId);
+    const toIndex = Math.min(order.length - 1, Math.max(0, index + delta));
+    if (index < 0 || toIndex === index) return false;
+    return this.run([{ type: 'track.move', trackId, toIndex }], 'Move Track');
+  }
+
+  /** Deletes a track and selects a neighbour. */
+  deleteTrack(trackId: TrackId): boolean {
+    const order = this.project.trackOrder;
+    const index = order.indexOf(trackId);
+    if (index < 0) return false;
+    const ok = this.run([{ type: 'track.remove', trackId }], 'Delete Track');
+    if (ok) {
+      const remaining = this.project.trackOrder;
+      const next = remaining[Math.min(index, remaining.length - 1)] ?? null;
+      this.ui.setState((s) => selectTrack(s, next));
+    }
+    return ok;
+  }
+
+  /** Copies a track (instrument, effects, mixer and clips) right below the original. */
+  duplicateTrack(trackId: TrackId): TrackId | null {
+    const track = this.project.tracks[trackId];
+    if (!track) return null;
+    const id = this.ids.create('track');
+    const names = new Set(Object.values(this.project.tracks).map((t) => t.name));
+    let name = `${track.name} copy`;
+    for (let i = 2; names.has(name); i++) name = `${track.name} copy ${i}`;
+    const copy = {
+      ...track,
+      id,
+      name,
+      armed: false,
+      mixer: { ...track.mixer, solo: false },
+      effects: track.effects.map((fx) => ({ ...fx, id: this.ids.create('effect') })),
+    };
+    const clips: Clip[] = Object.values(this.project.clips)
+      .filter((c) => c.trackId === trackId)
+      .map((c) =>
+        c.kind === 'midi'
+          ? {
+              ...c,
+              id: this.ids.create('clip'),
+              trackId: id,
+              notes: c.notes.map((n) => ({ ...n, id: this.ids.create('note') })),
+            }
+          : { ...c, id: this.ids.create('clip'), trackId: id },
+      );
+    const commands: Command[] = [
+      { type: 'track.add', track: copy, index: this.project.trackOrder.indexOf(trackId) + 1 },
+    ];
+    if (clips.length > 0) commands.push({ type: 'clip.add', clips });
+    if (!this.run(commands, 'Duplicate Track')) return null;
+    this.ui.setState((s) => selectTrack(s, id));
+    return id;
+  }
+
+  /** Copies an effect (with its settings) right after the original. */
+  duplicateEffect(target: TrackId | 'master', effectId: EffectId): EffectId | null {
+    const chain =
+      target === 'master' ? this.project.master.effects : this.project.tracks[target]?.effects;
+    const index = chain?.findIndex((fx) => fx.id === effectId) ?? -1;
+    const slot = index >= 0 ? chain![index]! : undefined;
+    if (!slot) return null;
+    const id = this.ids.create('effect');
+    const ok = this.run(
+      [{ type: 'effect.add', target, effect: { ...slot, id }, index: index + 1 }],
+      'Duplicate Effect',
+    );
+    return ok ? id : null;
+  }
+
+  /** Resets every parameter of an effect to its default. */
+  resetEffect(target: TrackId | 'master', effectId: EffectId): boolean {
+    const chain =
+      target === 'master' ? this.project.master.effects : this.project.tracks[target]?.effects;
+    const slot = chain?.find((fx) => fx.id === effectId);
+    if (!slot) return false;
+    const params = defaultParamValues(EFFECT_PARAM_SPECS[slot.kind]);
+    return this.run([{ type: 'effect.setParams', target, effectId, params }], 'Reset Effect');
+  }
+
+  // --- notes --------------------------------------------------------------------------------
+
+  private midiClip(clipId: ClipId): MidiClip | null {
+    const clip = this.project.clips[clipId];
+    return clip?.kind === 'midi' ? clip : null;
+  }
+
+  private pickNotes(clipId: ClipId, noteIds: Iterable<NoteId>): MidiNote[] {
+    const clip = this.midiClip(clipId);
+    if (!clip) return [];
+    const ids = new Set(noteIds);
+    return clip.notes.filter((n) => ids.has(n.id));
+  }
+
+  deleteNotes(clipId: ClipId, noteIds: Iterable<NoteId>): boolean {
+    const notes = this.pickNotes(clipId, noteIds);
+    if (notes.length === 0) return false;
+    const ok = this.run(
+      [{ type: 'notes.remove', clipId, noteIds: notes.map((n) => n.id) }],
+      notes.length > 1 ? 'Delete Notes' : 'Delete Note',
+    );
+    if (ok) this.ui.setState((s) => selectNotes(s, []));
+    return ok;
+  }
+
+  /** Copies notes right after the selection's end and selects the copies. */
+  duplicateNotes(clipId: ClipId, noteIds: Iterable<NoteId>): NoteId[] {
+    const notes = this.pickNotes(clipId, noteIds);
+    if (notes.length === 0) return [];
+    const start = Math.min(...notes.map((n) => n.startTick));
+    const end = Math.max(...notes.map((n) => n.startTick + n.durationTicks));
+    const created = this.addNotes(
+      clipId,
+      notes.map((n) => ({
+        startTick: n.startTick + (end - start),
+        durationTicks: n.durationTicks,
+        pitch: n.pitch,
+        velocity: n.velocity,
+      })),
+    );
+    const ids = created.map((n) => n.id);
+    this.ui.setState((s) => selectNotes(s, ids));
+    return ids;
+  }
+
+  /** Transposes notes by semitones, clamping the group so chord shapes are preserved. */
+  transposeNotes(clipId: ClipId, noteIds: Iterable<NoteId>, semitones: number): boolean {
+    const notes = this.pickNotes(clipId, noteIds);
+    if (notes.length === 0) return false;
+    const lo = Math.min(...notes.map((n) => n.pitch));
+    const hi = Math.max(...notes.map((n) => n.pitch));
+    const delta = Math.min(127 - hi, Math.max(-lo, Math.round(semitones)));
+    if (delta === 0) return false;
+    const label =
+      Math.abs(semitones) === 12
+        ? `Transpose ${semitones > 0 ? 'Up' : 'Down'} an Octave`
+        : `Transpose ${semitones > 0 ? '+' : ''}${semitones}`;
+    return this.run(
+      [
+        {
+          type: 'notes.update',
+          clipId,
+          patches: notes.map((n) => ({ id: n.id, pitch: n.pitch + delta })),
+        },
+      ],
+      label,
+    );
+  }
+
+  setNotesVelocity(clipId: ClipId, noteIds: Iterable<NoteId>, velocity: number): boolean {
+    const v = Math.min(127, Math.max(1, Math.round(velocity)));
+    const notes = this.pickNotes(clipId, noteIds).filter((n) => n.velocity !== v);
+    return this.run(
+      notes.length > 0
+        ? [
+            {
+              type: 'notes.update',
+              clipId,
+              patches: notes.map((n) => ({ id: n.id, velocity: v })),
+            },
+          ]
+        : [],
+      'Set Velocity',
+    );
+  }
+
+  quantizeNotes(clipId: ClipId, noteIds: Iterable<NoteId>, gridTicks: number): boolean {
+    const notes = this.pickNotes(clipId, noteIds);
+    return this.run(
+      notes.length > 0
+        ? [
+            {
+              type: 'notes.quantize',
+              clipId,
+              noteIds: notes.map((n) => n.id),
+              options: { gridTicks: Math.max(1, Math.round(gridTicks)), strength: 1 },
+            },
+          ]
+        : [],
+      'Quantize',
+    );
+  }
+
+  copyNotes(clipId: ClipId, noteIds: Iterable<NoteId>): boolean {
+    const notes = this.pickNotes(clipId, noteIds);
+    if (notes.length === 0) return false;
+    this.noteClipboard = notes;
+    return true;
+  }
+
+  cutNotes(clipId: ClipId, noteIds: Iterable<NoteId>): boolean {
+    const ids = [...noteIds];
+    if (!this.copyNotes(clipId, ids)) return false;
+    return this.deleteNotes(clipId, ids);
+  }
+
+  get hasNoteClipboard(): boolean {
+    return this.noteClipboard !== null && this.noteClipboard.length > 0;
+  }
+
+  /** Pastes copied notes so the earliest starts at `atContentTick`; selects the pasted notes. */
+  pasteNotes(clipId: ClipId, atContentTick: number): NoteId[] {
+    const notes = this.noteClipboard;
+    if (!notes || notes.length === 0 || !this.midiClip(clipId)) return [];
+    const origin = Math.min(...notes.map((n) => n.startTick));
+    const at = Math.max(0, Math.round(atContentTick));
+    const created = this.addNotes(
+      clipId,
+      notes.map((n) => ({
+        startTick: at + n.startTick - origin,
+        durationTicks: n.durationTicks,
+        pitch: n.pitch,
+        velocity: n.velocity,
+      })),
+    );
+    const ids = created.map((n) => n.id);
+    this.ui.setState((s) => selectNotes(s, ids));
+    return ids;
   }
 }
