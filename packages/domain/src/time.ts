@@ -104,11 +104,12 @@ export function formatBarsBeats(ticks: Ticks, meter: TimeSignature): string {
 
 /** Formats seconds as `m:ss.mmm`. */
 export function formatSeconds(seconds: Seconds): string {
-  const s = Math.max(0, seconds);
-  const minutes = Math.floor(s / 60);
-  const rest = s - minutes * 60;
-  const whole = Math.floor(rest);
-  const millis = Math.floor((rest - whole) * 1000);
+  // Work in integer milliseconds; the epsilon absorbs binary noise such as
+  // 1.001 * 1000 = 1000.9999999999999, which would otherwise floor to 1000.
+  const totalMs = Math.floor(Math.max(0, seconds) * 1000 + 1e-6);
+  const minutes = Math.floor(totalMs / 60_000);
+  const whole = Math.floor((totalMs % 60_000) / 1000);
+  const millis = totalMs % 1000;
   return `${minutes}:${String(whole).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 }
 
