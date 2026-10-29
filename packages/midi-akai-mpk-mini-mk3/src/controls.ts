@@ -74,7 +74,8 @@ const knobs: DeviceControl[] = MPK_MINI_MK3_KNOB_CCS.map((controller, index) => 
   kind: 'knob',
   label: `K${index + 1}`,
   defaultSource: { kind: 'cc', channel: 'any', controller, mode: 'absolute' },
-  verification: 'documented',
+  // Evidence is a third-party guide plus community observation, not an Akai document.
+  verification: 'community',
   note: KNOB_NOTE,
 }));
 

@@ -101,7 +101,7 @@ describe('controls', () => {
     }
   });
 
-  it('knobs send CC 70–77 absolute, classified as documented', () => {
+  it('knobs send CC 70–77 absolute, classified as community evidence (not an Akai document)', () => {
     for (let i = 0; i < 8; i++) {
       const knob = control(`knob.K${i + 1}`);
       expect(knob.defaultSource).toEqual({
@@ -110,7 +110,7 @@ describe('controls', () => {
         controller: 70 + i,
         mode: 'absolute',
       });
-      expect(knob.verification).toBe('documented');
+      expect(knob.verification).toBe('community');
       expect(knob.note).toMatch(/third-party vendor/);
     }
   });
