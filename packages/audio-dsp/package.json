@@ -1,0 +1,17 @@
+{
+  "name": "@studio/audio-dsp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic DSP primitives: WAV codec, peaks, filters math, envelopes, drum synthesis, FFT.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  }
+}

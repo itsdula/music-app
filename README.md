@@ -9,12 +9,12 @@ vocal editor — running in the browser, with no account or backend.
 
 ## Workspace
 
-| Path | Purpose |
-| --- | --- |
-| `apps/web` | Next.js host: landing page (`/`) and the thin `/studio` route |
-| `apps/vite-host` | Minimal Vite host proving `<Studio />` is framework-agnostic |
-| `packages/*` | Portable domain/DSP/MIDI cores, host adapters and the `<Studio />` UI |
-| `docs/` | Architecture, ADRs, research, test plan, Rust migration map |
+| Path             | Purpose                                                               |
+| ---------------- | --------------------------------------------------------------------- |
+| `apps/web`       | Next.js host: landing page (`/`) and the thin `/studio` route         |
+| `apps/vite-host` | Minimal Vite host proving `<Studio />` is framework-agnostic          |
+| `packages/*`     | Portable domain/DSP/MIDI cores, host adapters and the `<Studio />` UI |
+| `docs/`          | Architecture, ADRs, research, test plan, Rust migration map           |
 
 ## Commands
 

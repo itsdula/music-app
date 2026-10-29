@@ -1,0 +1,76 @@
+/*
+ * Prebuilt stylesheet for <Studio /> (dist/studio.css). Hosts import it once:
+ *   import '@studio/react/styles.css';
+ * No global preflight: base styles are scoped to .studio-root so Studio can be embedded.
+ */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import '@studio/ui/tokens.css';
+
+@source "../";
+@source "../../../ui/src";
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@layer base {
+  .studio-root,
+  .studio-root *,
+  .studio-root ::before,
+  .studio-root ::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid var(--color-line);
+  }
+
+  .studio-root {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--color-text);
+    background-color: var(--color-surface-0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+
+  .studio-root button,
+  .studio-root input,
+  .studio-root select,
+  .studio-root textarea {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+  }
+
+  .studio-root button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  .studio-root canvas,
+  .studio-root svg {
+    display: block;
+  }
+
+  .studio-root :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+
+  .studio-root .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .studio-root * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

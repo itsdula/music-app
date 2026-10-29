@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@import '@studio/ui/tokens.css';
+
+@source "../components";
+@source "../app";
+@source "../../../packages/ui/src";
+
+html,
+body {
+  background-color: var(--color-surface-0);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

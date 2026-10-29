@@ -1,0 +1,20 @@
+{
+  "name": "@studio/commands",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure edit commands, transactions and bounded undo/redo history.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
+  },
+  "studio": {
+    "packageClass": "A"
+  },
+  "dependencies": {
+    "@studio/domain": "workspace:*"
+  }
+}
