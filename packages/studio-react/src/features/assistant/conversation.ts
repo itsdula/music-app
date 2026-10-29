@@ -61,6 +61,8 @@ export interface ConversationOptions {
   /** Maximum model turns per user message. Default 12. */
   readonly maxSteps?: number;
   readonly model?: string;
+  /** Called when a turn ends (before the status returns to idle). */
+  readonly onSettled?: () => void;
 }
 
 export const NOT_CONFIGURED_MESSAGE =
@@ -146,7 +148,11 @@ export function describeDeletion(name: string, result: unknown): string | undefi
   }
 }
 
+let conversationCount = 0;
+
 export class AssistantConversation {
+  /** Unique per instance (stable React key). */
+  readonly id = `conversation-${++conversationCount}`;
   readonly store: StoreApi<ConversationState>;
   private history: AssistantMessage[] = [];
   private controller: AbortController | null = null;
@@ -246,6 +252,7 @@ export class AssistantConversation {
       }
     } finally {
       if (this.controller === controller) this.controller = null;
+      this.options.onSettled?.();
       this.store.setState({ status: 'idle' });
     }
   }
@@ -391,25 +398,38 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 
 const conversations = new WeakMap<StudioSession, Map<string, AssistantConversation>>();
 
-/** The conversation for a project in this session (created on first use, kept in memory). */
+/**
+ * The conversation for a project in this session (created on first use, kept in memory).
+ * When a turn ends in a different project than it started in (the assistant itself opened or
+ * created a project), the conversation follows the user to that project if it has none yet.
+ */
 export function getConversation(
   session: StudioSession,
   projectId: string,
-  options: Omit<ConversationOptions, 'session' | 'transport'> = {},
+  options: Omit<ConversationOptions, 'session' | 'transport' | 'onSettled'> = {},
 ): AssistantConversation {
   let byProject = conversations.get(session);
   if (!byProject) {
     byProject = new Map();
     conversations.set(session, byProject);
   }
-  let conversation = byProject.get(projectId);
-  if (!conversation) {
-    conversation = new AssistantConversation({
-      ...options,
-      session,
-      transport: () => session.platform.assistant,
-    });
-    byProject.set(projectId, conversation);
-  }
+  const map = byProject;
+  const existing = map.get(projectId);
+  if (existing) return existing;
+  let key = projectId;
+  const conversation: AssistantConversation = new AssistantConversation({
+    ...options,
+    session,
+    transport: () => session.platform.assistant,
+    onSettled: () => {
+      const now = session.history.present.id;
+      if (now !== key && !map.has(now) && map.get(key) === conversation) {
+        map.delete(key);
+        map.set(now, conversation);
+        key = now;
+      }
+    },
+  });
+  map.set(projectId, conversation);
   return conversation;
 }

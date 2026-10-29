@@ -239,4 +239,20 @@ describe('assistant conversation loop', () => {
     const other = await startSession(new FakeAssistantTransport());
     expect(getConversation(other, 'prj_a')).not.toBe(a);
   });
+
+  it('follows the user into a project the assistant opened', async () => {
+    const transport = new FakeAssistantTransport();
+    transport.enqueue(
+      transport.toolCalls([{ name: 'new_project', input: { template: 'empty' } }]),
+      FakeAssistantTransport.reply('Done.'),
+    );
+    const session = await startSession(transport);
+    const first = session.history.present.id;
+    const convo = getConversation(session, first);
+    await convo.send('start a new song');
+    const second = session.history.present.id;
+    expect(second).not.toBe(first);
+    expect(getConversation(session, second)).toBe(convo);
+    expect(getConversation(session, first)).not.toBe(convo);
+  });
 });
