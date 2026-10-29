@@ -1,7 +1,7 @@
 {
   "name": "studio-monorepo",
   "private": true,
-  "description": "Studio — a local-first, portable digital audio workstation.",
+  "description": "Studio \u2014 a local-first, portable digital audio workstation.",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -25,13 +25,16 @@
     "test:e2e": "pnpm build && playwright test",
     "test:e2e:only": "playwright test",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm boundaries && pnpm test && pnpm build",
-    "test:browser": "pnpm codegen && vitest run --passWithNoTests --project browser"
+    "test:browser": "pnpm codegen && vitest run --passWithNoTests --project browser",
+    "samples": "node scripts/sample-projects/run.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
     "@studio/audio-dsp": "workspace:*",
+    "@studio/domain": "workspace:*",
+    "@studio/project-storage": "workspace:*",
     "@studio/test-fixtures": "workspace:*",
     "@studio/vocal-dsp": "workspace:*",
     "@testing-library/jest-dom": "7.0.1",

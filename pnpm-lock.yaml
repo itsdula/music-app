@@ -20,6 +20,12 @@ importers:
       '@studio/audio-dsp':
         specifier: workspace:*
         version: link:packages/audio-dsp
+      '@studio/domain':
+        specifier: workspace:*
+        version: link:packages/domain
+      '@studio/project-storage':
+        specifier: workspace:*
+        version: link:packages/project-storage
       '@studio/test-fixtures':
         specifier: workspace:*
         version: link:packages/test-fixtures
@@ -386,6 +392,9 @@ importers:
       '@fontsource-variable/inter':
         specifier: 5.3.0
         version: 5.3.0
+      '@studio/audio-web':
+        specifier: workspace:*
+        version: link:../audio-web
       '@tailwindcss/cli':
         specifier: 4.3.3
         version: 4.3.3
