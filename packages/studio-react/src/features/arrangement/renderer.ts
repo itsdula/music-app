@@ -143,17 +143,24 @@ function drawClip(ctx: CanvasRenderingContext2D, box: ClipBox, vm: ArrangementVi
   ctx.restore();
 }
 
-/** Accent bar along the edge a trim drag would move. */
+/** Grip bar along the edge a trim drag would move (inset so it reads over the outline). */
 function drawEdgeHighlight(
   ctx: CanvasRenderingContext2D,
   box: ClipBox,
   region: 'start-edge' | 'end-edge',
 ): void {
-  const w = Math.min(3, Math.max(1, box.w / 4));
-  const x = region === 'start-edge' ? box.x + 1 : box.x + box.w - 1 - w;
+  const w = Math.min(4, Math.max(2, box.w / 5));
+  const inset = Math.min(3, Math.max(1, box.w / 8));
+  const x = region === 'start-edge' ? box.x + inset : box.x + box.w - inset - w;
+  const top = box.y + CLIP_HEADER_HEIGHT + 3;
+  const h = Math.max(4, box.h - CLIP_HEADER_HEIGHT - 6);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = withAlpha('#000000', 0.45);
+  roundRect(ctx, x - 1, top - 1, w + 2, h + 2, 2);
+  ctx.fill();
   ctx.fillStyle = colors.text;
-  ctx.globalAlpha = 0.9;
-  ctx.fillRect(x, box.y + 2, w, box.h - 4);
+  roundRect(ctx, x, top, w, h, 1.5);
+  ctx.fill();
 }
 
 /**

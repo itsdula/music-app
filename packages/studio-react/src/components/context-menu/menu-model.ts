@@ -64,10 +64,10 @@ export function normalizeMenu(entries: readonly MenuEntryInput[]): MenuEntry[] {
       entry = { ...entry, items };
     }
     if (entry.kind === 'separator') {
+      // A label directly followed by a divider heads nothing.
+      while (out.length > 0 && out[out.length - 1]!.kind === 'label') out.pop();
       const last = out[out.length - 1];
       if (!last || last.kind === 'separator') continue;
-      if (last.kind === 'label') out.pop();
-      if (out.length === 0) continue;
     }
     out.push(entry);
   }

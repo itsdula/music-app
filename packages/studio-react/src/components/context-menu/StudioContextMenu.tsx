@@ -9,6 +9,7 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
+  Kbd,
 } from '@studio/ui';
 import { useState, type MouseEvent, type ReactElement } from 'react';
 import {
@@ -23,9 +24,13 @@ const isApple = () =>
   typeof navigator !== 'undefined' &&
   /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
 
+const ICON_SPACER = <span className="size-3.5 shrink-0" aria-hidden />;
+
 /** Renders normalized menu entries with the shared `ContextMenu*` primitives. */
 export function MenuEntries({ entries }: { entries: readonly MenuEntry[] }) {
   const apple = isApple();
+  // When some items carry icons, icon-less items (and checkbox labels) line up with them.
+  const indent = entries.some((e) => isAction(e) && e.icon !== undefined);
   return (
     <>
       {entries.map((entry, i) => {
@@ -39,7 +44,14 @@ export function MenuEntries({ entries }: { entries: readonly MenuEntry[] }) {
                 disabled={entry.disabled ?? false}
                 data-testid={`menu-${entry.id}`}
               >
-                {entry.label}
+                {indent ? (
+                  <span className="flex items-center gap-2">
+                    {entry.icon ?? ICON_SPACER}
+                    {entry.label}
+                  </span>
+                ) : (
+                  entry.label
+                )}
               </ContextMenuSubTrigger>
               <ContextMenuSubContent data-testid={`menu-${entry.id}-items`}>
                 <MenuEntries entries={entry.items as readonly MenuEntry[]} />
@@ -47,6 +59,7 @@ export function MenuEntries({ entries }: { entries: readonly MenuEntry[] }) {
             </ContextMenuSub>
           );
         if (!isAction(entry)) return null;
+        const shortcut = entry.shortcut ? shortcutHint(entry.shortcut, apple) : undefined;
         if (entry.checked !== undefined)
           return (
             <ContextMenuCheckboxItem
@@ -54,23 +67,20 @@ export function MenuEntries({ entries }: { entries: readonly MenuEntry[] }) {
               checked={entry.checked}
               disabled={entry.disabled ?? false}
               onSelect={entry.onSelect}
+              className={indent ? 'pl-[30px]' : undefined}
               data-testid={`menu-${entry.id}`}
             >
               <span className="flex-1 truncate">{entry.label}</span>
-              {entry.shortcut ? (
-                <kbd className="ml-4 text-[10px] text-text-faint">
-                  {shortcutHint(entry.shortcut, apple)}
-                </kbd>
-              ) : null}
+              {shortcut ? <Kbd className="ml-4">{shortcut}</Kbd> : null}
             </ContextMenuCheckboxItem>
           );
         return (
           <ContextMenuItem
             key={entry.id}
-            icon={entry.icon}
+            icon={entry.icon ?? (indent ? ICON_SPACER : undefined)}
             danger={entry.danger ?? false}
             disabled={entry.disabled ?? false}
-            {...(entry.shortcut ? { shortcut: shortcutHint(entry.shortcut, apple) } : {})}
+            {...(shortcut ? { shortcut } : {})}
             onSelect={entry.onSelect}
             data-testid={`menu-${entry.id}`}
           >
