@@ -3,7 +3,13 @@
  * ids/clock, WAV-only decoder. Lets the real session run in jsdom/Node.
  */
 import { decodeWav } from '@studio/audio-dsp';
-import type { PickedFile, PlatformServices } from '@studio/platform-contracts';
+import type {
+  AssistantRequest,
+  AssistantResponse,
+  AssistantTransport,
+  PickedFile,
+  PlatformServices,
+} from '@studio/platform-contracts';
 import {
   createMemoryAssetRepository,
   createMemoryDerivedCache,
@@ -32,7 +38,11 @@ function fnv1a(bytes: Uint8Array): string {
 }
 
 export function createTestPlatform(
-  overrides: { projects?: ReturnType<typeof createMemoryProjectRepository> } = {},
+  overrides: {
+    projects?: ReturnType<typeof createMemoryProjectRepository>;
+    /** Optional AI assistant transport (e.g. a FakeAssistantTransport). */
+    assistant?: AssistantTransport;
+  } = {},
 ): TestPlatform {
   let counter = 0;
   let clock = Date.parse('2026-10-29T10:00:00.000Z');
@@ -93,6 +103,68 @@ export function createTestPlatform(
     randomId: () => `t${++counter}`,
     now: () => new Date((clock += 1000)).toISOString(),
     dispose: async () => undefined,
+    ...(overrides.assistant ? { assistant: overrides.assistant } : {}),
   };
   return platform;
+}
+
+/** One scripted model turn: a response, a function of the request, or an error to throw. */
+export type ScriptedTurn =
+  | AssistantResponse
+  | Error
+  | ((request: AssistantRequest) => AssistantResponse | Promise<AssistantResponse>);
+
+/**
+ * Assistant transport for tests: replays scripted turns in order and records every request.
+ * No model is involved; scripts decide which tool calls the "model" makes.
+ */
+export class FakeAssistantTransport implements AssistantTransport {
+  readonly label = 'Fake assistant';
+  readonly requests: AssistantRequest[] = [];
+  private callCount = 0;
+
+  constructor(private readonly script: ScriptedTurn[] = []) {}
+
+  /** Appends more turns to the script. */
+  enqueue(...turns: ScriptedTurn[]): void {
+    this.script.push(...turns);
+  }
+
+  async complete(request: AssistantRequest): Promise<AssistantResponse> {
+    this.requests.push(structuredClone(request));
+    const turn = this.script.shift();
+    if (!turn) return FakeAssistantTransport.reply('(no scripted reply)');
+    if (turn instanceof Error) throw turn;
+    return typeof turn === 'function' ? turn(request) : turn;
+  }
+
+  /** A final text answer. */
+  static reply(content: string): AssistantResponse {
+    return { message: { role: 'assistant', content }, model: 'fake', finishReason: 'stop' };
+  }
+
+  /** A turn that asks to call tools (arguments are JSON-encoded like a real model's). */
+  toolCalls(
+    calls: ReadonlyArray<{ name: string; input: unknown }>,
+    content = '',
+  ): AssistantResponse {
+    return {
+      message: {
+        role: 'assistant',
+        content,
+        toolCalls: calls.map((c) => ({
+          id: `call_${++this.callCount}`,
+          name: c.name,
+          arguments: JSON.stringify(c.input),
+        })),
+      },
+      model: 'fake',
+      finishReason: 'tool_calls',
+    };
+  }
+}
+
+/** An error shaped like a transport failure with an AssistantErrorCode. */
+export function assistantError(code: string, message = code): Error {
+  return Object.assign(new Error(message), { code });
 }
