@@ -319,6 +319,28 @@ describe('clip.updateMidi', () => {
 });
 
 describe('clip.updateAudio', () => {
+  it('moves a looped clip back inside its asset when looping is turned off', () => {
+    const asset = makeProject().assets[audioOf(makeProject()).assetId]!;
+    // A looped clip whose window was trimmed past the end of the audio.
+    const p = withClip(
+      makeProject(),
+      makeAudioClip({
+        sourceStartFrame: asset.frames + 500,
+        lengthFrames: 4000,
+        loopLengthFrames: 2000,
+      }),
+    );
+    const next = apply(p, {
+      type: 'clip.updateAudio',
+      clipId: ids.audioClip,
+      patch: { loopLengthFrames: null },
+    });
+    const clip = audioOf(next);
+    expect(clip.loopLengthFrames).toBeUndefined();
+    expect(clip.sourceStartFrame + clip.lengthFrames).toBeLessThanOrEqual(asset.frames);
+    expect(checkProjectInvariants(next)).toEqual([]);
+  });
+
   it('patches gain with clamping and shares the rest', () => {
     const p = makeProject();
     const next = apply(p, {

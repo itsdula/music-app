@@ -10,3 +10,5 @@ packages/*/src/generated
 .claude
 docs/research
 .vitest
+# compact, hand/agent-authored song specs (validated by pnpm samples)
+projects/**/song.json

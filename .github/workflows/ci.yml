@@ -38,6 +38,8 @@ jobs:
         run: pnpm typecheck
       - name: Package boundaries
         run: pnpm boundaries
+      - name: Sample projects (validate every song spec)
+        run: pnpm samples -- --check
       - name: Unit, react, integration and contract tests (with coverage)
         run: pnpm test:coverage
       - name: Browser tests (real Chromium Web Audio)
