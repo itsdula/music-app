@@ -76,26 +76,39 @@ export function PianoRollGrid({ clip, color }: { clip: MidiClip; color: string }
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     if (!hit) {
       if (tool === 'draw') {
-        const created = createNoteAt(x, y);
-        if (!created) return;
-        // Drag right to set the new note's length.
+        // Draw = add a note and drag its length: one transaction, one undo entry.
+        const contentTick = timelineToContent(clip, time.xToTick(x));
+        const start = Math.max(0, gridTicks > 0 ? Math.floor(contentTick / gridTicks) * gridTicks : Math.round(contentTick));
+        const range = editableContentRange(clip);
+        if (start < range.start || start >= range.end) return;
+        const p = clampPitch(yToPitch(y, pitch));
+        const note = { id: session.ids.create('note'), startTick: start, durationTicks: Math.max(1, Math.min(lastLength.current ?? stepTicks, range.end - start)), pitch: p, velocity: 100 };
+        const add = { type: 'notes.add' as const, clipId: clip.id, notes: [note] };
         const tx = history.beginTransaction('Draw Note');
+        if (!tx.apply(add).ok) {
+          tx.cancel();
+          return;
+        }
+        uiStore.setState((s) => selectNotes(s, [note.id]));
+        auditionNote(engine, clip.trackId, p);
         startDragGesture(e.nativeEvent, e.currentTarget, {
           threshold: 2,
           onDrag: (dx) => {
-            const clipNow = history.present.clips[clip.id];
-            if (clipNow?.kind !== 'midi') return;
-            tx.applyFromStart(
-              [{ type: 'notes.update', clipId: clip.id, patches: resizeNoteEnds(clipNow, new Set([created.id]), created.id, dx / time.pxPerTick, { gridTicks }) }],
-            );
+            const withNote = { ...clip, notes: [...clip.notes, note] };
+            const patches = resizeNoteEnds(withNote, new Set([note.id]), note.id, dx / time.pxPerTick, { gridTicks });
+            tx.applyFromStart([add, ...(patches.length > 0 ? [{ type: 'notes.update' as const, clipId: clip.id, patches }] : [])]);
           },
           onEnd: ({ committed, dragged }) => {
-            if (committed && dragged) {
-              tx.commit();
+            if (!committed) {
+              tx.cancel();
+              return;
+            }
+            tx.commit();
+            if (dragged) {
               const after = history.present.clips[clip.id];
-              const note = after?.kind === 'midi' ? after.notes.find((n) => n.id === created.id) : undefined;
-              if (note) lastLength.current = note.durationTicks;
-            } else tx.cancel();
+              const drawn = after?.kind === 'midi' ? after.notes.find((n) => n.id === note.id) : undefined;
+              if (drawn) lastLength.current = drawn.durationTicks;
+            }
           },
         });
         return;
