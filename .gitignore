@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# generated code (rebuilt by `pnpm codegen`)
+packages/*/src/generated/
+
+# tooling caches
+.turbo/
+coverage/
+.eslintcache
+
+# test artifacts
+playwright-report/
+test-results/
+blob-report/
+
+# agent worktrees created inside the repository
+.claude/worktrees/
+
+# env / os
+.env*
+!.env.example
+.DS_Store
+*.log
