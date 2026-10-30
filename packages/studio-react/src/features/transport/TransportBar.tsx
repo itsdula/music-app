@@ -16,16 +16,19 @@ import {
   Redo2,
   Repeat,
   SkipBack,
+  Sparkles,
   Square,
   Undo2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { formatBpm, parseBpm } from '../../lib/format';
-import { useEngineState, useProjectState, useSession } from '../../session/context';
+import { useEngineState, useProjectState, useSession, useUiState } from '../../session/context';
 import { ExportDialog } from '../export/ExportDialog';
 import { ProjectMenu } from '../project/ProjectMenu';
 import { SettingsDialog } from '../settings/SettingsDialog';
 import { ShortcutsDialog } from '../shortcuts/ShortcutsDialog';
+import { TutorialMenu } from '../tutorial/TutorialMenu';
+import { ViewSwitcher } from './ViewSwitcher';
 import { MasterMeter } from './MasterMeter';
 import { PositionDisplay } from './PositionDisplay';
 import { SaveIndicator } from './SaveIndicator';
@@ -34,6 +37,7 @@ const DENOMINATORS: readonly TimeSignatureDenominator[] = [2, 4, 8, 16];
 
 export function TransportBar() {
   const session = useSession();
+  const assistantOpen = useUiState((s) => s.assistantOpen);
   const { transport } = session;
   const playState = useEngineState((s) => s.playState);
   const recordingPhase = useEngineState((s) => s.recording.phase);
@@ -60,15 +64,20 @@ export function TransportBar() {
 
   return (
     <header
-      className="flex h-11 shrink-0 items-center gap-3 border-b border-line bg-surface-1 px-2"
+      className="@container flex h-11 min-w-0 shrink-0 items-center gap-1.5 border-b border-line bg-surface-1 px-2"
       data-testid="transport-bar"
     >
       <ProjectMenu />
-      <SaveIndicator />
+      <ViewSwitcher />
+      {/* Lower-priority items collapse when Studio itself is narrow (container queries). */}
+      <div className="hidden @[84rem]:flex">
+        <SaveIndicator />
+      </div>
       <div className="flex-1" />
       <Toolbar aria-label="Transport" className="gap-1">
         <ToolbarGroup>
           <IconButton
+            className="hidden @6xl:inline-flex"
             label="Return to start"
             shortcut="Home"
             icon={<SkipBack />}
@@ -137,39 +146,41 @@ export function TransportBar() {
           suffix={<span className="text-[10px] text-text-faint">BPM</span>}
           className="w-[86px]"
         />
-        <NumberField
-          label="Beats per bar"
-          value={meter.numerator}
-          min={1}
-          max={32}
-          step={1}
-          format={(v) => String(Math.round(v))}
-          onChange={(v) => setMeter(Math.round(v), meter.denominator)}
-          className="w-[40px]"
-        />
-        <span className="text-text-faint">/</span>
-        <NumberField
-          label="Beat unit"
-          value={meter.denominator}
-          min={2}
-          max={16}
-          step={1}
-          format={(v) => String(Math.round(v))}
-          parse={(t) => {
-            const n = Number.parseInt(t, 10);
-            return DENOMINATORS.includes(n as TimeSignatureDenominator) ? n : null;
-          }}
-          onChange={(v) => {
-            const nearest = DENOMINATORS.reduce((a, b) =>
-              Math.abs(b - v) < Math.abs(a - v) ? b : a,
-            );
-            setMeter(meter.numerator, nearest);
-          }}
-          className="w-[40px]"
-        />
+        <span className="hidden items-center gap-1.5 @6xl:flex">
+          <NumberField
+            label="Beats per bar"
+            value={meter.numerator}
+            min={1}
+            max={32}
+            step={1}
+            format={(v) => String(Math.round(v))}
+            onChange={(v) => setMeter(Math.round(v), meter.denominator)}
+            className="w-[40px]"
+          />
+          <span className="text-text-faint">/</span>
+          <NumberField
+            label="Beat unit"
+            value={meter.denominator}
+            min={2}
+            max={16}
+            step={1}
+            format={(v) => String(Math.round(v))}
+            parse={(t) => {
+              const n = Number.parseInt(t, 10);
+              return DENOMINATORS.includes(n as TimeSignatureDenominator) ? n : null;
+            }}
+            onChange={(v) => {
+              const nearest = DENOMINATORS.reduce((a, b) =>
+                Math.abs(b - v) < Math.abs(a - v) ? b : a,
+              );
+              setMeter(meter.numerator, nearest);
+            }}
+            className="w-[40px]"
+          />
+        </span>
       </div>
       <div className="flex-1" />
-      <ToolbarGroup>
+      <ToolbarGroup className="hidden @[66rem]:flex">
         <IconButton
           label={undoLabel ? `Undo ${undoLabel}` : 'Undo'}
           shortcut="Mod+Z"
@@ -187,8 +198,13 @@ export function TransportBar() {
           onClick={() => session.history.redo()}
         />
       </ToolbarGroup>
-      <MasterMeter />
-      <ShortcutsDialog />
+      <div className="hidden @[84rem]:flex">
+        <MasterMeter />
+      </div>
+      <TutorialMenu />
+      <div className="hidden @6xl:flex">
+        <ShortcutsDialog />
+      </div>
       <SettingsDialog />
       <IconButton
         label="Export audio"
@@ -198,6 +214,14 @@ export function TransportBar() {
         onClick={() => setExportOpen(true)}
       />
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
+      <ToggleButton
+        label="AI assistant"
+        icon={<Sparkles />}
+        tone="accent"
+        pressed={assistantOpen}
+        data-testid="open-assistant"
+        onPressedChange={(open) => session.uiStore.setState((s) => ({ ...s, assistantOpen: open }))}
+      />
     </header>
   );
 }

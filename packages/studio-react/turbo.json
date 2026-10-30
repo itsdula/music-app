@@ -1,0 +1,10 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "codegen": {
+      "inputs": ["src/**", "scripts/**", "!src/generated/**", "$TURBO_ROOT$/projects/**"],
+      "outputs": ["src/generated/**"]
+    }
+  }
+}

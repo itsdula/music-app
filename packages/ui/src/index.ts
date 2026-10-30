@@ -17,17 +17,6 @@ export {
   type SegmentedOption,
 } from './components/SegmentedControl';
 export { NumberField, type NumberFieldProps } from './components/NumberField';
-export { Slider, type SliderProps } from './components/Slider';
-export { Fader, type FaderProps } from './components/Fader';
-export { Knob, type KnobProps } from './components/Knob';
-export {
-  Meter,
-  METER_MAX_DB,
-  METER_MIN_DB,
-  dbToMeterPosition,
-  type MeterHandle,
-  type MeterProps,
-} from './components/Meter';
 
 export {
   Tooltip,

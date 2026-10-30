@@ -1,22 +1,14 @@
-import { Meter, type MeterHandle } from '@studio/ui';
-import { useRef } from 'react';
-import { useFrame } from '../../lib/use-frame';
-import { useSession } from '../../session/context';
+import { StereoMeter } from '@studio/audio-ui';
+import { useEngineMeterSource } from '../../lib/engine-meter-source';
 
-/** Master output meter driven from the render loop via the Meter imperative handle. */
+/** Master output meter, painted from the render loop through an engine meter source. */
 export function MasterMeter() {
-  const session = useSession();
-  const meterRef = useRef<MeterHandle>(null);
-  useFrame(() => {
-    const meters = session.engine.readMeters();
-    meterRef.current?.setLevels(meters.master.peak, meters.master.clipped);
-  });
+  const source = useEngineMeterSource('master');
   return (
-    <Meter
-      ref={meterRef}
+    <StereoMeter
       label="Master level"
+      source={source}
       orientation="horizontal"
-      channels={2}
       className="h-7 w-28"
     />
   );

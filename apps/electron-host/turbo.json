@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["STUDIO_ASSISTANT_URL", "STUDIO_ASSISTANT_TOKEN"]
+    }
+  }
+}

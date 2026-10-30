@@ -19,8 +19,11 @@ function px(el: DeviceLayoutElement) {
 }
 
 function labelFor(el: DeviceLayoutElement): string {
-  if (el.shape === 'key-white' || el.shape === 'key-black')
-    return `Key ${Number(el.controlId.split('.')[1]) + 1}`;
+  if (el.shape === 'key-white' || el.shape === 'key-black') {
+    const key = `Key ${Number(el.controlId.split('.')[1]) + 1}`;
+    // The printed panel legend is visible on the key, so it must be part of the name (WCAG 2.5.3).
+    return el.secondaryLegend ? `${key} (${el.secondaryLegend})` : key;
+  }
   if (el.shape === 'pad') return el.legend ?? 'Pad';
   if (el.shape === 'joystick') return 'Joystick';
   if (el.shape === 'display') return 'OLED display';

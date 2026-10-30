@@ -15,16 +15,24 @@ import { APP_ENTRY_URL, APP_SCHEME } from '../shared/host-api';
 import { contentTypeFor, resolveAppFile } from './app-files';
 import { registerIpcHandlers } from './ipc';
 import {
+  assistantConnectSources,
   isAllowedNavigation,
   isPermissionAllowed,
   PRIVILEGED_SCHEME,
   securityHeaders,
+  type CspOptions,
 } from './policy';
 
 const distDir = join(import.meta.dirname, '..');
 /** `STUDIO_ELECTRON_PROBE=1` serves the bundled security probe page instead of Studio (smoke tests). */
 const rendererDir = join(distDir, process.env.STUDIO_ELECTRON_PROBE === '1' ? 'probe' : 'renderer');
 const preloadPath = join(distDir, 'preload', 'preload.cjs');
+/** The renderer may reach the AI assistant endpoint baked in at build time, and nothing else. */
+const cspOptions: CspOptions = {
+  extraConnectSrc: assistantConnectSources(
+    typeof __STUDIO_ASSISTANT_URL__ === 'string' ? __STUDIO_ASSISTANT_URL__ : '',
+  ),
+};
 
 if (process.env.STUDIO_USER_DATA_DIR) app.setPath('userData', process.env.STUDIO_USER_DATA_DIR);
 
@@ -50,7 +58,7 @@ function installAppProtocol(): void {
       const body = await readFile(filePath);
       return new Response(request.method === 'HEAD' ? null : body, {
         status: 200,
-        headers: securityHeaders(contentTypeFor(filePath)),
+        headers: securityHeaders(contentTypeFor(filePath), cspOptions),
       });
     } catch {
       return new Response(null, { status: 404 });

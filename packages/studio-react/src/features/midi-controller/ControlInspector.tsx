@@ -10,7 +10,8 @@ import {
   controlIdsForLayoutElement,
 } from '@studio/midi-akai-mpk-mini-mk3';
 import type { DeviceControl } from '@studio/midi-core';
-import { Badge, Button, Select, SegmentedControl, Slider, Switch } from '@studio/ui';
+import { ParameterSliderField } from '@studio/audio-ui';
+import { Badge, Button, Select, SegmentedControl, Switch } from '@studio/ui';
 import { useMemo } from 'react';
 import { useStore } from 'zustand';
 import { useProjectState, useSession, useUiState } from '../../session/context';
@@ -188,26 +189,26 @@ export function ControlInspector({
                 </p>
                 {mapping.source.kind === 'cc' && (
                   <div className="grid grid-cols-[88px_1fr] items-center gap-2">
-                    <span className="text-text-muted">Minimum</span>
-                    <Slider
-                      label="Mapping minimum"
+                    <ParameterSliderField
+                      className="col-span-2"
+                      label="Minimum"
                       min={0}
                       max={1}
                       step={0.01}
                       value={transform.min}
-                      formatValue={(v) => `${Math.round(v * 100)}%`}
+                      format={(v) => `${Math.round(v * 100)}%`}
                       onChange={(min) =>
                         void save({ ...mapping, transform: { ...transform, min } })
                       }
                     />
-                    <span className="text-text-muted">Maximum</span>
-                    <Slider
-                      label="Mapping maximum"
+                    <ParameterSliderField
+                      className="col-span-2"
+                      label="Maximum"
                       min={0}
                       max={1}
                       step={0.01}
                       value={transform.max}
-                      formatValue={(v) => `${Math.round(v * 100)}%`}
+                      format={(v) => `${Math.round(v * 100)}%`}
                       onChange={(max) =>
                         void save({ ...mapping, transform: { ...transform, max } })
                       }

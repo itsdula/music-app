@@ -36,7 +36,11 @@ export function PositionDisplay() {
       <span ref={barsRef} className="text-[13px] text-text" data-testid="position-bars">
         1.1.1
       </span>
-      <span ref={timeRef} className="text-[11px] text-text-muted" data-testid="position-time">
+      <span
+        ref={timeRef}
+        className="hidden text-[11px] text-text-muted @6xl:inline"
+        data-testid="position-time"
+      >
         0:00.000
       </span>
     </div>

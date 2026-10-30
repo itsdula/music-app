@@ -7,6 +7,12 @@ import type { ClipId, GridDivision, NoteId, TrackId, VocalNoteId } from '@studio
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
 export type BottomPanel = 'editor' | 'mixer' | 'controller';
+/**
+ * Top-level Studio pages: the project list, the arrangement (with the bottom panel) and a
+ * full-height clip editor (piano roll / audio / vocal) for focused editing.
+ */
+export type StudioView = 'projects' | 'arrange' | 'editor';
+export const STUDIO_VIEWS: readonly StudioView[] = ['projects', 'arrange', 'editor'];
 export type EditTool = 'select' | 'draw';
 
 export interface Viewport {
@@ -44,6 +50,9 @@ export interface PanelLayout {
 }
 
 export interface UiState {
+  readonly view: StudioView;
+  /** Right-side AI assistant panel. */
+  readonly assistantOpen: boolean;
   readonly selection: Selection;
   readonly arrangement: Viewport & { readonly trackHeight: number; readonly scrollY: number };
   readonly pianoRoll: PianoRollViewport;
@@ -60,6 +69,8 @@ export interface UiState {
 const EMPTY_SET: ReadonlySet<never> = new Set<never>();
 
 export const INITIAL_UI_STATE: UiState = {
+  view: 'arrange',
+  assistantOpen: false,
   selection: {
     trackId: null,
     clipIds: EMPTY_SET,
@@ -91,6 +102,10 @@ export function createUiStore(initial: Partial<UiState> = {}): UiStore {
 }
 
 // --- pure state updaters (keep logic testable and out of components) -----------------------
+
+export function navigate(state: UiState, view: StudioView): UiState {
+  return state.view === view ? state : { ...state, view };
+}
 
 export function selectTrack(state: UiState, trackId: TrackId | null): UiState {
   if (state.selection.trackId === trackId) return state;

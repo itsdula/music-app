@@ -9,7 +9,7 @@ import type { TimeAxis } from '../../canvas/time-axis';
 export const MIN_PITCH = 0;
 export const MAX_PITCH = 127;
 export const KEYBOARD_WIDTH = 56;
-export const RULER_HEIGHT = 24;
+export const RULER_HEIGHT = 20;
 export const VELOCITY_LANE_HEIGHT = 64;
 export const EDGE_HIT_PX = 6;
 
@@ -36,6 +36,49 @@ export function clampPitch(pitch: number): number {
 export function clampTopPitch(topPitch: number, viewHeight: number, rowHeight: number): number {
   const visibleRows = viewHeight / rowHeight;
   return Math.min(MAX_PITCH + 1, Math.max(MIN_PITCH + visibleRows - 1, topPitch));
+}
+
+export interface PitchFitOptions {
+  /** Minimum number of semitone rows to show (25 = two octaves inclusive). */
+  readonly minRows?: number;
+  readonly minRowHeight?: number;
+  readonly maxRowHeight?: number;
+  /** Extra rows above and below the note range. */
+  readonly margin?: number;
+  /** Centre pitch used when there are no notes (C4). */
+  readonly emptyCenter?: number;
+}
+
+/**
+ * Vertical fit for a clip: picks a row height that shows the clip's note range (at least two
+ * octaves) in `viewHeight` px and centres the range; empty clips centre on C4.
+ */
+export function fitPitchAxis(
+  pitches: readonly number[],
+  viewHeight: number,
+  options: PitchFitOptions = {},
+): PitchAxis {
+  const {
+    minRows = 25,
+    minRowHeight = 7,
+    maxRowHeight = 16,
+    margin = 2,
+    emptyCenter = 60,
+  } = options;
+  const lo = pitches.length > 0 ? Math.min(...pitches) : emptyCenter;
+  const hi = pitches.length > 0 ? Math.max(...pitches) : emptyCenter;
+  const rows = Math.max(minRows, hi - lo + 1 + margin * 2);
+  const height = Math.max(1, viewHeight);
+  const rowHeight = Math.min(maxRowHeight, Math.max(minRowHeight, Math.floor(height / rows)));
+  const visibleRows = height / rowHeight;
+  const center = (lo + hi) / 2;
+  const topPitch = clampTopPitch(Math.round(center + 0.5 + visibleRows / 2), height, rowHeight);
+  return { topPitch, rowHeight };
+}
+
+/** Number of whole semitone rows visible in `viewHeight` px. */
+export function visibleRowCount(viewHeight: number, rowHeight: number): number {
+  return Math.floor(viewHeight / Math.max(1, rowHeight));
 }
 
 /** Timeline tick of a content tick for a (non-looping view of a) clip. */

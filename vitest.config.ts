@@ -25,9 +25,18 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          // apps/electron-host/tests cover its pure main-process policy (no Electron runtime).
-          include: ['packages/*/tests/**/*.test.ts', 'apps/electron-host/tests/**/*.test.ts'],
-          exclude: ['**/node_modules/**', 'packages/{ui,studio-react}/**', ...nonUnitSuffixes],
+          // apps/electron-host/tests cover its pure main-process policy (no Electron runtime);
+          // apps/web/tests cover the server-side assistant modules (no Next.js runtime).
+          include: [
+            'packages/*/tests/**/*.test.ts',
+            'apps/electron-host/tests/**/*.test.ts',
+            'apps/web/tests/**/*.test.ts',
+          ],
+          exclude: [
+            '**/node_modules/**',
+            'packages/{ui,audio-ui,studio-react}/**',
+            ...nonUnitSuffixes,
+          ],
         },
       },
       {
@@ -35,7 +44,7 @@ export default defineConfig({
         test: {
           name: 'react',
           environment: 'jsdom',
-          include: ['packages/{ui,studio-react}/tests/**/*.test.{ts,tsx}'],
+          include: ['packages/{ui,audio-ui,studio-react}/tests/**/*.test.{ts,tsx}'],
           exclude: ['**/node_modules/**', ...nonUnitSuffixes],
           setupFiles: ['./scripts/vitest-react-setup.ts'],
         },

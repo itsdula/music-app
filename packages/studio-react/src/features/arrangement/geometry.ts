@@ -11,6 +11,7 @@ import {
   type TrackId,
 } from '@studio/domain';
 import type { TimeAxis } from '../../canvas/time-axis';
+import { classifyEdge, type EdgeSide, type EdgeZoneSpec } from '../../lib/edge-zones';
 
 export const RULER_HEIGHT = 28;
 export const LOOP_BAR_HEIGHT = 10;
@@ -85,21 +86,37 @@ export function clipBoxes(
   return boxes;
 }
 
-export type ClipHitRegion = 'body' | 'start-edge' | 'end-edge';
+/**
+ * Regions of a clip box. `loop-end` is the top-right corner (the header part of the right
+ * edge): dragging it extends the clip by looping its content.
+ */
+export type ClipHitRegion = 'body' | 'start-edge' | 'end-edge' | 'loop-end';
 
 export interface ClipHit {
   readonly box: ClipBox;
   readonly region: ClipHitRegion;
 }
 
+/** Clip edge zones: up to 7 px inside, at least 4 px, plus 4 px of slop outside. */
+export const CLIP_EDGE_ZONES: EdgeZoneSpec = { max: CLIP_EDGE_HIT_PX, min: 4, outer: 4 };
+
+function endRegion(box: ClipBox, y: number): ClipHitRegion {
+  return y < box.y + Math.min(CLIP_HEADER_HEIGHT, box.h / 2) ? 'loop-end' : 'end-edge';
+}
+
+function regionFor(box: ClipBox, side: EdgeSide, y: number): ClipHitRegion {
+  return side === 'end' ? endRegion(box, y) : side === 'start' ? 'start-edge' : 'body';
+}
+
 export function hitTestClip(boxes: readonly ClipBox[], x: number, y: number): ClipHit | null {
-  for (let i = boxes.length - 1; i >= 0; i--) {
-    const box = boxes[i]!;
-    if (x < box.x || x >= box.x + box.w || y < box.y || y >= box.y + box.h) continue;
-    const edge = Math.min(CLIP_EDGE_HIT_PX, box.w / 4);
-    if (x >= box.x + box.w - edge) return { box, region: 'end-edge' };
-    if (x < box.x + edge) return { box, region: 'start-edge' };
-    return { box, region: 'body' };
+  // Inside a clip first (top-most wins), then the slop just outside an edge.
+  for (const includeOuter of [false, true]) {
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const box = boxes[i]!;
+      if (y < box.y || y >= box.y + box.h) continue;
+      const side = classifyEdge(x, box.x, box.w, CLIP_EDGE_ZONES, includeOuter);
+      if (side) return { box, region: regionFor(box, side, y) };
+    }
   }
   return null;
 }

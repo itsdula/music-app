@@ -4,6 +4,7 @@
  */
 import type { MidiClip, NoteId, TimeSignature } from '@studio/domain';
 import { colors } from '@studio/ui';
+import type { NoteHitRegion } from './hit-test';
 import { canvasFont, hline, roundRect, shade, vline, withAlpha } from '../../canvas/draw-utils';
 import { computeGridLines } from '../../canvas/ruler';
 import type { TimeAxis } from '../../canvas/time-axis';
@@ -33,6 +34,8 @@ export interface PianoRollViewModel {
   } | null;
   /** In-scale pitch classes to highlight (empty = none). */
   readonly scaleHighlight?: ReadonlySet<number>;
+  /** Note region under the pointer (or being dragged): edges get a resize highlight. */
+  readonly hover?: { readonly noteId: NoteId; readonly region: NoteHitRegion } | null;
 }
 
 export function drawNoteGrid(
@@ -99,6 +102,16 @@ export function drawNoteGrid(
     ctx.strokeStyle = selected ? colors.text : withAlpha('#000000', 0.35);
     ctx.lineWidth = 1;
     ctx.stroke();
+    const hover = vm.hover && vm.hover.noteId === note.id ? vm.hover.region : null;
+    if (hover === 'start-edge' || hover === 'end-edge') {
+      const w = Math.min(3, Math.max(1, r.w / 4));
+      ctx.fillStyle = colors.text;
+      ctx.fillRect(hover === 'start-edge' ? r.x + 0.5 : r.x + r.w - 0.5 - w, r.y + 1, w, r.h - 2);
+    } else if (hover === 'body') {
+      ctx.fillStyle = withAlpha('#ffffff', 0.12);
+      roundRect(ctx, r.x + 0.5, r.y + 1, Math.max(1, r.w - 1), r.h - 2, 3);
+      ctx.fill();
+    }
   }
 
   if (vm.marquee) {
@@ -126,7 +139,8 @@ export function drawKeyboard(
   ctx.fillRect(0, 0, width, height);
   const top = yToPitch(0, pitch);
   const bottom = yToPitch(height, pitch);
-  ctx.font = canvasFont(9, 600);
+  // Octave labels stay readable on compact rows (the label may overlap the next key).
+  ctx.font = canvasFont(Math.min(9, Math.max(7, pitch.rowHeight + 1)), 600);
   ctx.textBaseline = 'middle';
   for (let p = top; p >= bottom; p--) {
     const y = pitchToY(p, pitch);
@@ -137,7 +151,7 @@ export function drawKeyboard(
     ctx.fillRect(0, y, keyWidth, pitch.rowHeight);
     ctx.strokeStyle = black ? '#0d0f13' : '#a9adb6';
     hline(ctx, y + pitch.rowHeight, 0, keyWidth);
-    if (p % 12 === 0 && pitch.rowHeight >= 9) {
+    if (p % 12 === 0 && pitch.rowHeight >= 6) {
       ctx.fillStyle = active ? colors.surface0 : '#4a4f5a';
       ctx.fillText(`C${Math.floor(p / 12) - 1}`, width - 24, y + pitch.rowHeight / 2);
     }

@@ -4,6 +4,8 @@ import { CanvasSurface, type CanvasSize } from '../../canvas/canvas-surface';
 import { startDragGesture } from '../../lib/drag-gesture';
 import { useSession, useUiState } from '../../session/context';
 import { selectNotes } from '../../state/ui-store';
+import { StudioContextMenu } from '../../components/context-menu';
+import { velocityMenu } from './note-menus';
 import { contentToTimeline, VELOCITY_LANE_HEIGHT } from './geometry';
 import { scaleVelocities } from './note-edits';
 import { drawVelocityLane } from './renderer';
@@ -20,17 +22,22 @@ export function VelocityLane({ clip, color }: { clip: MidiClip; color: string })
     [vm],
   );
 
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = hostRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+  /** Note whose velocity bar is nearest to `x` (within 6 px). */
+  const nearestNote = (x: number): NoteId | null => {
     let nearest: { id: NoteId; distance: number } | null = null;
     for (const note of clip.notes) {
       const distance = Math.abs(time.tickToX(contentToTimeline(clip, note.startTick)) - x);
       if (distance < 6 && (!nearest || distance < nearest.distance))
         nearest = { id: note.id, distance };
     }
-    if (!nearest) return;
-    const target = nearest.id;
+    return nearest?.id ?? null;
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const rect = hostRef.current!.getBoundingClientRect();
+    const target = nearestNote(e.clientX - rect.left);
+    if (!target) return;
     const ids = selected.has(target) ? new Set(selected) : new Set([target]);
     if (!selected.has(target)) session.uiStore.setState((s) => selectNotes(s, [target]));
     const tx = session.history.beginTransaction('Change Velocity');
@@ -47,15 +54,28 @@ export function VelocityLane({ clip, color }: { clip: MidiClip; color: string })
   };
 
   return (
-    <div
-      ref={hostRef}
-      className="relative shrink-0 cursor-ns-resize"
-      style={{ height: VELOCITY_LANE_HEIGHT }}
-      onPointerDown={onPointerDown}
-      aria-label="Velocity lane: drag a bar up or down"
-      role="presentation"
+    <StudioContextMenu
+      target="velocity"
+      resolve={(e) => {
+        // Right-click on a bar that is not selected selects it first.
+        const rect = hostRef.current!.getBoundingClientRect();
+        const target = nearestNote(e.clientX - rect.left);
+        if (target && !selected.has(target))
+          session.uiStore.setState((s) => selectNotes(s, [target]));
+        return velocityMenu(session, clip);
+      }}
     >
-      <CanvasSurface draw={draw} version={vm} className="absolute inset-0" />
-    </div>
+      <div
+        ref={hostRef}
+        className="relative shrink-0 cursor-ns-resize"
+        style={{ height: VELOCITY_LANE_HEIGHT }}
+        onPointerDown={onPointerDown}
+        aria-label="Velocity lane: drag a bar up or down"
+        role="presentation"
+        data-testid="velocity-lane"
+      >
+        <CanvasSurface draw={draw} version={vm} className="absolute inset-0" />
+      </div>
+    </StudioContextMenu>
   );
 }

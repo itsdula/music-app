@@ -15,6 +15,7 @@ import {
   AudioWaveform,
   ChevronDown,
   FilePlus2,
+  LayoutGrid,
   FolderOpen,
   PackageOpen,
   Save,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useProjectState, useSession } from '../../session/context';
+import { navigate } from '../../state/ui-store';
 
 export function ProjectMenu() {
   const session = useSession();
@@ -46,7 +48,7 @@ export function ProjectMenu() {
       >
         <DropdownMenuTrigger
           className="flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] font-semibold text-text hover:bg-surface-3"
-          aria-label="Project menu"
+          aria-label="Studio menu"
           data-testid="project-menu"
         >
           <AudioWaveform className="size-4 text-accent" aria-hidden />
@@ -54,6 +56,13 @@ export function ProjectMenu() {
           <ChevronDown className="size-3.5 text-text-muted" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56">
+          <DropdownMenuItem
+            icon={<LayoutGrid />}
+            data-testid="menu-all-projects"
+            onSelect={() => session.uiStore.setState((s) => navigate(s, 'projects'))}
+          >
+            All projects…
+          </DropdownMenuItem>
           <DropdownMenuItem
             icon={<FilePlus2 />}
             onSelect={() => void session.projects.newProject('empty').catch(report)}
@@ -127,7 +136,7 @@ export function ProjectMenu() {
       ) : (
         <button
           type="button"
-          className="h-7 max-w-56 truncate rounded-md px-2 text-[13px] text-text-muted hover:bg-surface-3 hover:text-text"
+          className="h-7 max-w-28 truncate @6xl:max-w-56 rounded-md px-2 text-[13px] text-text-muted hover:bg-surface-3 hover:text-text"
           onDoubleClick={() => setEditing(true)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === 'F2') setEditing(true);

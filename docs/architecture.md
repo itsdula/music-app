@@ -138,6 +138,7 @@ flowchart BT
   pcontracts --> storage
   pcontracts --> midicore
   pcontracts --> vocal
+  assistant["assistant-core (A)"] --> pcontracts
   fixtures["test-fixtures (A, tests only)"]
   audioweb["audio-web (B)"] --> enginecore
   audioweb --> vocal
@@ -153,23 +154,25 @@ flowchart BT
   apps --> ui
 ```
 
-| Package                  | Class | Responsibility                                                                                                                                  | May depend on                                                                                 |
-| ------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `domain`                 | A     | project model, IDs, ticks/seconds/frames, grid & quantize, theory, ParamSpecs, selectors (clip expansion), interval index, invariants, `Result` | —                                                                                             |
-| `commands`               | A     | `Command` union, pure `applyCommand`, snapshot `CommandHistory` (transactions, coalescing)                                                      | domain                                                                                        |
-| `engine-core`            | A     | `diffProjects`, transport clock, loop-aware window planning, timeline index, mute/solo + pan math, tail estimation, metronome events            | domain, audio-contracts, audio-dsp                                                            |
-| `audio-contracts`        | A     | `AudioEngine`/`AudioBackendFactory` ports, events, render/recording DTOs, `AudioGraphChange`                                                    | domain, audio-dsp                                                                             |
-| `audio-dsp`              | A     | `PcmAudio` layout, WAV codec, peak pyramids, drum synthesis, reverb IR, dither, seeded RNG                                                      | —                                                                                             |
-| `vocal-dsp`              | A     | pitch tracking, segmentation, key estimation, target curves, TD-PSOLA, `VocalProcessor` port + inline/worker processors                         | domain, audio-dsp                                                                             |
-| `midi-core`              | A     | parse/encode, stream parser, `MappingEngine`, learn, recorder, `MidiService`, `MidiAccessPort`, `MidiDeviceProfile`                             | domain                                                                                        |
-| `midi-akai-mpk-mini-mk3` | A     | MK3 profile: port matching, controls + verification, default mappings, layout geometry, capability matrix                                       | domain, midi-core                                                                             |
-| `project-storage`        | A     | zod schema, migrations, bundle format, repository ports + memory impls, autosave                                                                | domain                                                                                        |
-| `platform-contracts`     | A     | `PlatformServices` and host capability ports                                                                                                    | the A contracts above                                                                         |
-| `test-fixtures`          | A     | deterministic synthetic audio/MIDI fixtures                                                                                                     | domain, audio-dsp                                                                             |
-| `audio-web`              | B     | Web Audio `AudioEngine`, instruments, effects, recorder worklet, offline render, decoding                                                       | A packages                                                                                    |
-| `platform-browser`       | B     | `createBrowserPlatform()`: IndexedDB, Web MIDI, pickers, permissions, worker hosts                                                              | A packages, audio-web                                                                         |
-| `ui`                     | C     | tokens + accessible primitives (Knob, Fader, Meter, menus…)                                                                                     | react, radix-ui, lucide                                                                       |
-| `studio-react`           | C     | `<Studio />`, session, stores, features, canvas renderers                                                                                       | A packages, ui, platform-contracts (platform-browser only via `platform/default-platform.ts`) |
+| Package                  | Class | Responsibility                                                                                                                                  | May depend on                                                                                           |
+| ------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `domain`                 | A     | project model, IDs, ticks/seconds/frames, grid & quantize, theory, ParamSpecs, selectors (clip expansion), interval index, invariants, `Result` | —                                                                                                       |
+| `commands`               | A     | `Command` union, pure `applyCommand`, snapshot `CommandHistory` (transactions, coalescing)                                                      | domain                                                                                                  |
+| `engine-core`            | A     | `diffProjects`, transport clock, loop-aware window planning, timeline index, mute/solo + pan math, tail estimation, metronome events            | domain, audio-contracts, audio-dsp                                                                      |
+| `audio-contracts`        | A     | `AudioEngine`/`AudioBackendFactory` ports, events, render/recording DTOs, `AudioGraphChange`                                                    | domain, audio-dsp                                                                                       |
+| `audio-dsp`              | A     | `PcmAudio` layout, WAV codec, peak pyramids, drum synthesis, reverb IR, dither, seeded RNG                                                      | —                                                                                                       |
+| `vocal-dsp`              | A     | pitch tracking, segmentation, key estimation, target curves, TD-PSOLA, `VocalProcessor` port + inline/worker processors                         | domain, audio-dsp                                                                                       |
+| `midi-core`              | A     | parse/encode, stream parser, `MappingEngine`, learn, recorder, `MidiService`, `MidiAccessPort`, `MidiDeviceProfile`                             | domain                                                                                                  |
+| `midi-akai-mpk-mini-mk3` | A     | MK3 profile: port matching, controls + verification, default mappings, layout geometry, capability matrix                                       | domain, midi-core                                                                                       |
+| `project-storage`        | A     | zod schema, migrations, bundle format, repository ports + memory impls, autosave                                                                | domain                                                                                                  |
+| `platform-contracts`     | A     | `PlatformServices` and host capability ports                                                                                                    | the A contracts above                                                                                   |
+| `assistant-core`         | A     | AI assistant provider core: OpenAI-compatible chat client (injected `fetch`), OpenRouter/local presets, request guards (see docs/assistant.md)  | platform-contracts (types)                                                                              |
+| `test-fixtures`          | A     | deterministic synthetic audio/MIDI fixtures                                                                                                     | domain, audio-dsp                                                                                       |
+| `audio-web`              | B     | Web Audio `AudioEngine`, instruments, effects, recorder worklet, offline render, decoding                                                       | A packages                                                                                              |
+| `platform-browser`       | B     | `createBrowserPlatform()`: IndexedDB, Web MIDI, pickers, permissions, worker hosts                                                              | A packages, audio-web                                                                                   |
+| `ui`                     | C     | tokens + accessible primitives (buttons, menus, dialogs, fields…)                                                                               | react, radix-ui, lucide                                                                                 |
+| `audio-ui`               | C     | audio controls and meters: vendored audiocn primitives + Studio set (VolumeFader, ParameterKnob, StereoMeter…); see its UPSTREAM.md             | react, @base-ui/react, cva, cn                                                                          |
+| `studio-react`           | C     | `<Studio />`, session, stores, features, canvas renderers                                                                                       | A packages, ui, audio-ui, platform-contracts (platform-browser only via `platform/default-platform.ts`) |
 
 **Enforcement** (CI `pnpm boundaries`, `pnpm lint`, `pnpm typecheck`):
 
@@ -208,7 +211,8 @@ packages/
   midi-akai-mpk-mini-mk3/src/  profile, controls, layout, capabilities
   project-storage/src/         repositories (ports), schema, migrations, bundle, memory,
                                autosave
-  platform-contracts/src/      platform.ts (PlatformServices et al.)
+  platform-contracts/src/      platform.ts (PlatformServices et al.), assistant.ts
+  assistant-core/src/          client (OpenAI-compatible), mapping, guards, errors, presets
   platform-browser/src/        create-browser-platform, storage/ (Dexie), midi/ (Web MIDI),
                                files, permissions, device-info, logger, hashing, workers/
   ui/src/                      tokens.ts/.css, components/, hooks/
@@ -379,7 +383,8 @@ interface PlatformServices { audioBackendFactory; createVocalProcessor; midiAcce
   panel sizes, active tool/editor, learn mode. Never persisted in the project.
 - **Frame-rate data never enters React state**: the `RenderLoop` (one rAF loop) reads
   `engine.getTransportPosition()` and `engine.readMeters()` and draws the playhead, time
-  readout (direct `textContent` writes) and meters (canvas, via `Meter` imperative handles).
+  readout (direct `textContent` writes) and meters (audiocn `LevelMeter`s subscribed to a
+  per-meter `FrameSource` that `useEngineMeterSource` feeds; they paint CSS variables, not React).
 - **Canvas renderers** (arrangement, piano roll, waveform, pitch editor) are plain TS
   classes with `draw(ctx, viewModel)`; a shared `TimeAxis` (ticks ↔ px) guarantees the
   arrangement and piano roll use identical musical coordinates. Layers: static content

@@ -13,6 +13,7 @@ import {
   type Track,
   type TrackId,
 } from '@studio/domain';
+import { setClipLoopCommand } from '../../lib/clip-commands';
 
 export function trackAccepts(track: Track, clip: Clip): boolean {
   return clip.kind === 'midi' ? track.kind === 'instrument' : track.kind !== 'instrument';
@@ -111,6 +112,31 @@ export function trimEndCommand(
   tick = Math.max(clip.startTick + 1, tick);
   if (Math.abs(tick - clipEndTick(clip, project)) < 0.5) return [];
   return [{ type: 'clip.trimEnd', clipId, endTick: tick }];
+}
+
+/**
+ * Loop-handle drag: moves the clip end like a trim, but extending past the current end first
+ * turns looping on so the content repeats (instead of being clamped to the source length).
+ */
+export function loopExtendCommands(
+  project: Project,
+  clipId: ClipId,
+  rawTick: number,
+  gridTicks: number,
+): Command[] {
+  const clip = project.clips[clipId];
+  if (!clip) return [];
+  let tick = gridTicks > 0 ? snapTick(rawTick, gridTicks) : Math.round(rawTick);
+  tick = Math.max(clip.startTick + 1, tick);
+  const end = clipEndTick(clip, project);
+  if (Math.abs(tick - end) < 0.5) return [];
+  const commands: Command[] = [];
+  if (tick > end) {
+    const loop = setClipLoopCommand(clip, true);
+    if (loop) commands.push(loop);
+  }
+  commands.push({ type: 'clip.trimEnd', clipId, endTick: tick });
+  return commands;
 }
 
 /** Loop-region drag in the ruler. */

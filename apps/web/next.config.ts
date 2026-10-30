@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     '@studio/react',
     '@studio/ui',
+    '@studio/audio-ui',
     '@studio/domain',
     '@studio/commands',
     '@studio/engine-core',
@@ -16,6 +17,7 @@ const nextConfig: NextConfig = {
     '@studio/midi-akai-mpk-mini-mk3',
     '@studio/project-storage',
     '@studio/platform-contracts',
+    '@studio/assistant-core',
     '@studio/platform-browser',
     '@studio/audio-web',
   ],

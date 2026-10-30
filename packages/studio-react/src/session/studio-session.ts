@@ -22,6 +22,8 @@ import { MidiController } from './midi-controller';
 import { ProjectController } from './project-controller';
 import { TransportController } from './transport-controller';
 import { VocalController } from './vocal-controller';
+import { installStudioTools } from './tools';
+import { ToolRegistry } from './tools/registry';
 
 export interface StudioSession {
   readonly platform: PlatformServices;
@@ -40,6 +42,8 @@ export interface StudioSession {
   readonly exporter: ExportController;
   readonly midi: MidiController;
   readonly vocal: VocalController;
+  /** Capabilities shared by the AI assistant, WebMCP and tutorials. */
+  readonly tools: ToolRegistry;
   start(): Promise<void>;
   dispose(): Promise<void>;
 }
@@ -124,8 +128,9 @@ export function createStudioSession(
 
   let started = false;
   let disposed = false;
+  let uninstallTools: (() => void) | null = null;
 
-  return {
+  const session: StudioSession = {
     platform,
     config,
     ids,
@@ -142,6 +147,7 @@ export function createStudioSession(
     exporter,
     midi,
     vocal,
+    tools: new ToolRegistry(() => ({ session })),
     async start() {
       if (started) return;
       started = true;
@@ -165,10 +171,12 @@ export function createStudioSession(
       // Select the first track so live MIDI and shortcuts have a target.
       const first = history.present.trackOrder[0];
       if (first) uiStore.setState((s) => ({ ...s, selection: { ...s.selection, trackId: first } }));
+      uninstallTools = installStudioTools(session);
     },
     async dispose() {
       if (disposed) return;
       disposed = true;
+      uninstallTools?.();
       unsubscribeEngine();
       midi.dispose();
       vocal.dispose();
@@ -182,4 +190,5 @@ export function createStudioSession(
       await platform.dispose().catch(() => undefined);
     },
   };
+  return session;
 }
