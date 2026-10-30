@@ -260,8 +260,8 @@ function ReadyEditor({
             pressed={!doc.enabled}
             label={
               doc.enabled
-                ? 'A/B: playing the corrected vocal. Click to hear the original.'
-                : 'A/B: playing the original vocal. Click to hear the correction.'
+                ? 'B · Corrected: playing the corrected vocal. Click to hear the original.'
+                : 'A · Original: playing the original vocal. Click to hear the correction.'
             }
             onPressedChange={(original) =>
               session.history.execute(

@@ -48,7 +48,7 @@ export function ProjectMenu() {
       >
         <DropdownMenuTrigger
           className="flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] font-semibold text-text hover:bg-surface-3"
-          aria-label="Project menu"
+          aria-label="Studio menu"
           data-testid="project-menu"
         >
           <AudioWaveform className="size-4 text-accent" aria-hidden />

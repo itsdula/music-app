@@ -16,7 +16,12 @@ async function expectNoViolations(
 ) {
   const results = await new AxeBuilder({ page })
     .include(selector)
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    // WCAG 2.5.3 Label in Name (`label-content-name-mismatch`) is experimental in axe, so it is
+    // enabled explicitly on top of the WCAG A/AA tags.
+    .options({
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+      rules: { 'label-content-name-mismatch': { enabled: true } },
+    })
     .analyze();
   const found = results.violations.map(
     (v) =>

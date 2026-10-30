@@ -154,10 +154,9 @@ export function ArrangementRuler() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         data-testid="arrangement-ruler"
+        // Pointer-only surface: keyboard users move the playhead and loop with the transport.
+        role="group"
         aria-label="Timeline ruler: click to move the playhead, drag the top strip to set the loop"
-        role="slider"
-        aria-valuetext="Playhead"
-        tabIndex={-1}
       >
         <CanvasSurface draw={draw} className="absolute inset-0" />
         <CanvasSurface
