@@ -1,4 +1,4 @@
-import { parseInline, parseMarkdown, type MdBlock } from './markdown';
+import { parseInline, parseMarkdown, type MdBlock } from './markdown-parser';
 
 function Inline({ text }: { text: string }) {
   return (

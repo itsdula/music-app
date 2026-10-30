@@ -1,9 +1,9 @@
 import type { ChannelMeter, MeterSnapshot } from '@studio/audio-contracts';
 import {
-  createFrameEmitter,
+  createMeterEmitter,
   meterFrameFromGains,
-  type FrameEmitter,
   type FrameSource,
+  type MeterEmitter,
   type MeterFrame,
 } from '@studio/audio-ui';
 import type { TrackId } from '@studio/domain';
@@ -12,11 +12,6 @@ import type { StudioSession } from '../session/studio-session';
 
 /** What a meter shows: the master bus or one track. */
 export type MeterTarget = 'master' | TrackId;
-
-interface Feed {
-  readonly source: FrameEmitter<MeterFrame>;
-  silent: boolean;
-}
 
 const isSilent = (meter: ChannelMeter) => meter.peak.every((p) => p === 0);
 
@@ -27,7 +22,7 @@ const isSilent = (meter: ChannelMeter) => meter.peak.every((p) => p === 0);
  * target (track header, mixer strip, transport) subscribes to the same source instead.
  */
 export class EngineMeterHub {
-  private readonly feeds = new Map<MeterTarget, Feed>();
+  private readonly feeds = new Map<MeterTarget, MeterEmitter>();
 
   constructor(session: StudioSession) {
     session.renderLoop.add(() => this.publish(session.engine.readMeters()));
@@ -36,21 +31,19 @@ export class EngineMeterHub {
   source(target: MeterTarget): FrameSource<MeterFrame> {
     let feed = this.feeds.get(target);
     if (!feed) {
-      feed = { source: createFrameEmitter<MeterFrame>(), silent: false };
+      feed = createMeterEmitter();
       this.feeds.set(target, feed);
     }
-    return feed.source;
+    return feed;
   }
 
   private publish(meters: MeterSnapshot): void {
     for (const [target, feed] of this.feeds) {
       const meter = target === 'master' ? meters.master : meters.tracks[target];
       if (!meter) continue;
-      // Repeated silent frames are skipped so idle meters settle and stop painting.
-      const silent = isSilent(meter);
-      if (silent && feed.silent) continue;
-      feed.silent = silent;
-      feed.source.emit(meterFrameFromGains(meter.peak, meter.rms));
+      // Silent frames are skipped once the bars and peak marks have fallen, so idle meters stop painting.
+      if (isSilent(meter) && feed.settled) continue;
+      feed.emit(meterFrameFromGains(meter.peak));
     }
   }
 }

@@ -1,36 +1,41 @@
 # @studio/audio-ui
 
-Audio controls and meters for Studio, built on [audiocn](https://audiocn.dev) (MIT; vendored, see
-[UPSTREAM.md](UPSTREAM.md)).
+Audio controls and meters for Studio, built on the headless primitives of
+[`@audio-ui/react`](https://www.audio-ui.dev) (MIT, [ouestlabs/audio-ui](https://github.com/ouestlabs/audio-ui))
+and styled with Studio's tokens.
 
 ```
 src/
-  audiocn/      vendored audiocn primitives, kept identical to upstream (do not edit by hand)
-  components/   Studio's component set, composed from the primitives
-  lib/          helpers (engine meter frames, mix-bus meter zones)
-  theme.css     shadcn/audiocn colour names mapped onto Studio tokens
+  components/   Studio's component set, composed from @audio-ui/react parts
+  lib/          dB and taper maths, frame sources, meter frames with peak hold
 ```
 
 ## Studio component set
 
-| Component                                                | Use                                                                       |
-| -------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `VolumeFader`                                            | Track and master volume in dB; takes a taper so travel matches the engine |
-| `ParameterKnob`                                          | Any continuous parameter; typed values via `parse`                        |
-| `PanKnob`                                                | Pan −1…1, centred, reads and types `L30` / `C` / `R30`                    |
-| `StereoMeter`                                            | L/R peak meter with hold and a clip light, fed by a `FrameSource`         |
-| `MuteToggle`, `SoloToggle`, `MonitorToggle`, `ArmToggle` | Channel buttons                                                           |
-| `ParameterSliderField`                                   | Labelled slider with value and hint, for inspectors                       |
+| Component                                                | Built on         | Use                                                                       |
+| -------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
+| `VolumeFader`                                            | `Fader`          | Track and master volume in dB; takes a taper so travel matches the engine |
+| `ParameterKnob`                                          | `Knob`           | Any continuous parameter; typed values via `parse`                        |
+| `PanKnob`                                                | `Knob`           | Pan −1…1, centred, reads and types `L30` / `C` / `R30`                    |
+| `StereoMeter`                                            | `Meter`          | L/R peak meter with hold and a clip latch, fed by a `FrameSource`         |
+| `ParameterSliderField`                                   | `Fader`          | Labelled horizontal slider with value and hint, for inspectors            |
+| `MuteToggle`, `SoloToggle`, `MonitorToggle`, `ArmToggle` | Base UI `Toggle` | Channel buttons (`@audio-ui/react` has none)                              |
+| `EditableReadout`                                        | (own)            | Value readout you can double-click and type into                          |
 
-Controls only report values (`onChange` while moving, `onCommit` at the end of a gesture). Meters
-never re-render React: give them a `FrameSource` and emit frames into it, for example
+Controls only report values (`onChange` while moving, `onCommit` at the end of a gesture).
+
+- **Typed values** go through `EditableReadout` rather than the primitives' `Value editable`, because
+  that one only parses plain numbers in the control's own units, and Studio's controls take text such
+  as `L30`, `2.5 kHz` or `-inf`.
+- **Faders** run the primitive in taper position space (0…1) and convert to dB, since `Fader` has no
+  non-linear scale; `Knob` takes any range directly.
+- **Meters** never re-render React. Give them a `FrameSource` and emit frames into it; the
+  `@audio-ui/react` meter draws `peaks` but leaves hold timing to the caller, so use
+  `createMeterEmitter()`, which adds peak hold and fall:
 
 ```ts
-const source = createFrameEmitter<MeterFrame>();
-renderLoop.add(() => source.emit(meterFrameFromGains(meter.peak, meter.rms)));
+const source = createMeterEmitter();
+renderLoop.add(() => source.emit(meterFrameFromGains(meter.peak)));
 ```
 
 In `@studio/react`, `useEngineMeterSource` does this from `engine.readMeters()`.
-
-The audiocn primitives (`Fader`, `Knob`, `LevelMeter`, `DbScale`, …) are exported too, for layouts
-the set does not cover.

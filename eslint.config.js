@@ -101,15 +101,6 @@ export default defineConfig(
     },
   },
   {
-    // Vendored audiocn sources stay as upstream wrote them (see packages/audio-ui/UPSTREAM.md):
-    // their fire-and-forget AudioContext.resume() and font-ready promises handle their own errors.
-    files: ['packages/audio-ui/src/audiocn/**/*.{ts,tsx}'],
-    rules: {
-      '@typescript-eslint/no-floating-promises': 'off',
-      '@typescript-eslint/no-misused-promises': 'off',
-    },
-  },
-  {
     files: ['packages/{audio-web,platform-browser}/src/**/*.ts'],
     languageOptions: { globals: { ...globals.browser } },
   },

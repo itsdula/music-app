@@ -2,25 +2,23 @@
   "name": "@studio/audio-ui",
   "version": "0.1.0",
   "private": true,
-  "description": "Audio controls and meters (vendored audiocn components) themed for Studio.",
+  "description": "Audio controls and meters for Studio, built on @audio-ui/react primitives.",
   "type": "module",
   "sideEffects": [
     "**/*.css"
   ],
   "exports": {
-    ".": "./src/index.ts",
-    "./theme.css": "./src/theme.css"
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json",
-    "vendor": "node scripts/vendor-audiocn.mjs"
+    "typecheck": "tsc -p tsconfig.src.json && tsc -p tsconfig.json"
   },
   "studio": {
     "packageClass": "C"
   },
   "dependencies": {
+    "@audio-ui/react": "0.9.1",
     "@base-ui/react": "1.9.0",
-    "class-variance-authority": "0.7.1",
     "cn": "0.4.0"
   },
   "peerDependencies": {

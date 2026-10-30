@@ -1,36 +1,32 @@
-import { ClipIndicator } from '../audiocn/components/ui/clip-indicator';
+import { Meter } from '@audio-ui/react/meter';
+import { cn } from '../lib/cn';
+import type { FrameSource } from '../lib/frame-source';
 import {
-  LevelMeter,
-  LevelMeterBar,
-  LevelMeterChannel,
-  LevelMeterChannels,
-  LevelMeterHold,
-  LevelMeterTrack,
-} from '../audiocn/components/ui/level-meter';
-import type { FrameSource, MeterFrame, Orientation } from '../audiocn/lib/audio/types';
-import { cn } from '../audiocn/lib/utils';
-import { MIX_METER_ZONES } from '../lib/meter-frame';
+  METER_FLOOR_DB,
+  MIX_METER_CLIP_DB,
+  MIX_METER_WARN_DB,
+  type MeterFrame,
+} from '../lib/meter-frame';
 
 export interface StereoMeterProps {
   /** Accessible name of the meter. */
   label: string;
   /** Frames to paint; the meter subscribes and repaints without re-rendering React. */
   source: FrameSource<MeterFrame> | null;
-  orientation?: Orientation;
+  orientation?: 'horizontal' | 'vertical';
   /** Track thickness. Default `sm`. */
   size?: 'sm' | 'default';
-  /** A clip light next to the meter; click it to reset. Default true. */
+  /** Light a clip mark on a channel once it reaches 0 dBFS; click the meter to reset. Default true. */
   showClip?: boolean;
-  /** Layer an RMS bar under the peak bar. Default false. */
-  showRms?: boolean;
-  minDb?: number;
-  maxDb?: number;
   className?: string;
 }
 
+const CHANNELS = ['left', 'right'] as const;
+const SILENT = [METER_FLOOR_DB, METER_FLOOR_DB];
+
 /**
- * Left/right peak meter with peak hold and a clip light. The clip light sits beside the meter
- * rather than inside it, because a `meter` role may not contain interactive elements.
+ * Left/right peak meter (`@audio-ui/react` Meter) with peak hold and a clip latch. Levels are
+ * painted straight from the source, so a meter never re-renders React during playback.
  */
 export function StereoMeter({
   label,
@@ -38,42 +34,63 @@ export function StereoMeter({
   orientation = 'vertical',
   size = 'sm',
   showClip = true,
-  showRms = false,
-  minDb = -60,
-  maxDb = 0,
   className,
 }: StereoMeterProps) {
   const vertical = orientation === 'vertical';
   return (
-    <div
-      className={cn('flex min-h-0 min-w-0 items-center gap-1', vertical && 'flex-col', className)}
+    <Meter.Root
+      aria-label={label}
+      {...(source ? { source } : { value: SILENT })}
+      min={METER_FLOOR_DB}
+      max={0}
+      warnThreshold={MIX_METER_WARN_DB}
+      clipThreshold={MIX_METER_CLIP_DB}
+      orientation={orientation}
+      title={showClip ? 'Click to reset the clip lights' : undefined}
+      className={cn(
+        'flex min-h-0 min-w-0',
+        vertical ? 'justify-center' : 'items-center',
+        className,
+      )}
       data-slot="stereo-meter"
     >
-      {showClip && vertical && <ClipIndicator source={source} className="h-4" />}
-      <LevelMeter
-        aria-label={label}
-        source={source}
-        channelCount={2}
-        orientation={orientation}
-        size={size}
-        minDb={minDb}
-        maxDb={maxDb}
-        zones={MIX_METER_ZONES}
-        className={cn('[--meter-gap:2px]', vertical ? 'min-h-0 flex-1' : 'min-w-0 flex-1')}
-      >
-        <LevelMeterChannels>
-          {[0, 1].map((index) => (
-            <LevelMeterChannel key={index} index={index}>
-              <LevelMeterTrack>
-                {showRms && <LevelMeterBar measure="rms" className="opacity-60" />}
-                <LevelMeterBar />
-                <LevelMeterHold />
-              </LevelMeterTrack>
-            </LevelMeterChannel>
-          ))}
-        </LevelMeterChannels>
-      </LevelMeter>
-      {showClip && !vertical && <ClipIndicator source={source} className="h-4" />}
-    </div>
+      <div className={cn('flex gap-0.5', vertical ? 'h-full flex-row' : 'w-full flex-col')}>
+        <Meter.Channels>
+          {(index) => (
+            <Meter.Channel
+              key={index}
+              index={index}
+              aria-label={`${label}, ${CHANNELS[index] ?? `channel ${index + 1}`}`}
+              className={cn(
+                'group/channel relative',
+                vertical ? 'h-full' : 'w-full',
+                vertical ? (size === 'sm' ? 'w-1.5' : 'w-2') : size === 'sm' ? 'h-1.5' : 'h-2',
+              )}
+            >
+              <Meter.Track
+                className={cn(
+                  'relative size-full overflow-hidden rounded-[2px] bg-surface-0',
+                  showClip &&
+                    'group-data-clipped/channel:ring-1 group-data-clipped/channel:ring-record',
+                )}
+              >
+                <Meter.Indicator
+                  className={cn(
+                    'absolute inset-0 bg-success',
+                    'group-data-warning/channel:bg-warning group-data-clipping/channel:bg-record',
+                  )}
+                />
+                <Meter.Peak
+                  className={cn(
+                    'absolute bg-text/80',
+                    vertical ? 'inset-x-0 h-px' : 'inset-y-0 w-px',
+                  )}
+                />
+              </Meter.Track>
+            </Meter.Channel>
+          )}
+        </Meter.Channels>
+      </div>
+    </Meter.Root>
   );
 }

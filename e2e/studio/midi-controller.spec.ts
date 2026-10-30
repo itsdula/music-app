@@ -29,9 +29,8 @@ async function openControllerView(
 }
 
 async function sliderValue(page: Page, name: string): Promise<number> {
-  return Number(
-    await page.getByRole('slider', { name, exact: true }).first().getAttribute('aria-valuenow'),
-  );
+  // Knobs and faders are native range inputs: the position is their value, not aria-valuenow.
+  return Number(await page.getByRole('slider', { name, exact: true }).first().inputValue());
 }
 
 test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
@@ -101,7 +100,10 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
   }) => {
     await connectMidi(page);
     await page.getByRole('tab', { name: 'Track', exact: true }).click();
-    await page.getByRole('slider', { name: 'Cutoff', exact: true }).click({ button: 'right' });
+    await page
+      .getByRole('slider', { name: 'Cutoff', exact: true })
+      .locator('..')
+      .click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'MIDI Learn…' }).click();
     await expect(page.getByTestId('learn-banner')).toContainText('MIDI Learn: move a knob');
     await sendMidi(page, MPK.id, [0xb0, 21, 100]);
@@ -129,7 +131,10 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     await connectMidi(page);
     await page.getByRole('tab', { name: 'Track', exact: true }).click();
     const learn = async (param: string, cc: number, scope: 'project' | 'global') => {
-      await page.getByRole('slider', { name: param, exact: true }).click({ button: 'right' });
+      await page
+        .getByRole('slider', { name: param, exact: true })
+        .locator('..')
+        .click({ button: 'right' });
       await page.getByRole('menuitem', { name: 'MIDI Learn…' }).click();
       await sendMidi(page, MPK.id, [0xb0, cc, 90]);
       await expect(page.getByTestId('learn-banner')).toContainText(`CC ${cc}`);
