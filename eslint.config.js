@@ -93,11 +93,20 @@ export default defineConfig(
     },
   },
   {
-    files: ['packages/{ui,studio-react}/src/**/*.{ts,tsx}', 'apps/**/*.{ts,tsx}'],
+    files: ['packages/{ui,audio-ui,studio-react}/src/**/*.{ts,tsx}', 'apps/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     languageOptions: { globals: { ...globals.browser } },
     rules: {
       ...reactHooks.configs.flat.recommended.rules,
+    },
+  },
+  {
+    // Vendored audiocn sources stay as upstream wrote them (see packages/audio-ui/UPSTREAM.md):
+    // their fire-and-forget AudioContext.resume() and font-ready promises handle their own errors.
+    files: ['packages/audio-ui/src/audiocn/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
     },
   },
   {

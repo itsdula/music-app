@@ -1,0 +1,70 @@
+/*
+ * Maps the shadcn/audiocn theme variables onto Studio's tokens (@studio/ui/tokens.css).
+ * Scoped to .studio-root so a host page that uses shadcn keeps its own variables.
+ * Import after @studio/ui/tokens.css.
+ */
+.studio-root {
+  --background: var(--color-surface-0);
+  --foreground: var(--color-text);
+  --card: var(--color-surface-1);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-surface-2);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-text);
+  --secondary: var(--color-surface-3);
+  --secondary-foreground: var(--color-text);
+  --muted: var(--color-surface-3);
+  --muted-foreground: var(--color-text-muted);
+  --destructive: var(--color-record);
+  --border: var(--color-line);
+  --input: var(--color-line-strong);
+  --ring: var(--color-accent);
+  --radius: var(--radius-md);
+
+  /* Audio tokens. Mute/solo keep Studio's existing colours (amber mute, violet solo). */
+  --meter-ok: var(--color-success);
+  --meter-warn: var(--color-warning);
+  --meter-clip: var(--color-record);
+  --channel-mute: var(--color-warning);
+  --channel-solo: var(--color-accent-strong);
+  --channel-monitor: var(--color-success);
+  --meter-ok-foreground: var(--meter-ok);
+  --meter-warn-foreground: var(--meter-warn);
+  --meter-clip-foreground: var(--meter-clip);
+  --channel-mute-foreground: var(--channel-mute);
+  --channel-solo-foreground: var(--channel-solo);
+  --channel-monitor-foreground: var(--channel-monitor);
+}
+
+/* Utility colours the audiocn components use (bg-muted, ring-ring/30, bg-meter-ok, …). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-meter-ok: var(--meter-ok);
+  --color-meter-ok-foreground: var(--meter-ok-foreground);
+  --color-meter-warn: var(--meter-warn);
+  --color-meter-warn-foreground: var(--meter-warn-foreground);
+  --color-meter-clip: var(--meter-clip);
+  --color-meter-clip-foreground: var(--meter-clip-foreground);
+  --color-channel-mute: var(--channel-mute);
+  --color-channel-mute-foreground: var(--channel-mute-foreground);
+  --color-channel-solo: var(--channel-solo);
+  --color-channel-solo-foreground: var(--channel-solo-foreground);
+  --color-channel-monitor: var(--channel-monitor);
+  --color-channel-monitor-foreground: var(--channel-monitor-foreground);
+}

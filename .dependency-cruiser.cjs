@@ -58,6 +58,7 @@ const ALLOWED = {
     'vocal-dsp',
   ],
   ui: [],
+  'audio-ui': [],
   'studio-react': [
     'domain',
     'commands',
@@ -71,6 +72,7 @@ const ALLOWED = {
     'platform-contracts',
     'platform-browser',
     'ui',
+    'audio-ui',
   ],
 };
 

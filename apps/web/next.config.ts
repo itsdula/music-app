@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     '@studio/react',
     '@studio/ui',
+    '@studio/audio-ui',
     '@studio/domain',
     '@studio/commands',
     '@studio/engine-core',

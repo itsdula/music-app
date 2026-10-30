@@ -1,3 +1,4 @@
+import { ParameterKnob } from '@studio/audio-ui';
 import type { Command } from '@studio/commands';
 import {
   denormalizeParam,
@@ -11,11 +12,11 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-  Knob,
   SegmentedControl,
 } from '@studio/ui';
 import type { ReactElement } from 'react';
 import { useRef } from 'react';
+import { parseParamText } from '../../lib/param-text';
 import { useSession } from '../../session/context';
 
 /**
@@ -71,19 +72,20 @@ export function ParamControl({
   return withLearn(
     address,
     session.midi.startLearn.bind(session.midi),
-    <Knob
+    <ParameterKnob
       label={spec.label}
-      size={size}
+      size={size === 'sm' ? 'sm' : 'default'}
       min={0}
       max={1}
       step={spec.step ? spec.step / (spec.max - spec.min) : 0.001}
       fineStep={0.0002}
-      defaultValue={normalizeParam(spec, spec.default)}
+      resetValue={normalizeParam(spec, spec.default)}
       value={normalizeParam(spec, value)}
-      bipolar={bipolar}
-      formatValue={(n) => formatParamValue(spec, denormalizeParam(spec, n))}
+      {...(bipolar ? { origin: normalizeParam(spec, 0) } : {})}
+      format={(n) => formatParamValue(spec, denormalizeParam(spec, n))}
+      parse={(text) => parseParamText(spec, text)}
       onChange={(n) => commit(denormalizeParam(spec, n))}
-      onChangeEnd={() => {
+      onCommit={() => {
         gesture.current += 1;
       }}
     />,

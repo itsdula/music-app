@@ -1,12 +1,13 @@
 import { type Track } from '@studio/domain';
-import { Meter, ToggleButton, type MeterHandle } from '@studio/ui';
-import { AudioLines, Circle, Drum, GripVertical, Headphones, Mic, Piano } from 'lucide-react';
+import { StereoMeter } from '@studio/audio-ui';
+import { AudioLines, Drum, GripVertical, Mic, Piano } from 'lucide-react';
 import { RenameField, StudioContextMenu } from '../../components/context-menu';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { startDragGesture } from '../../lib/drag-gesture';
-import { useFrame } from '../../lib/use-frame';
+import { useEngineMeterSource } from '../../lib/engine-meter-source';
 import { useSession } from '../../session/context';
 import { selectTrack } from '../../state/ui-store';
+import { TrackChannelButtons } from '../mixer/TrackChannelButtons';
 import { trackMenu } from './arrangement-menus';
 
 function TrackIcon({ track }: { track: Track }) {
@@ -27,15 +28,7 @@ export function TrackHeader({
   const session = useSession();
   const { history, uiStore } = session;
   const [renaming, setRenaming] = useState(false);
-  const meterRef = useRef<MeterHandle>(null);
-
-  useFrame(() => {
-    const meter = session.engine.readMeters().tracks[track.id];
-    if (meter) meterRef.current?.setLevels(meter.peak, meter.clipped);
-  });
-
-  const setMixer = (mixer: Partial<Track['mixer']>, label: string) =>
-    history.execute({ type: 'track.setMixer', trackId: track.id, mixer }, { label });
+  const meterSource = useEngineMeterSource(track.id);
 
   const onGripDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     const startIndex = history.present.trackOrder.indexOf(track.id);
@@ -112,71 +105,14 @@ export function TrackHeader({
             )}
           </div>
           <div className="flex items-center gap-1">
-            <ToggleButton
-              size="sm"
-              label="Mute"
-              tone="warning"
-              pressed={track.mixer.mute}
-              onPressedChange={(mute) => setMixer({ mute }, mute ? 'Mute' : 'Unmute')}
-              data-testid="track-mute"
-            >
-              M
-            </ToggleButton>
-            <ToggleButton
-              size="sm"
-              label="Solo"
-              tone="accent"
-              pressed={track.mixer.solo}
-              onPressedChange={(solo) => setMixer({ solo }, solo ? 'Solo' : 'Unsolo')}
-              data-testid="track-solo"
-            >
-              S
-            </ToggleButton>
-            <ToggleButton
-              size="sm"
-              label={
-                track.kind === 'instrument' ? 'Arm for MIDI recording' : 'Arm for audio recording'
-              }
-              tone="record"
-              pressed={track.armed}
-              icon={<Circle className={track.armed ? 'fill-current' : ''} />}
-              onPressedChange={(armed) =>
-                history.execute(
-                  { type: 'track.update', trackId: track.id, patch: { armed } },
-                  { label: armed ? 'Arm Track' : 'Disarm Track' },
-                )
-              }
-              data-testid="track-arm"
-            />
-            {track.kind !== 'instrument' && (
-              <ToggleButton
-                size="sm"
-                label="Monitor input (use headphones to avoid feedback)"
-                tone="accent"
-                pressed={track.monitor === 'on'}
-                icon={<Headphones />}
-                onPressedChange={(on) => {
-                  history.execute(
-                    {
-                      type: 'track.update',
-                      trackId: track.id,
-                      patch: { monitor: on ? 'on' : 'off' },
-                    },
-                    { label: on ? 'Monitor On' : 'Monitor Off' },
-                  );
-                  void session.transport
-                    .ensureAudio()
-                    .then(() => session.engine.setInputMonitoring(track.id, on));
-                }}
-                data-testid="track-monitor"
-              />
-            )}
-            <Meter
-              ref={meterRef}
+            <TrackChannelButtons track={track} />
+            <StereoMeter
               label={`${track.name} level`}
+              source={meterSource}
               orientation="horizontal"
-              channels={2}
-              className="ml-1 h-3 min-w-0 flex-1"
+              size="default"
+              showClip={false}
+              className="ml-1 min-w-0 flex-1"
             />
           </div>
         </div>

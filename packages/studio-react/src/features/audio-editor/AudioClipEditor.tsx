@@ -1,5 +1,6 @@
 import { framesToSeconds, type AudioClip } from '@studio/domain';
-import { Knob, ToggleButton } from '@studio/ui';
+import { ParameterKnob } from '@studio/audio-ui';
+import { ToggleButton } from '@studio/ui';
 import { Repeat } from 'lucide-react';
 import { useRef } from 'react';
 import { SEPARATOR, StudioContextMenu } from '../../components/context-menu';
@@ -82,42 +83,42 @@ export function AudioClipEditor({ clip }: { clip: AudioClip }) {
           </span>
         </div>
         <div className="flex flex-wrap items-end gap-5">
-          <Knob
+          <ParameterKnob
             label="Clip gain"
             min={-36}
             max={12}
             step={0.1}
-            defaultValue={0}
+            resetValue={0}
             value={clip.gainDb}
-            formatValue={(v) => `${formatDb(v)} dB`}
+            format={(v) => `${formatDb(v)} dB`}
             onChange={(gainDb) => updateClip({ gainDb }, 'Clip Gain')}
-            onChangeEnd={end}
+            onCommit={end}
           />
-          <Knob
+          <ParameterKnob
             label="Fade in"
             min={0}
             max={Math.max(1, maxFadeMs)}
             step={1}
-            defaultValue={0}
+            resetValue={0}
             value={framesToSeconds(clip.fadeInFrames, sampleRate) * 1000}
-            formatValue={(v) => `${Math.round(v)} ms`}
+            format={(v) => `${Math.round(v)} ms`}
             onChange={(ms) =>
               updateClip({ fadeInFrames: Math.round((ms / 1000) * sampleRate) }, 'Fade In')
             }
-            onChangeEnd={end}
+            onCommit={end}
           />
-          <Knob
+          <ParameterKnob
             label="Fade out"
             min={0}
             max={Math.max(1, maxFadeMs)}
             step={1}
-            defaultValue={0}
+            resetValue={0}
             value={framesToSeconds(clip.fadeOutFrames, sampleRate) * 1000}
-            formatValue={(v) => `${Math.round(v)} ms`}
+            format={(v) => `${Math.round(v)} ms`}
             onChange={(ms) =>
               updateClip({ fadeOutFrames: Math.round((ms / 1000) * sampleRate) }, 'Fade Out')
             }
-            onChangeEnd={end}
+            onCommit={end}
           />
           <ToggleButton
             label="Loop clip"

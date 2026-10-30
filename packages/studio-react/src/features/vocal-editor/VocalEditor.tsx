@@ -5,6 +5,7 @@
  * VocalController renders the preview that plays through the engine.
  */
 import type { AssetRef, AudioClip, VocalEditDoc } from '@studio/domain';
+import { ParameterSliderField } from '@studio/audio-ui';
 import { Badge, Button, EmptyState, ProgressBar, Spinner, ToggleButton } from '@studio/ui';
 import type { VocalAnalysis } from '@studio/vocal-dsp';
 import { AlertTriangle, Download, ListMusic, Mic, Pencil, SlidersHorizontal } from 'lucide-react';
@@ -12,7 +13,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import type { VocalAssetState } from '../../state/vocal-store';
 import { createVocalActions } from './actions';
-import { KeyPicker, LabeledSlider, VocalInspector, useCorrectionSetter } from './controls';
+import { KeyPicker, VocalInspector, useCorrectionSetter } from './controls';
 import type { ClipTimeMapping } from './geometry';
 import { summarizeSelection } from './model';
 import { NotesTable } from './NotesTable';
@@ -217,29 +218,29 @@ function ReadyEditor({
     >
       <div className="flex shrink-0 flex-wrap items-end gap-x-4 gap-y-2 border-b border-line px-3 py-2">
         <KeyPicker doc={doc} />
-        <LabeledSlider
+        <ParameterSliderField
           className="w-36"
           label="Auto Tune"
-          testId="vocal-amount"
+          data-testid="vocal-amount"
           value={doc.correction.amount}
           min={0}
           max={1}
           step={0.01}
           format={(v) => `${Math.round(v * 100)}%`}
           onChange={(v) => correction.set({ amount: v }, 'Auto Tune Amount')}
-          onChangeEnd={correction.end}
+          onCommit={correction.end}
         />
-        <LabeledSlider
+        <ParameterSliderField
           className="w-32"
           label="Humanize"
-          testId="vocal-humanize"
+          data-testid="vocal-humanize"
           value={doc.correction.humanize}
           min={0}
           max={1}
           step={0.01}
           format={(v) => `${Math.round(v * 100)}%`}
           onChange={(v) => correction.set({ humanize: v }, 'Humanize')}
-          onChangeEnd={correction.end}
+          onCommit={correction.end}
         />
         <div className="flex items-center gap-1.5">
           <ToggleButton

@@ -23,6 +23,7 @@
   "dependencies": {
     "@studio/audio-contracts": "workspace:*",
     "@studio/audio-dsp": "workspace:*",
+    "@studio/audio-ui": "workspace:*",
     "@studio/commands": "workspace:*",
     "@studio/domain": "workspace:*",
     "@studio/engine-core": "workspace:*",

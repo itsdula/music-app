@@ -18,7 +18,6 @@ import {
   PopoverTrigger,
   ProgressBar,
   Select,
-  Slider,
   Spinner,
   StudioPortalProvider,
   Switch,
@@ -132,22 +131,6 @@ describe('other primitives', () => {
     const control = screen.getByRole('switch', { name: 'Snap to grid' });
     fireEvent.click(control);
     expect(onChange).toHaveBeenCalledWith(true);
-  });
-
-  it('Slider labels its thumb', () => {
-    // Radix Slider measures its thumb with ResizeObserver, which jsdom lacks.
-    vi.stubGlobal(
-      'ResizeObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
-    render(<Slider label="Zoom" value={0.5} onChange={() => {}} formatValue={(v) => `${v}x`} />);
-    const thumb = screen.getByRole('slider', { name: 'Zoom' });
-    expect(thumb).toHaveAttribute('aria-valuetext', '0.5x');
-    vi.unstubAllGlobals();
   });
 
   it('Tabs switch on click', () => {

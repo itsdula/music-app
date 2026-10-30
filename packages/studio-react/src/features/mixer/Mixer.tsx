@@ -1,16 +1,13 @@
+import { PanKnob, StereoMeter, VolumeFader } from '@studio/audio-ui';
 import {
   EFFECT_KINDS,
   EFFECT_LABELS,
   MASTER_GAIN_SPEC,
   TRACK_GAIN_SPEC,
-  denormalizeParam,
-  normalizeParam,
   orderedTracks,
   type Track,
   type TrackId,
 } from '@studio/domain';
-import { Fader, Knob, Meter, ToggleButton, type MeterHandle } from '@studio/ui';
-import { Circle } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import {
   RenameField,
@@ -18,13 +15,19 @@ import {
   StudioContextMenu,
   type MenuEntryInput,
 } from '../../components/context-menu';
-import { formatDb, formatPan } from '../../lib/format';
-import { useFrame } from '../../lib/use-frame';
+import { useEngineMeterSource } from '../../lib/engine-meter-source';
+import { formatDb } from '../../lib/format';
+import { paramTaper } from '../../lib/param-taper';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import type { StudioSession } from '../../session/studio-session';
 import { selectTrack } from '../../state/ui-store';
 import { trackMenu } from '../arrangement/arrangement-menus';
 import { EffectChain } from '../devices/EffectChain';
+import { StripChannelButtons } from './TrackChannelButtons';
+
+const TRACK_GAIN_TAPER = paramTaper(TRACK_GAIN_SPEC);
+const MASTER_GAIN_TAPER = paramTaper(MASTER_GAIN_SPEC);
+const formatGain = (db: number) => `${formatDb(db)} dB`;
 
 function useGestureKey() {
   const counter = useRef(0);
@@ -48,13 +51,9 @@ function addEffectSubmenu(session: StudioSession, target: TrackId | 'master'): M
 function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) {
   const session = useSession();
   const [renaming, setRenaming] = useState(false);
-  const meterRef = useRef<MeterHandle>(null);
+  const meterSource = useEngineMeterSource(track.id);
   const gainGesture = useGestureKey();
   const panGesture = useGestureKey();
-  useFrame(() => {
-    const meter = session.engine.readMeters().tracks[track.id];
-    if (meter) meterRef.current?.setLevels(meter.peak, meter.clipped);
-  });
   const setMixer = (mixer: Partial<Track['mixer']>, label: string, coalesceKey?: string) =>
     session.history.execute(
       { type: 'track.setMixer', trackId: track.id, mixer },
@@ -112,85 +111,50 @@ function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) 
             </span>
           )}
         </div>
-        <Knob
+        <PanKnob
           label={`${track.name} pan`}
+          hideLabel
+          showValue={false}
           size="sm"
-          min={-1}
-          max={1}
-          step={0.01}
-          bipolar
-          defaultValue={0}
           value={track.mixer.pan}
-          formatValue={formatPan}
           onChange={(pan) => setMixer({ pan }, 'Pan', `pan:${track.id}:${panGesture.key()}`)}
-          onChangeEnd={panGesture.end}
+          onCommit={panGesture.end}
         />
-        <div className="flex min-h-0 flex-1 items-stretch gap-1.5">
-          <Fader
+        <div className="flex min-h-20 flex-1 items-stretch gap-1.5">
+          <VolumeFader
             label={`${track.name} volume`}
-            value={normalizeParam(TRACK_GAIN_SPEC, track.mixer.gainDb)}
-            defaultValue={normalizeParam(TRACK_GAIN_SPEC, 0)}
-            unityValue={normalizeParam(TRACK_GAIN_SPEC, 0)}
-            formatValue={(n) => `${formatDb(denormalizeParam(TRACK_GAIN_SPEC, n))} dB`}
-            onChange={(n) =>
-              setMixer(
-                { gainDb: denormalizeParam(TRACK_GAIN_SPEC, n) },
-                'Volume',
-                `gain:${track.id}:${gainGesture.key()}`,
-              )
+            value={track.mixer.gainDb}
+            min={TRACK_GAIN_SPEC.min}
+            max={TRACK_GAIN_SPEC.max}
+            taper={TRACK_GAIN_TAPER}
+            format={formatGain}
+            onChange={(gainDb) =>
+              setMixer({ gainDb }, 'Volume', `gain:${track.id}:${gainGesture.key()}`)
             }
-            onChangeEnd={gainGesture.end}
-            className="h-full min-h-24"
-            showValue
+            onCommit={gainGesture.end}
+            className="h-full"
           />
-          <Meter
-            ref={meterRef}
-            label={`${track.name} level`}
-            orientation="vertical"
-            channels={2}
-            className="h-full min-h-24 w-3"
-          />
+          <StereoMeter label={`${track.name} level`} source={meterSource} className="h-full" />
         </div>
         <div className="flex gap-1">
-          <ToggleButton
-            size="sm"
-            label="Mute"
-            tone="warning"
-            pressed={track.mixer.mute}
-            onPressedChange={(mute) => setMixer({ mute }, mute ? 'Mute' : 'Unmute')}
-          >
-            M
-          </ToggleButton>
-          <ToggleButton
-            size="sm"
-            label="Solo"
-            tone="accent"
-            pressed={track.mixer.solo}
-            onPressedChange={(solo) => setMixer({ solo }, solo ? 'Solo' : 'Unsolo')}
-          >
-            S
-          </ToggleButton>
-          <ToggleButton
-            size="sm"
-            label="Arm"
-            tone="record"
-            pressed={track.armed}
-            icon={<Circle className={track.armed ? 'fill-current' : ''} />}
-            onPressedChange={(armed) =>
-              session.history.execute({ type: 'track.update', trackId: track.id, patch: { armed } })
-            }
-          />
+          <StripChannelButtons track={track} />
         </div>
+        {/* One line, so every strip has the same height; the full chain is in the Track tab. */}
         <ul
-          className="w-full space-y-0.5 text-[10px] text-text-muted"
+          className="flex w-full min-w-0 gap-1 overflow-hidden text-[10px] leading-3.5 whitespace-nowrap text-text-muted"
           aria-label={`${track.name} effects`}
+          title={track.effects.map((fx) => EFFECT_LABELS[fx.kind]).join(', ') || undefined}
         >
           {track.effects.length === 0 ? (
             <li className="text-text-faint">No effects</li>
           ) : (
-            track.effects.map((fx) => (
-              <li key={fx.id} className={`truncate ${fx.bypass ? 'line-through opacity-60' : ''}`}>
+            track.effects.map((fx, i) => (
+              <li
+                key={fx.id}
+                className={`${i === track.effects.length - 1 ? 'truncate' : 'shrink-0'} ${fx.bypass ? 'line-through opacity-60' : ''}`}
+              >
                 {EFFECT_LABELS[fx.kind]}
+                {i < track.effects.length - 1 ? ',' : ''}
               </li>
             ))
           )}
@@ -203,12 +167,8 @@ function ChannelStrip({ track, selected }: { track: Track; selected: boolean }) 
 function MasterStrip() {
   const session = useSession();
   const gainDb = useProjectState((s) => s.project.master.gainDb);
-  const meterRef = useRef<MeterHandle>(null);
+  const meterSource = useEngineMeterSource('master');
   const gesture = useGestureKey();
-  useFrame(() => {
-    const meters = session.engine.readMeters();
-    meterRef.current?.setLevels(meters.master.peak, meters.master.clipped);
-  });
   const resolveMenu = () => [
     {
       id: 'master-reset-volume',
@@ -229,29 +189,28 @@ function MasterStrip() {
         data-testid="master-strip"
       >
         <span className="text-[11px] font-semibold">Master</span>
-        <div className="flex min-h-0 flex-1 items-stretch gap-1.5">
-          <Fader
+        <div className="flex min-h-20 flex-1 items-stretch gap-1.5">
+          <VolumeFader
             label="Master volume"
-            value={normalizeParam(MASTER_GAIN_SPEC, gainDb)}
-            defaultValue={normalizeParam(MASTER_GAIN_SPEC, 0)}
-            unityValue={normalizeParam(MASTER_GAIN_SPEC, 0)}
-            formatValue={(n) => `${formatDb(denormalizeParam(MASTER_GAIN_SPEC, n))} dB`}
-            onChange={(n) =>
+            value={gainDb}
+            min={MASTER_GAIN_SPEC.min}
+            max={MASTER_GAIN_SPEC.max}
+            taper={MASTER_GAIN_TAPER}
+            format={formatGain}
+            onChange={(next) =>
               session.history.execute(
-                { type: 'master.setGain', gainDb: denormalizeParam(MASTER_GAIN_SPEC, n) },
+                { type: 'master.setGain', gainDb: next },
                 { label: 'Master Volume', coalesceKey: `master:${gesture.key()}` },
               )
             }
-            onChangeEnd={gesture.end}
-            className="h-full min-h-24"
-            showValue
+            onCommit={gesture.end}
+            className="h-full"
           />
-          <Meter
-            ref={meterRef}
+          <StereoMeter
             label="Master level"
-            orientation="vertical"
-            channels={2}
-            className="h-full min-h-24 w-4"
+            source={meterSource}
+            size="default"
+            className="h-full"
           />
         </div>
       </div>

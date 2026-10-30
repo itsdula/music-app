@@ -16,7 +16,8 @@ import {
   type VocalNoteEdit,
   type VocalNoteId,
 } from '@studio/domain';
-import { Button, Select, Slider, Switch, cn } from '@studio/ui';
+import { ParameterSliderField } from '@studio/audio-ui';
+import { Button, Select, Switch } from '@studio/ui';
 import type { VocalProcessorCapabilities } from '@studio/vocal-dsp';
 import { useRef, type ReactNode } from 'react';
 import { useSession } from '../../session/context';
@@ -35,55 +36,6 @@ import {
 } from './model';
 
 const percent = (v: number) => `${Math.round(v * 100)}%`;
-
-export function LabeledSlider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  format,
-  onChange,
-  onChangeEnd,
-  disabled,
-  hint,
-  className,
-  testId,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  format: (v: number) => string;
-  onChange: (v: number) => void;
-  onChangeEnd?: () => void;
-  disabled?: boolean;
-  hint?: string;
-  className?: string;
-  testId?: string;
-}) {
-  return (
-    <div className={cn('flex min-w-0 flex-col gap-0.5', className)} data-testid={testId}>
-      <div className="flex items-baseline justify-between gap-2 text-[10px] font-medium tracking-wide text-text-muted uppercase">
-        <span>{label}</span>
-        <span className="text-text tabular-nums normal-case">{format(value)}</span>
-      </div>
-      <Slider
-        label={label}
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        formatValue={format}
-        onChange={onChange}
-        onChangeEnd={() => onChangeEnd?.()}
-        {...(disabled !== undefined ? { disabled } : {})}
-      />
-      {hint ? <p className="text-[10px] leading-snug text-text-faint">{hint}</p> : null}
-    </div>
-  );
-}
 
 /** Commits correction changes as one undo entry per slider gesture. */
 export function useCorrectionSetter(assetId: AssetId) {
@@ -233,7 +185,7 @@ export function VocalInspector({
       data-testid="vocal-inspector"
     >
       <Section title="Correction">
-        <LabeledSlider
+        <ParameterSliderField
           label="Retune speed"
           value={c.retuneSpeedMs}
           min={0}
@@ -241,7 +193,7 @@ export function VocalInspector({
           step={5}
           format={(v) => `${Math.round(v)} ms`}
           onChange={(v) => correction.set({ retuneSpeedMs: v }, 'Retune Speed')}
-          onChangeEnd={correction.end}
+          onCommit={correction.end}
           hint="Time to reach the target at note starts. Short times sound more robotic."
         />
         <div className="flex flex-col gap-1">
@@ -259,7 +211,7 @@ export function VocalInspector({
               : 'Not available with the current processing engine.'}
           </p>
         </div>
-        <LabeledSlider
+        <ParameterSliderField
           label="Formant shift"
           value={capabilities.formantShift ? c.formantShiftSemitones : 0}
           // Limited to ±3 st: formant shift has only been validated with objective measures
@@ -270,7 +222,7 @@ export function VocalInspector({
           format={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} st`}
           disabled={!capabilities.formantShift}
           onChange={(v) => correction.set({ formantShiftSemitones: v }, 'Formant Shift')}
-          onChangeEnd={correction.end}
+          onCommit={correction.end}
           hint={
             capabilities.formantShift
               ? 'Experimental: darker (−) or brighter (+) timbre without changing pitch.'
@@ -339,7 +291,7 @@ export function VocalInspector({
                 </Button>
               </div>
             </div>
-            <LabeledSlider
+            <ParameterSliderField
               label="Drift correction"
               value={edit.driftCorrection}
               min={0}
@@ -347,10 +299,10 @@ export function VocalInspector({
               step={0.01}
               format={percent}
               onChange={(v) => patch({ driftCorrection: v }, 'Drift Correction')}
-              onChangeEnd={endNoteGesture}
+              onCommit={endNoteGesture}
               hint={`Removes slow pitch drift across the note (detected ${formatCents(Math.round(first.driftCents))}).`}
             />
-            <LabeledSlider
+            <ParameterSliderField
               label="Vibrato / modulation"
               value={edit.modulationScale}
               min={0}
@@ -358,14 +310,14 @@ export function VocalInspector({
               step={0.01}
               format={percent}
               onChange={(v) => patch({ modulationScale: v }, 'Vibrato Scale')}
-              onChangeEnd={endNoteGesture}
+              onCommit={endNoteGesture}
               hint={
                 first.vibratoDepthCents > 0
                   ? `Detected vibrato ±${Math.round(first.vibratoDepthCents)}¢ at ${first.vibratoRateHz.toFixed(1)} Hz. 0% flattens, 200% exaggerates.`
                   : '0% flattens wobble, 200% exaggerates it.'
               }
             />
-            <LabeledSlider
+            <ParameterSliderField
               label="Transition"
               value={edit.transitionMs}
               min={0}
@@ -373,7 +325,7 @@ export function VocalInspector({
               step={5}
               format={(v) => `${Math.round(v)} ms`}
               onChange={(v) => patch({ transitionMs: v }, 'Note Transition')}
-              onChangeEnd={endNoteGesture}
+              onCommit={endNoteGesture}
               hint="Glide time into this note from the previous one."
             />
             <Switch
