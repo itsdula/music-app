@@ -23,8 +23,13 @@ import { resolveCursor, type CursorTarget } from '../../lib/pointer-cursor';
 import { useFrame } from '../../lib/use-frame';
 import { useAltKey } from '../../lib/use-modifier-keys';
 import { useProjectState, useSession, useUiState } from '../../session/context';
+import { clearSelection } from '../../state/selection-zones';
 import { selectClips, selectTrack } from '../../state/ui-store';
-import { BROWSER_DRAG_MIME, decodeBrowserItem } from '../browser/browser-items';
+import {
+  activateBrowserItem,
+  browserItemFromDrop,
+  isBrowserItemDrag,
+} from '../browser/activate-item';
 import { laneMenu, regionMenu, selectionForContextClick } from './arrangement-menus';
 import {
   duplicateMoveCommands,
@@ -209,7 +214,9 @@ export function ArrangementLanes() {
     const row = rowAtY(rows, y);
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     if (!hit) {
-      if (row) uiStore.setState((st) => selectTrack(st, row.track.id));
+      // Empty lane space selects that lane's track (below the last track: none) and, unless
+      // extending a selection, drops the selected clips and closes the clip editor.
+      uiStore.setState((st) => selectTrack(st, row?.track.id ?? null));
       if (tool === 'draw') {
         // Draw tool: click an instrument lane to create a one-bar MIDI clip there.
         if (row?.track.kind === 'instrument') {
@@ -219,7 +226,7 @@ export function ArrangementLanes() {
         }
         return;
       }
-      if (!additive) uiStore.setState((st) => selectClips(st, []));
+      if (!additive) uiStore.setState((st) => clearSelection(st, ['clips']));
       const startX = x;
       const startY = y;
       startDragGesture(e.nativeEvent, e.currentTarget, {
@@ -251,7 +258,8 @@ export function ArrangementLanes() {
     else if (!alreadySelected)
       uiStore.setState((st) => selectClips(selectTrack(st, hit.box.clip.trackId), [clipId]));
     else uiStore.setState((st) => selectTrack(st, hit.box.clip.trackId));
-    // A plain click on a clip also shows it in the editor (piano roll for MIDI clips).
+    // A plain click also makes the clip the editor target without switching tabs, so the
+    // Piano Roll tab follows the clicked region (see showClipOnSelect).
     if (!additive) uiStore.setState((st) => showClipOnSelect(st, clipId));
     const selection =
       additive || alreadySelected ? [...uiStore.getState().selection.clipIds] : [clipId];
@@ -438,8 +446,7 @@ export function ArrangementLanes() {
   })();
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    const types = Array.from(e.dataTransfer.types);
-    if (types.includes(BROWSER_DRAG_MIME) || types.includes('Files')) {
+    if (isBrowserItemDrag(e) || Array.from(e.dataTransfer.types).includes('Files')) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
       setDropHint(true);
@@ -478,22 +485,11 @@ export function ArrangementLanes() {
       })().catch(report);
       return;
     }
-    const item = decodeBrowserItem(e.dataTransfer.getData(BROWSER_DRAG_MIME));
+    const item = browserItemFromDrop(e);
     if (!item) return;
-    if (item.kind === 'instrument') {
-      edits.addTrack('instrument', {
-        instrument: item.instrument,
-        ...(item.presetId ? { presetId: item.presetId } : {}),
-      });
-    } else if (item.kind === 'effect') {
-      edits.addEffect(row?.track.id ?? 'master', item.effect);
-    } else {
-      edits.placeAsset(
-        item.assetId,
-        row && row.track.kind !== 'instrument' ? row.track.id : null,
-        tick,
-      );
-    }
+    // Below the last track there is no target track: effects go to the master bus and audio
+    // gets a new track, rather than falling back to the selected track.
+    activateBrowserItem(session, item, { trackId: row?.track.id ?? null, tick });
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {

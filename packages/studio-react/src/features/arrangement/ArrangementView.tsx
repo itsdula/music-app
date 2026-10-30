@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { NativeContextMenuGuard, StudioContextMenu } from '../../components/context-menu';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import { addTrackEntries } from './arrangement-menus';
+import { selectionZone } from '../../state/selection-zones';
 import { ArrangementLanes } from './ArrangementLanes';
 import { ArrangementRuler } from './ArrangementRuler';
 import { AddTrackMenu, GridControls } from './ArrangementToolbar';
@@ -39,6 +40,7 @@ export function ArrangementView() {
             className="relative shrink-0 overflow-hidden border-r border-line bg-surface-1"
             style={{ width: TRACK_HEADER_WIDTH }}
             data-testid="track-list"
+            {...selectionZone('track-list')}
           >
             <div role="list" aria-label="Tracks" style={{ transform: `translateY(${-scrollY}px)` }}>
               {tracks.map((track) => (

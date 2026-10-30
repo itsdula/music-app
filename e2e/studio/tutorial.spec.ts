@@ -92,7 +92,7 @@ test.describe('Tutorials', () => {
 
     // 7. Show the track's devices and add an effect.
     await atStep('show-devices');
-    await page.getByRole('button', { name: 'Show track devices' }).click();
+    await page.getByRole('tab', { name: 'Track', exact: true }).click();
     await atStep('add-effect');
     await page.getByTestId('add-effect').click();
     await page.getByRole('menuitem', { name: 'Reverb' }).click();

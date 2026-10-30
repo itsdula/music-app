@@ -127,7 +127,7 @@ interface ConditionSpec {
 }
 
 export const STUDIO_VIEW_NAMES: readonly StudioView[] = ['projects', 'arrange', 'editor'];
-export const BOTTOM_PANEL_NAMES: readonly BottomPanel[] = ['editor', 'mixer', 'controller'];
+export const BOTTOM_PANEL_NAMES: readonly BottomPanel[] = ['track', 'clip', 'mixer', 'controller'];
 const TRACK_KINDS: readonly TrackKindName[] = ['instrument', 'audio', 'vocal'];
 const CLIP_KINDS: readonly ClipKindName[] = ['midi', 'audio'];
 const COUNT_FIELDS = { min: 'count', added: 'count' } as const;
@@ -161,7 +161,7 @@ export const CONDITION_SPECS: Readonly<Record<ConditionType, ConditionSpec>> = {
   },
   midiClipOpen: { doc: 'a MIDI clip is open in the piano roll', fields: {} },
   audioClipOpen: { doc: 'an audio clip is open in the clip editor', fields: {} },
-  noClipOpen: { doc: 'no clip is open (the editor shows track devices)', fields: {} },
+  noClipOpen: { doc: 'no clip is open (the Piano Roll / clip tab is disabled)', fields: {} },
   pitchEditorOpen: { doc: 'an audio clip is open in the vocal pitch editor', fields: {} },
   noteCount: { doc: 'notes in the open MIDI clip', fields: COUNT_FIELDS, counted: true },
   playing: { doc: 'the transport is playing', fields: {} },

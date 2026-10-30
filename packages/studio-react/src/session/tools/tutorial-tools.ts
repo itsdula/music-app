@@ -39,7 +39,7 @@ If the result has ok:false, fix every listed error and call again.
 
 Format: {id, title, description, steps[]} with at most ${L.maxSteps} steps; ids are lowercase-with-dashes; title ≤ ${L.titleMaxLength} chars; description ≤ ${L.descriptionMaxLength}; body ≤ ${L.bodyMaxLength} chars of plain text (no markup).
 Step: {id, title, body, target?, placement?, before?, advance}
-- target: an anchor id from the list below (append ":last" to pick the last match, e.g. "track-header:last"), or "<role>:<accessible name>" with role ${TARGET_ROLES.join(' | ')} for controls without an anchor, e.g. "tab:Mixer", "tab:Controller", "tab:Track", "radio:Pitch (vocal)", "button:Analyze vocal", "button:Show track devices", "menuitem:New project". Omit target for an explanatory card in the middle of the screen. If a target isn't on screen, the card falls back to the center.
+- target: an anchor id from the list below (append ":last" to pick the last match, e.g. "track-header:last"), or "<role>:<accessible name>" with role ${TARGET_ROLES.join(' | ')} for controls without an anchor, e.g. "tab:Mixer", "tab:Controller", "tab:Track", "radio:Pitch (vocal)", "button:Analyze vocal", "menuitem:New project". Omit target for an explanatory card in the middle of the screen. If a target isn't on screen, the card falls back to the center.
 - placement: ${PLACEMENTS.join(' | ')} (card position relative to the target; default auto).
 - before: {navigate?: ${STUDIO_VIEW_NAMES.join(' | ')}, openPanel?: ${BOTTOM_PANEL_NAMES.join(' | ')}} applied when the step starts, to reveal the target.
 - advance (when the step is done):
@@ -53,8 +53,8 @@ ${describeConditions()}
 Anchors (data-testid values) and where they are visible:
 ${describeAnchors()}
 
-Tips: one action per step; reveal hidden UI with "before" or an earlier step (menus must be opened before their items are visible; the bottom panel's "editor" tab shows the piano roll when a MIDI clip is open, otherwise the selected track's devices); a typical tour has 3–8 steps and ends with a short "next" step summarising what was learned.
-Example: {"id":"add-reverb","title":"Add reverb","description":"Put reverb on a track.","steps":[{"id":"select","title":"Show the devices","body":"Click \\"Show track devices\\" to see the selected track's instrument and effects.","target":"button:Show track devices","before":{"openPanel":"editor"},"advance":{"type":"condition","condition":{"type":"noClipOpen"}}},{"id":"add","title":"Add Reverb","body":"Click Add effect and choose Reverb.","target":"add-effect","advance":{"type":"condition","condition":{"type":"effectCount","added":1}}},{"id":"done","title":"Done","body":"Turn Mix up for a bigger room.","target":"effect-chain","advance":{"type":"next"}}]}`;
+Tips: one action per step; reveal hidden UI with "before" or an earlier step (menus must be opened before their items are visible; the bottom panel's "track" tab shows the selected track's devices, its "clip" tab shows the piano roll or audio editor of the selected clip and is disabled while none is selected); a typical tour has 3–8 steps and ends with a short "next" step summarising what was learned.
+Example: {"id":"add-reverb","title":"Add reverb","description":"Put reverb on a track.","steps":[{"id":"select","title":"Show the devices","body":"Click the \\"Track\\" tab to see the selected track's instrument and effects.","target":"tab:Track","advance":{"type":"condition","condition":{"type":"panelOpen","panel":"track"}}},{"id":"add","title":"Add Reverb","body":"Click Add effect and choose Reverb.","target":"add-effect","advance":{"type":"condition","condition":{"type":"effectCount","added":1}}},{"id":"done","title":"Done","body":"Turn Mix up for a bigger room.","target":"effect-chain","advance":{"type":"next"}}]}`;
 
 const conditionSchema: JsonSchema = {
   type: 'object',

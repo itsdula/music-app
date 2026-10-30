@@ -6,9 +6,10 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Tooltip,
 } from '@studio/ui';
-import { ChevronDown, Piano } from 'lucide-react';
-import type { AudioClip } from '@studio/domain';
+import { ChevronDown, Piano, SlidersHorizontal } from 'lucide-react';
+import type { AudioClip, Clip } from '@studio/domain';
 import { NativeContextMenuGuard } from '../../components/context-menu';
 import { useProjectState, useSession, useUiState } from '../../session/context';
 import type { BottomPanel as BottomPanelId } from '../../state/ui-store';
@@ -20,35 +21,41 @@ import { PianoRoll } from '../piano-roll/PianoRoll';
 import { VocalEditor } from '../vocal-editor/VocalEditor';
 import { ExpandEditorButton } from './ExpandEditorButton';
 
-function EditorContent() {
-  const editorClipId = useUiState((s) => s.selection.editorClipId);
+const CLIP_TAB_HINT =
+  'Select a MIDI region to edit its notes here. Double-click an empty spot on an instrument track to create one.';
+
+function TrackContent() {
   const selectedTrackId = useUiState((s) => s.selection.trackId);
-  const clip = useProjectState((s) => (editorClipId ? s.project.clips[editorClipId] : undefined));
-  const clipTrack = useProjectState((s) => (clip ? s.project.tracks[clip.trackId] : undefined));
-  const selectedTrack = useProjectState((s) =>
+  const track = useProjectState((s) =>
     selectedTrackId ? s.project.tracks[selectedTrackId] : undefined,
   );
+  const hasClip = useUiState((s) => s.selection.editorClipId !== null);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {!hasClip && <PianoRollHint />}
+      {track ? (
+        <TrackDevicePanel track={track} />
+      ) : (
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState
+            icon={<SlidersHorizontal />}
+            title="No track selected"
+            description="Select a track to see its instrument and effects."
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
+function ClipContent({ clip }: { clip: Clip | undefined }) {
+  const clipTrack = useProjectState((s) => (clip ? s.project.tracks[clip.trackId] : undefined));
   if (clip?.kind === 'midi') return <PianoRoll clip={clip} />;
   if (clip?.kind === 'audio')
     return <AudioEditorSwitch clip={clip} vocalTrack={clipTrack?.kind === 'vocal'} />;
-  if (selectedTrack)
-    return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <PianoRollHint />
-        <TrackDevicePanel track={selectedTrack} />
-      </div>
-    );
   return (
-    <div className="flex flex-1 flex-col">
-      <PianoRollHint />
-      <div className="flex flex-1 items-center justify-center">
-        <EmptyState
-          icon={<Piano />}
-          title="Nothing to edit"
-          description="Click a clip to edit its notes or audio here, or select a track to see its instrument and effects."
-        />
-      </div>
+    <div className="flex flex-1 items-center justify-center">
+      <EmptyState icon={<Piano />} title="No region selected" description={CLIP_TAB_HINT} />
     </div>
   );
 }
@@ -98,36 +105,38 @@ export function BottomPanel() {
   const panel = useUiState((s) => s.panels.bottomPanel);
   const editorClipId = useUiState((s) => s.selection.editorClipId);
   const view = useUiState((s) => s.view);
+  const clip = useProjectState((s) => (editorClipId ? s.project.clips[editorClipId] : undefined));
+  // The clip tab is only usable while a region is selected; fall back to the track tab.
+  const active: BottomPanelId = panel === 'clip' && !clip ? 'track' : panel;
   const setPanel = (bottomPanel: BottomPanelId) =>
     session.uiStore.setState((s) => ({ ...s, panels: { ...s.panels, bottomPanel } }));
+  const clipLabel = clip?.kind === 'audio' ? 'Audio Clip' : 'Piano Roll';
   return (
     <Tabs
-      value={panel}
+      value={active}
       onValueChange={(v) => setPanel(v as BottomPanelId)}
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="flex h-8 shrink-0 items-center gap-2 border-b border-line px-2">
         <TabsList aria-label="Bottom panel">
-          <TabsTrigger value="editor">{editorClipId ? 'Clip' : 'Track'}</TabsTrigger>
+          <TabsTrigger value="track">Track</TabsTrigger>
+          {clip ? (
+            <TabsTrigger value="clip">{clipLabel}</TabsTrigger>
+          ) : (
+            // Disabled buttons swallow pointer events, so the tooltip hangs off a wrapper.
+            <Tooltip content={CLIP_TAB_HINT} side="top">
+              <span className="inline-flex" data-testid="clip-tab-disabled">
+                <TabsTrigger value="clip" disabled className="pointer-events-none">
+                  {clipLabel}
+                </TabsTrigger>
+              </span>
+            </Tooltip>
+          )}
           <TabsTrigger value="mixer">Mixer</TabsTrigger>
           <TabsTrigger value="controller">Controller</TabsTrigger>
         </TabsList>
         <div className="flex-1" />
-        {editorClipId && panel === 'editor' && (
-          <button
-            type="button"
-            className="text-[11px] text-text-muted hover:text-text"
-            onClick={() =>
-              session.uiStore.setState((s) => ({
-                ...s,
-                selection: { ...s.selection, editorClipId: null },
-              }))
-            }
-          >
-            Show track devices
-          </button>
-        )}
-        {view === 'editor' && !(panel === 'editor' && editorClipId) && <ExpandEditorButton />}
+        {view === 'editor' && active !== 'clip' && <ExpandEditorButton />}
         {view !== 'editor' && (
           <IconButton
             label="Hide panel"
@@ -145,8 +154,11 @@ export function BottomPanel() {
         )}
       </div>
       <NativeContextMenuGuard />
-      <TabsContent value="editor" className="flex min-h-0 flex-1 flex-col">
-        <EditorContent />
+      <TabsContent value="track" className="flex min-h-0 flex-1 flex-col">
+        <TrackContent />
+      </TabsContent>
+      <TabsContent value="clip" className="flex min-h-0 flex-1 flex-col">
+        <ClipContent clip={clip} />
       </TabsContent>
       <TabsContent value="mixer" className="flex min-h-0 flex-1 flex-col">
         <Mixer />

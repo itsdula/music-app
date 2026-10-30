@@ -20,7 +20,7 @@ const valid = (): Tutorial => ({
       title: 'Add an effect',
       body: 'Click Add effect and choose Reverb.',
       target: 'add-effect',
-      before: { openPanel: 'editor' },
+      before: { openPanel: 'track' },
       advance: { type: 'condition', condition: { type: 'effectCount', added: 1 } },
     },
     { id: 'done', title: 'Done', body: 'Nice.', advance: { type: 'next' } },

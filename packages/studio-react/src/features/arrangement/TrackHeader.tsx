@@ -6,7 +6,13 @@ import { useState } from 'react';
 import { startDragGesture } from '../../lib/drag-gesture';
 import { useEngineMeterSource } from '../../lib/engine-meter-source';
 import { useSession } from '../../session/context';
+import { selectionZone } from '../../state/selection-zones';
 import { selectTrack } from '../../state/ui-store';
+import {
+  activateBrowserItem,
+  browserItemFromDrop,
+  isBrowserItemDrag,
+} from '../browser/activate-item';
 import { TrackChannelButtons } from '../mixer/TrackChannelButtons';
 import { trackMenu } from './arrangement-menus';
 
@@ -28,6 +34,7 @@ export function TrackHeader({
   const session = useSession();
   const { history, uiStore } = session;
   const [renaming, setRenaming] = useState(false);
+  const [dropHint, setDropHint] = useState(false);
   const meterSource = useEngineMeterSource(track.id);
 
   const onGripDown = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -55,9 +62,26 @@ export function TrackHeader({
       }}
     >
       <div
-        className={`group relative flex shrink-0 items-stretch border-b border-line ${selected ? 'bg-surface-3' : 'bg-surface-1 hover:bg-surface-2'}`}
+        className={`group relative flex shrink-0 items-stretch border-b border-line ${selected ? 'bg-surface-3' : 'bg-surface-1 hover:bg-surface-2'} ${dropHint ? 'ring-2 ring-accent/60 ring-inset' : ''}`}
         style={{ height }}
+        {...selectionZone('track')}
         onPointerDown={() => uiStore.setState((s) => selectTrack(s, track.id))}
+        onDragOver={(e) => {
+          if (!isBrowserItemDrag(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          setDropHint(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropHint(false);
+        }}
+        onDrop={(e) => {
+          const item = browserItemFromDrop(e);
+          setDropHint(false);
+          if (!item) return;
+          e.preventDefault();
+          activateBrowserItem(session, item, { trackId: track.id });
+        }}
         data-testid="track-header"
         data-track-id={track.id}
         role="listitem"
@@ -69,6 +93,7 @@ export function TrackHeader({
           type="button"
           className="flex w-4 shrink-0 cursor-grab items-center justify-center text-text-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           aria-label={`Reorder ${track.name}`}
+          {...selectionZone('keep')}
           onPointerDown={onGripDown}
           onKeyDown={(e) => {
             const index = history.present.trackOrder.indexOf(track.id);
@@ -104,7 +129,7 @@ export function TrackHeader({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" {...selectionZone('keep')}>
             <TrackChannelButtons track={track} />
             <StereoMeter
               label={`${track.name} level`}

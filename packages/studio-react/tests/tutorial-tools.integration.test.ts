@@ -32,8 +32,8 @@ const reverbTour = {
       id: 'devices',
       title: 'Show the devices',
       body: 'Open the track devices.',
-      target: 'button:Show track devices',
-      before: { openPanel: 'editor' },
+      target: 'tab:Track',
+      before: { openPanel: 'track' },
       advance: { type: 'condition', condition: { type: 'noClipOpen' } },
     },
     {
@@ -135,7 +135,7 @@ describe('tutorial tools', () => {
     });
     expect(session.uiStore.getState().panels).toMatchObject({
       bottomOpen: true,
-      bottomPanel: 'editor',
+      bottomPanel: 'track',
     });
     expect(controller.list().at(-1)).toMatchObject({ id: 'add-reverb', builtIn: false });
     session.uiStore.setState((s) => ({ ...s, selection: { ...s.selection, editorClipId: null } }));

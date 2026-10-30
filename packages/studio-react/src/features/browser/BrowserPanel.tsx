@@ -14,6 +14,7 @@ import {
 import { useMemo, useState, type ReactNode } from 'react';
 import { StudioContextMenu, type MenuEntryInput } from '../../components/context-menu';
 import { useProjectState, useSession, useUiState } from '../../session/context';
+import { activateBrowserItem } from './activate-item';
 import {
   BROWSER_DRAG_MIME,
   EFFECT_ITEMS,
@@ -72,11 +73,14 @@ function ItemRow({
   hint: string;
   menu: () => MenuEntryInput[];
 }) {
+  // A focusable div rather than a <button>: Firefox doesn't start a native drag from a
+  // draggable <button>.
   return (
     <StudioContextMenu target="browser-item" resolve={menu}>
       <li data-testid="browser-item" data-browser-kind={item.kind}>
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           draggable
           onDragStart={(e) => {
             e.dataTransfer.setData(BROWSER_DRAG_MIME, encodeBrowserItem(item));
@@ -84,9 +88,12 @@ function ItemRow({
           }}
           onDoubleClick={onActivate}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') onActivate();
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onActivate();
+            }
           }}
-          className="group flex w-full items-center gap-2 px-3 py-1 text-left text-[12px] text-text hover:bg-surface-3 focus-visible:bg-surface-3"
+          className="group flex w-full cursor-default items-center gap-2 px-3 py-1 text-left text-[12px] text-text select-none hover:bg-surface-3 focus-visible:bg-surface-3 focus-visible:outline-none"
           title={hint}
         >
           <span className="text-text-faint [&_svg]:size-3.5" aria-hidden>
@@ -97,7 +104,7 @@ function ItemRow({
             className="size-3.5 text-text-faint opacity-0 group-hover:opacity-100"
             aria-hidden
           />
-        </button>
+        </div>
       </li>
     </StudioContextMenu>
   );
@@ -121,29 +128,7 @@ export function BrowserPanel() {
       },
     });
 
-  const activate = (item: BrowserItem) => {
-    const { edits, engineStore } = session;
-    if (item.kind === 'instrument') {
-      edits.addTrack('instrument', {
-        instrument: item.instrument,
-        ...(item.presetId ? { presetId: item.presetId } : {}),
-        name: item.instrument === 'synth' ? item.label : undefined,
-      });
-    } else if (item.kind === 'effect') {
-      const target = selectedTrackId ?? 'master';
-      edits.addEffect(target, item.effect);
-      session.uiStore.setState((s) => ({
-        ...s,
-        panels: { ...s.panels, bottomOpen: true, bottomPanel: 'editor' },
-      }));
-    } else {
-      const trackId =
-        selectedTrackId && session.history.present.tracks[selectedTrackId]?.kind !== 'instrument'
-          ? selectedTrackId
-          : null;
-      session.edits.placeAsset(item.assetId, trackId, engineStore.getState().cursorTick);
-    }
-  };
+  const activate = (item: BrowserItem) => activateBrowserItem(session, item);
 
   /** Right-click actions for a browser item (valid targets depend on the selection). */
   const itemMenu = (item: BrowserItem): MenuEntryInput[] => {
@@ -239,7 +224,7 @@ export function BrowserPanel() {
               key={item.label}
               item={item}
               icon={<SlidersHorizontal />}
-              hint="Double-click to add to the selected track, or drag onto a track"
+              hint="Double-click to add to the selected track, or drag onto a track or its device panel"
               onActivate={() => activate(item)}
               menu={() => itemMenu(item)}
             />

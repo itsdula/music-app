@@ -78,11 +78,10 @@ export const GETTING_STARTED: Tutorial = {
     {
       id: 'show-devices',
       title: 'Show the track’s devices',
-      body: 'Click “Show track devices” to see the instrument and effects of the selected track.',
-      target: 'button:Show track devices',
+      body: 'Click the “Track” tab to see the instrument and effects of the selected track.',
+      target: 'tab:Track',
       placement: 'top',
-      before: { openPanel: 'editor' },
-      advance: { type: 'condition', condition: { type: 'noClipOpen' } },
+      advance: { type: 'condition', condition: { type: 'panelOpen', panel: 'track' } },
     },
     {
       id: 'add-effect',

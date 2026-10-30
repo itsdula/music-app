@@ -29,7 +29,18 @@ describe('ui-store updaters', () => {
     s = { ...s, panels: { ...s.panels, bottomOpen: false, bottomPanel: 'mixer' } };
     const opened = openClipInEditor(s, asClipId('c1'));
     expect(opened.selection.noteIds.size).toBe(0);
-    expect(opened.panels).toMatchObject({ bottomOpen: true, bottomPanel: 'editor' });
+    expect(opened.panels).toMatchObject({ bottomOpen: true, bottomPanel: 'clip' });
+  });
+
+  it('can target a clip without revealing it, and falls back to the track tab on close', () => {
+    const quiet = openClipInEditor(INITIAL_UI_STATE, asClipId('c1'), { reveal: false });
+    expect(quiet.selection.editorClipId).toBe('c1');
+    expect(quiet.panels).toBe(INITIAL_UI_STATE.panels);
+    const shown = openClipInEditor(quiet, asClipId('c1'));
+    expect(shown.panels.bottomPanel).toBe('clip');
+    const closed = openClipInEditor(shown, null);
+    expect(closed.selection.editorClipId).toBeNull();
+    expect(closed.panels.bottomPanel).toBe('track');
   });
 
   it('prunes selection entries that no longer exist', () => {

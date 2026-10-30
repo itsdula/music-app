@@ -128,20 +128,25 @@ test.describe('Editor interactions', () => {
     await expect(announcement).not.toContainText('clips selected');
   });
 
-  test('a single click on a MIDI clip shows the piano roll with at least two octaves', async ({
+  test('a single click on a MIDI clip targets the piano roll, which shows at least two octaves', async ({
     page,
   }) => {
     await createClipAtBar(page, 1);
     await expect(page.getByTestId('piano-roll')).toBeVisible();
-    // Close the editor: the Track tab explains how to reach the piano roll.
-    await page.getByRole('button', { name: 'Show track devices' }).click();
+    // Click away: the region is dropped and the Track tab explains how to reach the piano roll.
+    const box = await lanesBox(page);
+    await page.mouse.click(box.x + box.width - 40, box.y + 30);
     await expect(page.getByTestId('piano-roll')).toBeHidden();
     await expect(page.getByTestId('piano-roll-hint')).toContainText(
       'Select a MIDI clip to edit notes in the piano roll',
     );
 
+    // A single click makes the clip the piano roll target without leaving the Track tab.
     const body = await clipBody(page, 1);
     await page.mouse.click(body.x, body.y);
+    await expect(page.getByTestId('piano-roll-hint')).toBeHidden();
+    await expect(page.getByTestId('piano-roll')).toBeHidden();
+    await page.getByRole('tab', { name: 'Piano Roll' }).click();
     const grid = page.getByTestId('piano-roll-grid');
     await expect(grid).toBeVisible();
     const rows = await grid.evaluate((el) => {

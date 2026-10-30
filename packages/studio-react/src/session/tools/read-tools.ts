@@ -108,7 +108,7 @@ export function registerReadTools(registry: ToolRegistry, session: StudioSession
       name: 'get_current_view',
       title: 'Read current page',
       description:
-        'Returns the current Studio page ("projects", "arrange" or "editor") and which bottom panel (editor, mixer, controller) is open.',
+        'Returns the current Studio page ("projects", "arrange" or "editor") and which bottom panel (track, clip, mixer, controller) is open.',
       inputSchema: { type: 'object', properties: {} },
       readOnly: true,
       run: () => summarizeView(session),

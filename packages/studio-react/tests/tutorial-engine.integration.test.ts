@@ -43,7 +43,7 @@ describe('tutorial conditions against a real session', () => {
     const { session } = await startSession();
     const base = measure(snapshotSession(session));
     expect(check(session, { type: 'view', view: 'arrange' }, base)).toBe(true);
-    expect(check(session, { type: 'panelOpen', panel: 'editor' }, base)).toBe(true);
+    expect(check(session, { type: 'panelOpen', panel: 'track' }, base)).toBe(true);
     expect(check(session, { type: 'panelOpen', panel: 'mixer' }, base)).toBe(false);
     session.uiStore.setState((s) => ({ ...s, panels: { ...s.panels, bottomPanel: 'mixer' } }));
     expect(check(session, { type: 'panelOpen', panel: 'mixer' }, base)).toBe(true);

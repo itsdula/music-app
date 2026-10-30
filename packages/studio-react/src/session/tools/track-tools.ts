@@ -360,7 +360,7 @@ export function registerTrackTools(registry: ToolRegistry, session: StudioSessio
       name: 'select_track_devices',
       title: 'Show track devices',
       description:
-        'Selects a track and shows its instrument and effects in the editor panel (so the user can see what you changed).',
+        'Selects a track and shows its instrument and effects on the Track tab of the bottom panel (so the user can see what you changed).',
       inputSchema: {
         type: 'object',
         properties: { trackId: { type: 'string', description: 'Track id or exact name.' } },
@@ -373,7 +373,7 @@ export function registerTrackTools(registry: ToolRegistry, session: StudioSessio
           return {
             ...next,
             view: next.view === 'projects' ? 'arrange' : next.view,
-            panels: { ...next.panels, bottomOpen: true, bottomPanel: 'editor' },
+            panels: { ...next.panels, bottomOpen: true, bottomPanel: 'track' },
           };
         });
         return { showing: { id: track.id, name: track.name } };

@@ -171,20 +171,28 @@ describe('opening clips in the editor', () => {
     expect(store.getState().panels.bottomPanel).toBe('mixer');
   });
 
-  it('a selection click opens a hidden bottom panel on the editor tab', () => {
+  it('a selection click keeps the Track tab, so the track devices stay in view', () => {
+    const store = createUiStore();
+    store.setState((s) => ({ ...s, panels: { ...s.panels, bottomPanel: 'track' } }));
+    store.setState((s) => showClipOnSelect(s, clipId));
+    expect(store.getState().selection.editorClipId).toBe(clipId);
+    expect(store.getState().panels.bottomPanel).toBe('track');
+  });
+
+  it('a selection click opens a hidden bottom panel on the clip tab', () => {
     const store = createUiStore();
     store.setState((s) => ({
       ...s,
       panels: { ...s.panels, bottomOpen: false, bottomPanel: 'mixer' },
     }));
     store.setState((s) => showClipOnSelect(s, clipId));
-    expect(store.getState().panels).toMatchObject({ bottomOpen: true, bottomPanel: 'editor' });
+    expect(store.getState().panels).toMatchObject({ bottomOpen: true, bottomPanel: 'clip' });
   });
 
-  it('an explicit open always reveals the editor tab', () => {
+  it('an explicit open always reveals the clip tab', () => {
     const store = createUiStore();
     store.setState((s) => ({ ...s, panels: { ...s.panels, bottomPanel: 'controller' } }));
     store.setState((s) => revealClipInEditor(s, clipId));
-    expect(store.getState().panels).toMatchObject({ bottomOpen: true, bottomPanel: 'editor' });
+    expect(store.getState().panels).toMatchObject({ bottomOpen: true, bottomPanel: 'clip' });
   });
 });

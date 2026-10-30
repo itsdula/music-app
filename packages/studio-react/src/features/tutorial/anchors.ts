@@ -119,11 +119,11 @@ export const TUTORIAL_ANCHORS: readonly TutorialAnchor[] = [
       'track lanes: double-click empty space on an instrument track to create a MIDI clip; double-click a clip to open it',
     where: 'arrange page',
   },
-  // Bottom panel / editors (tabs: role form "tab:Track" or "tab:Clip", "tab:Mixer", "tab:Controller")
+  // Bottom panel / editors (tabs: role form "tab:Track", "tab:Piano Roll" (or "tab:Audio Clip"), "tab:Mixer", "tab:Controller")
   {
     id: 'piano-roll',
     description: 'the piano roll editor of the open MIDI clip',
-    where: 'bottom panel "editor" with a MIDI clip open',
+    where: 'bottom panel "clip" with a MIDI clip open',
   },
   {
     id: 'piano-roll-grid',
@@ -133,7 +133,7 @@ export const TUTORIAL_ANCHORS: readonly TutorialAnchor[] = [
   {
     id: 'track-devices',
     description: 'instrument and effect chain of the selected track',
-    where: 'bottom panel "editor" with no clip open',
+    where: 'bottom panel "track"',
   },
   {
     id: 'instrument-panel',
@@ -154,7 +154,7 @@ export const TUTORIAL_ANCHORS: readonly TutorialAnchor[] = [
   {
     id: 'audio-clip-editor',
     description: 'audio clip editor (gain, fades, trim)',
-    where: 'bottom panel "editor" with an audio clip open in Clip mode',
+    where: 'bottom panel "clip" with an audio clip open in Clip mode',
   },
   { id: 'mixer', description: 'the mixer', where: 'bottom panel "mixer"' },
   {
@@ -187,7 +187,7 @@ export const TUTORIAL_ANCHORS: readonly TutorialAnchor[] = [
   {
     id: 'vocal-editor',
     description: 'the vocal pitch editor',
-    where: 'bottom panel "editor", audio clip in Pitch mode',
+    where: 'bottom panel "clip", audio clip in Pitch mode',
   },
   {
     id: 'vocal-pitch-editor',

@@ -84,7 +84,7 @@ export function evaluateCondition(
   now: TutorialBaseline = measure(s),
 ): boolean {
   const clip = openClip(s);
-  const editorShowing = bottomPanelVisible(s) && s.ui.panels.bottomPanel === 'editor';
+  const editorShowing = bottomPanelVisible(s) && s.ui.panels.bottomPanel === 'clip';
   switch (condition.type) {
     case 'view':
       return s.ui.view === condition.view;
