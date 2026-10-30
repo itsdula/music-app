@@ -8,7 +8,6 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import '@studio/ui/tokens.css';
-@import '@studio/audio-ui/theme.css';
 
 @source "../";
 @source "../../../ui/src";

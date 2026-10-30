@@ -1,13 +1,8 @@
-import {
-  Fader,
-  FaderRange,
-  FaderThumb,
-  FaderTrack,
-  FaderValue,
-} from '../audiocn/components/ui/fader';
-import type { TaperInput } from '../audiocn/lib/audio/taper';
-import type { Orientation } from '../audiocn/lib/audio/types';
-import { cn } from '../audiocn/lib/utils';
+import { Fader } from '@audio-ui/react/fader';
+import { cn } from '../lib/cn';
+import { clamp, formatDb } from '../lib/decibels';
+import { resolveTaper, type TaperInput } from '../lib/taper';
+import { EditableReadout } from './EditableReadout';
 
 export interface VolumeFaderProps {
   /** Accessible name of the fader thumb. */
@@ -23,14 +18,33 @@ export interface VolumeFaderProps {
   /** Position law; pass the same curve the engine uses so the travel matches automation. */
   taper?: TaperInput;
   format?: (db: number) => string;
-  orientation?: Orientation;
-  /** Shows the value under the fader; click it to type a value. Default true. */
+  orientation?: 'horizontal' | 'vertical';
+  /** Shows the value under the fader; double-click it to type a value. Default true. */
   showValue?: boolean;
   disabled?: boolean;
   className?: string;
 }
 
-/** A dB volume fader: unity detent, double-click reset to 0 dB and an editable readout. */
+/** Keyboard and wheel step, as a share of the travel. */
+const STEP = 0.01;
+/** Drags within this share of the travel around 0 dB snap to it; below STEP so keys pass through. */
+const UNITY_DETENT = 0.006;
+
+const parseDb = (text: string): number | null => {
+  const t = text
+    .trim()
+    .replaceAll('−', '-')
+    .replace(/\s*db$/iu, '');
+  if (/^-?(inf|∞)$/iu.test(t)) return Number.NEGATIVE_INFINITY;
+  const n = Number.parseFloat(t);
+  return Number.isFinite(n) ? n : null;
+};
+
+/**
+ * A dB volume fader (`@audio-ui/react` Fader). The primitive moves linearly, so it runs in
+ * taper position space (0…1) and this converts to dB: the travel follows the engine's law, with
+ * a unity detent, double-click (or Delete) reset to 0 dB and a readout you can type into.
+ */
 export function VolumeFader({
   label,
   value,
@@ -39,33 +53,72 @@ export function VolumeFader({
   min = -60,
   max = 6,
   taper = 'audio',
-  format,
+  format = (db) => formatDb(db),
   orientation = 'vertical',
   showValue = true,
   disabled = false,
   className,
 }: VolumeFaderProps) {
+  const law = resolveTaper(taper, min, max);
+  const unity = min < 0 && max > 0 ? law.toPosition(0) : null;
+  const toDb = (position: number) => {
+    if (unity !== null && Math.abs(position - unity) < UNITY_DETENT) return 0;
+    return clamp(Math.round(law.toValue(position) * 10) / 10, min, max);
+  };
+  const submit = (text: string) => {
+    const parsed = parseDb(text);
+    if (parsed === null) return false;
+    const db = clamp(parsed, min, max);
+    onChange(db);
+    onCommit?.(db);
+    return true;
+  };
   const vertical = orientation === 'vertical';
+
   return (
-    <Fader
-      aria-label={label}
-      value={value}
-      min={min}
-      max={max}
-      taper={taper}
+    <Fader.Root
+      value={law.toPosition(value)}
+      min={0}
+      max={1}
+      step={STEP / 10}
+      largeStep={STEP}
+      defaultValue={unity ?? 0}
       orientation={orientation}
-      size="sm"
       disabled={disabled}
-      onValueChange={(db) => onChange(db)}
-      {...(onCommit ? { onValueCommitted: onCommit } : {})}
-      {...(format ? { format } : {})}
-      className={cn(vertical && 'min-h-20 flex-col items-center gap-1', className)}
+      onValueChange={(position) => onChange(toDb(position))}
+      {...(onCommit ? { onValueCommitted: (position: number) => onCommit(toDb(position)) } : {})}
+      className={cn(
+        'flex items-center gap-1 data-disabled:opacity-50',
+        vertical ? 'min-h-20 flex-col' : 'min-w-20',
+        className,
+      )}
+      data-slot="volume-fader"
     >
-      <FaderTrack className={cn(vertical && 'min-h-0 flex-1')}>
-        <FaderRange />
-        <FaderThumb />
-      </FaderTrack>
-      {showValue && <FaderValue editable className="text-[10px]" />}
-    </Fader>
+      <Fader.Control
+        className={cn(
+          'flex cursor-grab',
+          vertical ? 'min-h-0 w-6 flex-1 justify-center' : 'h-6 min-w-0 flex-1 items-center',
+        )}
+      >
+        <Fader.Track
+          className={cn('rounded-full bg-surface-3', vertical ? 'h-full w-1' : 'h-1 w-full')}
+        >
+          <Fader.Indicator className="absolute rounded-full bg-accent" />
+        </Fader.Track>
+        <Fader.Thumb
+          aria-label={label}
+          getAriaValueText={(_, position) => format(toDb(position))}
+          className={cn(
+            'rounded-sm border border-line-strong bg-surface-2 shadow-md',
+            'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent',
+            "after:absolute after:bg-text after:content-['']",
+            vertical
+              ? 'h-3 w-6 after:inset-x-1 after:top-1/2 after:h-px'
+              : 'h-6 w-3 after:inset-y-1 after:left-1/2 after:w-px',
+          )}
+        />
+      </Fader.Control>
+      {showValue && <EditableReadout text={format(value)} label={label} onSubmit={submit} />}
+    </Fader.Root>
   );
 }

@@ -171,7 +171,7 @@ flowchart BT
 | `audio-web`              | B     | Web Audio `AudioEngine`, instruments, effects, recorder worklet, offline render, decoding                                                       | A packages                                                                                              |
 | `platform-browser`       | B     | `createBrowserPlatform()`: IndexedDB, Web MIDI, pickers, permissions, worker hosts                                                              | A packages, audio-web                                                                                   |
 | `ui`                     | C     | tokens + accessible primitives (buttons, menus, dialogs, fields…)                                                                               | react, radix-ui, lucide                                                                                 |
-| `audio-ui`               | C     | audio controls and meters: vendored audiocn primitives + Studio set (VolumeFader, ParameterKnob, StereoMeter…); see its UPSTREAM.md             | react, @base-ui/react, cva, cn                                                                          |
+| `audio-ui`               | C     | audio controls and meters: Studio set (VolumeFader, ParameterKnob, StereoMeter…) on `@audio-ui/react` headless primitives; see its README       | react, @audio-ui/react, @base-ui/react, cn                                                              |
 | `studio-react`           | C     | `<Studio />`, session, stores, features, canvas renderers                                                                                       | A packages, ui, audio-ui, platform-contracts (platform-browser only via `platform/default-platform.ts`) |
 
 **Enforcement** (CI `pnpm boundaries`, `pnpm lint`, `pnpm typecheck`):
@@ -383,8 +383,8 @@ interface PlatformServices { audioBackendFactory; createVocalProcessor; midiAcce
   panel sizes, active tool/editor, learn mode. Never persisted in the project.
 - **Frame-rate data never enters React state**: the `RenderLoop` (one rAF loop) reads
   `engine.getTransportPosition()` and `engine.readMeters()` and draws the playhead, time
-  readout (direct `textContent` writes) and meters (audiocn `LevelMeter`s subscribed to a
-  per-meter `FrameSource` that `useEngineMeterSource` feeds; they paint CSS variables, not React).
+  readout (direct `textContent` writes) and meters (`@audio-ui/react` `Meter`s subscribed to a
+  per-meter `FrameSource` that `useEngineMeterSource` feeds; they write the DOM directly, not React).
 - **Canvas renderers** (arrangement, piano roll, waveform, pitch editor) are plain TS
   classes with `draw(ctx, viewModel)`; a shared `TimeAxis` (ticks ↔ px) guarantees the
   arrangement and piano roll use identical musical coordinates. Layers: static content

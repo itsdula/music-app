@@ -78,7 +78,6 @@ export function ParamControl({
       min={0}
       max={1}
       step={spec.step ? spec.step / (spec.max - spec.min) : 0.001}
-      fineStep={0.0002}
       resetValue={normalizeParam(spec, spec.default)}
       value={normalizeParam(spec, value)}
       {...(bipolar ? { origin: normalizeParam(spec, 0) } : {})}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseInline, parseMarkdown } from '../src/features/assistant/markdown';
+import { parseInline, parseMarkdown } from '../src/features/assistant/markdown-parser';
 
 describe('assistant markdown-lite', () => {
   it('splits paragraphs, lists and fenced code', () => {

@@ -25,16 +25,18 @@ describe('EngineMeterHub', () => {
     const hub = new EngineMeterHub(session);
     const header: MeterFrame[] = [];
     const strip: MeterFrame[] = [];
-    hub.source(T1).subscribe((f) => header.push(f));
-    hub.source(T1).subscribe((f) => strip.push(f));
+    const source = hub.source(T1);
+    expect(hub.source(T1)).toBe(source);
+    source.subscribe(() => header.push(source.getSnapshot()));
+    source.subscribe(() => strip.push(source.getSnapshot()));
     tick();
     expect(readMeters).toHaveBeenCalledTimes(1);
     expect(header).toHaveLength(1);
     expect(strip).toEqual(header);
-    expect(header[0]!.channels[0]!.peakDb).toBeCloseTo(0, 6);
+    expect(header[0]!.levels[0]).toBeCloseTo(0, 6);
   });
 
-  it('skips repeated silent frames so idle meters can settle', () => {
+  it('skips silent frames while the meter is at rest', () => {
     const { session, tick } = fakeSession([
       { master: silent, tracks: {} },
       { master: silent, tracks: {} },
@@ -42,10 +44,11 @@ describe('EngineMeterHub', () => {
     ]);
     const hub = new EngineMeterHub(session);
     const frames: MeterFrame[] = [];
-    hub.source('master').subscribe((f) => frames.push(f));
+    const source = hub.source('master');
+    source.subscribe(() => frames.push(source.getSnapshot()));
     tick();
     tick();
     tick();
-    expect(frames.map((f) => f.channels[0]!.peakDb)).toEqual([Number.NEGATIVE_INFINITY, 0]);
+    expect(frames.map((f) => f.levels[0])).toEqual([0]);
   });
 });
