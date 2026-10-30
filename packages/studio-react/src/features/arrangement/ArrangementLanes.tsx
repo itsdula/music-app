@@ -19,8 +19,13 @@ import { drawPlayhead } from '../../canvas/draw-utils';
 import { startDragGesture } from '../../lib/drag-gesture';
 import { useFrame } from '../../lib/use-frame';
 import { useProjectState, useSession, useUiState } from '../../session/context';
-import { openClipInEditor, selectClips, selectTrack } from '../../state/ui-store';
-import { BROWSER_DRAG_MIME, decodeBrowserItem } from '../browser/browser-items';
+import { clearSelection } from '../../state/selection-zones';
+import { openClipInEditor, selectClips, selectTrack, type UiState } from '../../state/ui-store';
+import {
+  activateBrowserItem,
+  browserItemFromDrop,
+  isBrowserItemDrag,
+} from '../browser/activate-item';
 import {
   duplicateMoveCommands,
   moveClipsCommands,
@@ -133,8 +138,10 @@ export function ArrangementLanes() {
     const row = rowAtY(rows, y);
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     if (!hit) {
-      if (row) uiStore.setState((st) => selectTrack(st, row.track.id));
-      if (!additive) uiStore.setState((st) => selectClips(st, []));
+      // Empty lane space selects that lane's track (below the last track: none) and, unless
+      // extending a selection, drops the selected clips and closes the clip editor.
+      uiStore.setState((st) => selectTrack(st, row?.track.id ?? null));
+      if (!additive) uiStore.setState((st) => clearSelection(st, ['clips']));
       const startX = x;
       const startY = y;
       startDragGesture(e.nativeEvent, e.currentTarget, {
@@ -152,10 +159,13 @@ export function ArrangementLanes() {
     }
     const clipId = hit.box.clip.id;
     const alreadySelected = selectedClipIds.has(clipId);
+    // A plain press also makes the clip the editor target (without switching panels), so the
+    // clip tab follows the clicked region.
+    const target = (st: UiState) =>
+      openClipInEditor(selectTrack(st, hit.box.clip.trackId), clipId, { reveal: false });
     if (additive) uiStore.setState((st) => selectClips(st, [clipId], 'toggle'));
-    else if (!alreadySelected)
-      uiStore.setState((st) => selectClips(selectTrack(st, hit.box.clip.trackId), [clipId]));
-    else uiStore.setState((st) => selectTrack(st, hit.box.clip.trackId));
+    else if (!alreadySelected) uiStore.setState((st) => selectClips(target(st), [clipId]));
+    else uiStore.setState(target);
     const selection =
       additive || alreadySelected ? [...uiStore.getState().selection.clipIds] : [clipId];
     const startProject = history.present;
@@ -314,8 +324,7 @@ export function ArrangementLanes() {
   })();
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    const types = Array.from(e.dataTransfer.types);
-    if (types.includes(BROWSER_DRAG_MIME) || types.includes('Files')) {
+    if (isBrowserItemDrag(e) || Array.from(e.dataTransfer.types).includes('Files')) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
       setDropHint(true);
@@ -354,22 +363,11 @@ export function ArrangementLanes() {
       })().catch(report);
       return;
     }
-    const item = decodeBrowserItem(e.dataTransfer.getData(BROWSER_DRAG_MIME));
+    const item = browserItemFromDrop(e);
     if (!item) return;
-    if (item.kind === 'instrument') {
-      edits.addTrack('instrument', {
-        instrument: item.instrument,
-        ...(item.presetId ? { presetId: item.presetId } : {}),
-      });
-    } else if (item.kind === 'effect') {
-      edits.addEffect(row?.track.id ?? 'master', item.effect);
-    } else {
-      edits.placeAsset(
-        item.assetId,
-        row && row.track.kind !== 'instrument' ? row.track.id : null,
-        tick,
-      );
-    }
+    // Below the last track there is no target track: effects go to the master bus and audio
+    // gets a new track, rather than falling back to the selected track.
+    activateBrowserItem(session, item, { trackId: row?.track.id ?? null, tick });
   };
 
   const onPointerMoveHover = (e: React.PointerEvent<HTMLDivElement>) => {

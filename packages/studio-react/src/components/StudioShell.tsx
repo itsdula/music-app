@@ -6,6 +6,7 @@ import { BrowserPanel } from '../features/browser/BrowserPanel';
 import { TransportBar } from '../features/transport/TransportBar';
 import { useKeyboardShortcuts } from '../features/shortcuts/use-keyboard-shortcuts';
 import { useSession, useUiState } from '../session/context';
+import { installSelectionZones } from '../state/selection-zones';
 import { LearnBanner } from './LearnBanner';
 import { NoticeBar } from './NoticeBar';
 
@@ -28,6 +29,13 @@ export function StudioShell() {
       root.removeEventListener('pointerdown', unlock, { capture: true });
       root.removeEventListener('keydown', unlock, { capture: true });
     };
+  }, [session]);
+
+  // Pressing empty space drops the selection; see state/selection-zones.ts for the rules.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    return installSelectionZones(root, session.uiStore);
   }, [session]);
 
   const setPanels = (patch: Partial<typeof panels>) =>

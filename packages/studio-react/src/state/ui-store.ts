@@ -6,7 +6,8 @@
 import type { ClipId, GridDivision, NoteId, TrackId, VocalNoteId } from '@studio/domain';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
-export type BottomPanel = 'editor' | 'mixer' | 'controller';
+/** 'track' = selected track's devices, 'clip' = editor for the open clip (piano roll / audio). */
+export type BottomPanel = 'track' | 'clip' | 'mixer' | 'controller';
 export type EditTool = 'select' | 'draw';
 
 export interface Viewport {
@@ -29,7 +30,7 @@ export interface VocalViewport extends Viewport {
 export interface Selection {
   readonly trackId: TrackId | null;
   readonly clipIds: ReadonlySet<ClipId>;
-  /** Clip open in the bottom editor. */
+  /** Clip open in the bottom editor (the selected MIDI region / audio clip). */
   readonly editorClipId: ClipId | null;
   readonly noteIds: ReadonlySet<NoteId>;
   readonly vocalNoteIds: ReadonlySet<VocalNoteId>;
@@ -78,7 +79,7 @@ export const INITIAL_UI_STATE: UiState = {
     browserWidth: 232,
     bottomOpen: true,
     bottomHeight: 300,
-    bottomPanel: 'editor',
+    bottomPanel: 'track',
   },
   followPlayhead: true,
   audioEditorMode: 'auto',
@@ -114,8 +115,24 @@ export function selectClips(
   return { ...state, selection: { ...state.selection, clipIds: next } };
 }
 
-export function openClipInEditor(state: UiState, clipId: ClipId | null): UiState {
-  if (state.selection.editorClipId === clipId) return state;
+/**
+ * Opens `clipId` in the bottom editor (null closes it). With `reveal` (default) the bottom
+ * panel opens on the clip tab; without it only the editor target changes. Closing the editor
+ * while its tab is showing falls back to the track tab.
+ */
+export function openClipInEditor(
+  state: UiState,
+  clipId: ClipId | null,
+  { reveal = true }: { readonly reveal?: boolean } = {},
+): UiState {
+  const panels =
+    clipId && reveal
+      ? { ...state.panels, bottomOpen: true, bottomPanel: 'clip' as const }
+      : !clipId && state.panels.bottomPanel === 'clip'
+        ? { ...state.panels, bottomPanel: 'track' as const }
+        : state.panels;
+  if (state.selection.editorClipId === clipId && panels === state.panels) return state;
+  if (state.selection.editorClipId === clipId) return { ...state, panels };
   return {
     ...state,
     selection: {
@@ -124,7 +141,7 @@ export function openClipInEditor(state: UiState, clipId: ClipId | null): UiState
       noteIds: EMPTY_SET,
       vocalNoteIds: EMPTY_SET,
     },
-    panels: clipId ? { ...state.panels, bottomOpen: true, bottomPanel: 'editor' } : state.panels,
+    panels,
   };
 }
 
@@ -184,5 +201,9 @@ export function pruneSelection(
     clipIds.size === sel.clipIds.size &&
     noteIds.size === sel.noteIds.size;
   if (unchanged) return state;
-  return { ...state, selection: { ...sel, trackId, clipIds, editorClipId, noteIds } };
+  const panels =
+    !editorClipId && state.panels.bottomPanel === 'clip'
+      ? { ...state.panels, bottomPanel: 'track' as const }
+      : state.panels;
+  return { ...state, selection: { ...sel, trackId, clipIds, editorClipId, noteIds }, panels };
 }

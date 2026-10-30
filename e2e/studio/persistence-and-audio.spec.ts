@@ -103,9 +103,7 @@ test.describe('Phases 3–4: audio import, persistence, bundles and effects', ()
     expect(dry.peak).toBeGreaterThan(0.2);
 
     // The imported audio track is selected; its device panel shows the effect chain.
-    await page.getByRole('tab', { name: /Track|Clip/ }).click();
-    const showDevices = page.getByRole('button', { name: 'Show track devices' });
-    if (await showDevices.isVisible()) await showDevices.click();
+    await page.getByRole('tab', { name: 'Track', exact: true }).click();
     await page.getByTestId('add-effect').click();
     await page.getByRole('menuitem', { name: 'Gain', exact: true }).click();
     const gain = page.getByTestId('effect-unit').getByRole('slider', { name: 'Gain', exact: true });

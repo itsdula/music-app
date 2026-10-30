@@ -1,6 +1,7 @@
 import { orderedTracks } from '@studio/domain';
 import { useMemo } from 'react';
 import { useProjectState, useUiState } from '../../session/context';
+import { selectionZone } from '../../state/selection-zones';
 import { ArrangementLanes } from './ArrangementLanes';
 import { ArrangementRuler } from './ArrangementRuler';
 import { AddTrackMenu, GridControls } from './ArrangementToolbar';
@@ -33,6 +34,8 @@ export function ArrangementView() {
         <div
           className="relative shrink-0 overflow-hidden border-r border-line bg-surface-1"
           style={{ width: TRACK_HEADER_WIDTH }}
+          data-testid="track-list"
+          {...selectionZone('track-list')}
         >
           <div role="list" aria-label="Tracks" style={{ transform: `translateY(${-scrollY}px)` }}>
             {tracks.map((track) => (

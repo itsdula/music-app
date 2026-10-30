@@ -100,7 +100,7 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     page,
   }) => {
     await connectMidi(page);
-    await page.getByRole('tab', { name: /Track|Clip/ }).click();
+    await page.getByRole('tab', { name: 'Track', exact: true }).click();
     await page.getByRole('slider', { name: 'Cutoff', exact: true }).click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'MIDI Learn…' }).click();
     await expect(page.getByTestId('learn-banner')).toContainText('MIDI Learn: move a knob');
@@ -127,7 +127,7 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
 
   test('project and global mappings survive a reload', async ({ page }) => {
     await connectMidi(page);
-    await page.getByRole('tab', { name: /Track|Clip/ }).click();
+    await page.getByRole('tab', { name: 'Track', exact: true }).click();
     const learn = async (param: string, cc: number, scope: 'project' | 'global') => {
       await page.getByRole('slider', { name: param, exact: true }).click({ button: 'right' });
       await page.getByRole('menuitem', { name: 'MIDI Learn…' }).click();
