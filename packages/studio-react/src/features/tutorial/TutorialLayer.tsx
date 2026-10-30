@@ -22,6 +22,7 @@ import {
   type Box,
   type CardPosition,
 } from './target';
+import type { TutorialStep } from './schema';
 import { useTutorialController, useTutorialState } from './use-tutorial';
 
 /** How long to wait for a step's target before falling back to a centered card. */
@@ -86,7 +87,9 @@ function TutorialOverlay({
   const cardRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const restoreRef = useRef<Element | null>(null);
-  const [layout, setLayout] = useState<Layout | null>(null);
+  // Tagged with its step so a new step never renders the previous step's spotlight.
+  const [measured, setMeasured] = useState<{ step: TutorialStep; layout: Layout } | null>(null);
+  const layout = measured?.step === step ? measured.layout : null;
   const titleId = useId();
   const bodyId = useId();
 
@@ -138,7 +141,7 @@ function TutorialOverlay({
       const key = JSON.stringify(next);
       if (key !== last) {
         last = key;
-        setLayout(next);
+        setMeasured({ step, layout: next });
       }
       cancel = schedule(tick);
     };
