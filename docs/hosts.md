@@ -267,6 +267,13 @@ pnpm --filter @studio/electron-host typecheck:host       # main/preload/shared/t
     (`electronApp.evaluate`) to test save → open → cancel end to end. It also runs preferences
     set → load → delete → load, and after quitting checks that `preferences.json` in the
     temporary `userData` holds the value, which shows the quit-time flush works.
+  - **Probe mode** also asserts that a Blob-URL Worker and a Blob-URL AudioWorklet module run
+    under the production CSP.
+  - It exits non-zero on any failure.
+
+The pure modules have unit tests in `tests/`. They are not matched by the root Vitest `unit`
+project, which only includes `packages/*/tests/**`. Run them with the package `test` script, or
+with `pnpm exec vitest run --config apps/electron-host/vitest.config.ts`.
 
 ### 1.9 Package a macOS app
 
@@ -285,17 +292,9 @@ Gatekeeper blocks the first launch: right-click the app and choose **Open**, or 
 `xattr -cr Studio.app`. The packaged app keeps its projects under its own `userData` folder
 (`~/Library/Application Support/Studio`), separate from `pnpm --filter @studio/electron-host start`.
 
-- **Probe mode** also asserts that a Blob-URL Worker and a Blob-URL AudioWorklet module run
-  under the production CSP.
-- It exits non-zero on any failure.
-
-The pure modules have unit tests in `tests/`. They are not matched by the root Vitest `unit`
-project, which only includes `packages/*/tests/**`. Run them with the package `test` script, or
-with `pnpm exec vitest run --config apps/electron-host/vitest.config.ts`.
-
-Not in scope yet: auto-update, code signing, installers (electron-builder/forge), fuses
-(`runAsNode`, `nodeOptions`, `onlyLoadAppFromAsar`) and ASAR integrity. Enable these when
-packaging is added.
+Not in scope yet: Windows and Linux packages, auto-update, Developer ID signing and
+notarization, installers (DMG, electron-builder/forge) and fuses (`runAsNode`, `nodeOptions`,
+`onlyLoadAppFromAsar`).
 
 ---
 
