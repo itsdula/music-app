@@ -1,0 +1,24 @@
+{
+  "name": "@studio/dev-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dev orchestrator behind `pnpm dev`: starts Next.js and Electron, receives their OpenTelemetry logs and serves the dev-monitor page.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2"
+  },
+  "studio": {
+    "packageClass": "host"
+  }
+}

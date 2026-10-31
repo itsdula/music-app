@@ -13,11 +13,12 @@ const Studio = dynamic(() => import('@studio/react').then((m) => m.Studio), {
 /**
  * Browser platform plus the AI assistant route: each chat turn calls the `completeAssistant`
  * server action, which holds the OpenRouter key. Loaded lazily (client-only, like Studio).
+ * UI preferences (theme, keymap, layout, toggles) live in this origin's localStorage.
  */
 async function createPlatform() {
-  const { createBrowserPlatform, createResultAssistantTransport } =
+  const { createBrowserPlatform, createLocalStorageKeyValueStore, createResultAssistantTransport } =
     await import('@studio/platform-browser');
-  const platform = createBrowserPlatform();
+  const platform = createBrowserPlatform({ preferences: createLocalStorageKeyValueStore() });
   return { ...platform, assistant: createResultAssistantTransport(completeAssistant) };
 }
 

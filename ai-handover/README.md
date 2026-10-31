@@ -10,17 +10,17 @@ work can continue on a local machine (by you or another AI agent). Read this fir
 effects, AKAI MPK Mini MK3 support, vocal pitch editor, AI assistant, tutorials). The whole app
 is one React component, `<Studio />` (`packages/studio-react`), mounted by three thin hosts:
 
-| Host             | Folder               | Run locally                                                                              |
-| ---------------- | -------------------- | ---------------------------------------------------------------------------------------- |
-| Next.js website  | `apps/web`           | `pnpm dev` → http://localhost:3000 (landing) and `/studio`                               |
-| Vite web app     | `apps/vite-host`     | `pnpm dev:vite` → http://localhost:3001                                                  |
-| Electron desktop | `apps/electron-host` | `pnpm --filter @studio/electron-host build && pnpm --filter @studio/electron-host start` |
+| Host             | Folder               | Run locally                                                                                                                         |
+| ---------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js website  | `apps/web`           | `pnpm dev` (all hosts + dev monitor, see below) or `pnpm dev:web` → http://localhost:3000                                           |
+| Vite web app     | `apps/vite-host`     | `pnpm dev:vite` → http://localhost:3001                                                                                             |
+| Electron desktop | `apps/electron-host` | `pnpm dev` (watch build, opens the app) or `pnpm --filter @studio/electron-host build && pnpm --filter @studio/electron-host start` |
 
 There is no backend: projects and audio live in IndexedDB in the browser.
 
 ## Getting started locally
 
-Requirements: **Node 22.12+**, **pnpm 10** (`packageManager: pnpm@10.28.0`), a Chromium-based
+Requirements: **Node 22.15+**, **pnpm 10** (`packageManager: pnpm@10.28.0`), a Chromium-based
 browser (Web MIDI).
 
 ```bash
@@ -29,6 +29,11 @@ cd music-app
 pnpm install
 pnpm dev
 ```
+
+`pnpm dev` (or `npm run dev`) prints one line, the dev-monitor link (http://localhost:3300). It
+starts Next.js on http://localhost:3000 (`/studio`), opens the Electron app and shows the logs of
+both (Next.js, Electron main, Electron renderer, builds) on that page. Ctrl+C stops everything.
+`pnpm dev:web` runs only Next.js, as `pnpm dev` used to. Details: [`../docs/dev-monitor.md`](../docs/dev-monitor.md).
 
 Optional, for the AI assistant panel (web host, server side only): set `OPENROUTER_API_KEY`
 (and optionally `OPENROUTER_MODEL`) in `apps/web/.env.local`. Without it the assistant says it

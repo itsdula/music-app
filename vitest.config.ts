@@ -26,11 +26,13 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           // apps/electron-host/tests cover its pure main-process policy (no Electron runtime);
-          // apps/web/tests cover the server-side assistant modules (no Next.js runtime).
+          // apps/web/tests cover the server-side assistant modules (no Next.js runtime);
+          // apps/dev-monitor/tests cover the dev orchestrator's pure modules.
           include: [
             'packages/*/tests/**/*.test.ts',
             'apps/electron-host/tests/**/*.test.ts',
             'apps/web/tests/**/*.test.ts',
+            'apps/dev-monitor/tests/**/*.test.ts',
           ],
           exclude: [
             '**/node_modules/**',

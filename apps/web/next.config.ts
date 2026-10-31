@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
     '@studio/audio-web',
   ],
   poweredByHeader: false,
+  // `pnpm dev` (apps/dev-monitor, STUDIO_DEV=1): forward every browser console message of the
+  // pages to the `next dev` terminal as `[browser] ...`, where the dev monitor picks it up.
+  // Other runs keep Next's default (warnings and errors).
+  ...(process.env.STUDIO_DEV === '1' ? { logging: { browserToTerminal: true } } : {}),
 };
 
 export default nextConfig;

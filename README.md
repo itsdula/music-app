@@ -20,11 +20,13 @@ projects and audio live in IndexedDB on your device.
 
 ## Quick start
 
-Requirements: Node 22.12+, pnpm 10, a Chromium-based browser for Web MIDI.
+Requirements: Node 22.15+, pnpm 10, a Chromium-based browser for Web MIDI.
 
 ```bash
 pnpm install
-pnpm dev            # Next.js host → http://localhost:3000 (landing) and /studio
+pnpm dev            # whole dev environment: prints only the dev-monitor link (http://localhost:3300),
+                    # runs Next.js (http://localhost:3000, /studio) and opens Electron; see docs/dev-monitor.md
+pnpm dev:web        # Next.js host only (the old `pnpm dev`) → http://localhost:3000 and /studio
 pnpm dev:vite       # standalone Vite host → http://localhost:3001
 pnpm --filter @studio/electron-host build && pnpm --filter @studio/electron-host start
                     # desktop shell (Electron)

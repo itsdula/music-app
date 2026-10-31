@@ -35,3 +35,6 @@ blob-report/
 # vitest browser-mode artifacts
 .vitest/
 __screenshots__/
+
+# `pnpm dev` state (Electron dev profile)
+.dev/

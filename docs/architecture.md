@@ -371,7 +371,7 @@ output   = renderPitchCorrection(pcm, analysis, doc, 'preview' | 'final')    // 
 
 // Platform adapters (platform-contracts)
 interface PlatformServices { audioBackendFactory; createVocalProcessor; midiAccess;
-  projectRepository; assetRepository; derivedCache; settingsRepository; fileDialogs;
+  projectRepository; assetRepository; derivedCache; settingsRepository; preferences; fileDialogs;
   permissions; deviceInfo; logger; audioDecoder; hasher; randomId; now; dispose() }
 ```
 

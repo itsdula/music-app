@@ -22,12 +22,16 @@ import {
   type HostPickedFile,
 } from '../shared/host-api';
 import { isAppOrigin } from './policy';
+import type { PreferencesStore } from './preferences-store';
 import {
   extensionOf,
   isAcceptedFile,
   mimeTypeForName,
   sanitizeFileName,
   validateOpenFilesArgs,
+  validatePreferenceDeleteArgs,
+  validatePreferenceSetArgs,
+  validatePreferencesLoadArgs,
   validateSaveFileArgs,
 } from './validation';
 
@@ -119,7 +123,62 @@ async function handleOpenFiles(
   return files;
 }
 
-export function registerIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.saveFile, handleSaveFile);
-  ipcMain.handle(IPC_CHANNELS.openFiles, handleOpenFiles);
+/** `studioHost.preferences`: the renderer's mirror of the JSON file in `userData`. */
+function preferenceHandlers(store: PreferencesStore) {
+  return {
+    load: (event: IpcMainInvokeEvent, ...args: unknown[]): Record<string, string> => {
+      assertTrustedSender(event);
+      const parsed = validatePreferencesLoadArgs(args);
+      if (!parsed.ok) throw new Error(`studioHost.preferences.load: ${parsed.error}`);
+      return store.entries();
+    },
+    set: (event: IpcMainInvokeEvent, ...args: unknown[]): void => {
+      assertTrustedSender(event);
+      const parsed = validatePreferenceSetArgs(args);
+      if (!parsed.ok) throw new Error(`studioHost.preferences.set: ${parsed.error}`);
+      // Throws when the total would exceed the limit; the renderer keeps its in-memory value.
+      store.set(parsed.value.key, parsed.value.value);
+    },
+    delete: (event: IpcMainInvokeEvent, ...args: unknown[]): void => {
+      assertTrustedSender(event);
+      const parsed = validatePreferenceDeleteArgs(args);
+      if (!parsed.ok) throw new Error(`studioHost.preferences.delete: ${parsed.error}`);
+      store.delete(parsed.value);
+    },
+  };
+}
+
+export interface IpcHandlerOptions {
+  /** Observes every rejected call (the error still reaches the renderer). Dev logging only. */
+  readonly onError?: (channel: string, error: unknown) => void;
+}
+
+type IpcHandler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
+
+export function registerIpcHandlers(
+  preferences: PreferencesStore,
+  options: IpcHandlerOptions = {},
+): void {
+  const { onError } = options;
+  const handle = (channel: string, handler: IpcHandler) => {
+    ipcMain.handle(
+      channel,
+      onError
+        ? async (event, ...args: unknown[]) => {
+            try {
+              return await handler(event, ...args);
+            } catch (error) {
+              onError(channel, error);
+              throw error;
+            }
+          }
+        : handler,
+    );
+  };
+  handle(IPC_CHANNELS.saveFile, handleSaveFile);
+  handle(IPC_CHANNELS.openFiles, handleOpenFiles);
+  const prefs = preferenceHandlers(preferences);
+  handle(IPC_CHANNELS.preferencesLoad, prefs.load);
+  handle(IPC_CHANNELS.preferencesSet, prefs.set);
+  handle(IPC_CHANNELS.preferencesDelete, prefs.delete);
 }

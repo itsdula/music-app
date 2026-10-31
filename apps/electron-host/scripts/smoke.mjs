@@ -113,6 +113,7 @@ const savePath = join(userDataDir, 'smoke-take.wav');
 app.process().stderr?.on('data', (chunk) => process.stderr.write(`[electron] ${chunk}`));
 
 let phase = 'load';
+let preferencesWritten = false;
 const consoleErrors = [];
 const expectedViolations = [];
 try {
@@ -137,18 +138,31 @@ try {
     saveFile: typeof window.studioHost?.saveFile,
     openFiles: typeof window.studioHost?.openFiles,
     platform: window.studioHost?.platform,
+    preferenceKeys: window.studioHost?.preferences
+      ? Object.keys(window.studioHost.preferences).sort()
+      : [],
+    preferencesFrozen: Object.isFrozen(window.studioHost?.preferences),
     require: typeof window.require,
     process: typeof window.process,
     module: typeof window.module,
     buffer: typeof window.Buffer,
     secureContext: window.isSecureContext,
+    crossOriginIsolated: window.crossOriginIsolated,
+    sharedArrayBuffer: typeof SharedArrayBuffer,
   }));
   check('served from studio://app/', isolation.href.startsWith('studio://app/'), isolation.href);
   check('window.studioHost exists', isolation.hostType === 'object', isolation.hostType);
   check(
-    'studioHost exposes only saveFile/openFiles/platform',
-    JSON.stringify(isolation.hostKeys) === JSON.stringify(['openFiles', 'platform', 'saveFile']),
+    'studioHost exposes only saveFile/openFiles/platform/preferences',
+    JSON.stringify(isolation.hostKeys) ===
+      JSON.stringify(['openFiles', 'platform', 'preferences', 'saveFile']),
     isolation.hostKeys,
+  );
+  check(
+    'studioHost.preferences exposes only load/set/delete (frozen)',
+    JSON.stringify(isolation.preferenceKeys) === JSON.stringify(['delete', 'load', 'set']) &&
+      isolation.preferencesFrozen,
+    isolation,
   );
   check(
     'studioHost methods are functions',
@@ -164,6 +178,12 @@ try {
   check('window.module is undefined', isolation.module === 'undefined', isolation.module);
   check('window.Buffer is undefined', isolation.buffer === 'undefined', isolation.buffer);
   check('secure context', isolation.secureContext === true);
+  check('cross-origin isolated', isolation.crossOriginIsolated === true);
+  check(
+    'SharedArrayBuffer available',
+    isolation.sharedArrayBuffer === 'function',
+    isolation.sharedArrayBuffer,
+  );
 
   if (probeMode) {
     const probe = await page.evaluate(() => window.studioProbe);
@@ -279,6 +299,13 @@ try {
       notBytes: await reason(() => host.saveFile('abc', 'a.wav', 'audio/wav')),
       badAccept: await reason(() => host.openFiles(['../*'], false)),
       badMultiple: await reason(() => host.openFiles(['audio/*'], 'yes')),
+      // These pass the preload's type checks and are refused by the main process.
+      preferenceBadKey: await reason(() => host.preferences.set('../evil', '1')),
+      preferenceOversized: await reason(() =>
+        host.preferences.set('smoke.big', 'x'.repeat(64 * 1024 + 1)),
+      ),
+      preferenceDeleteBadKey: await reason(() => host.preferences.delete('a b')),
+      preferenceNotString: await reason(() => host.preferences.set('smoke.n', 1)),
     };
   });
   for (const [name, message] of Object.entries(rejections)) {
@@ -322,6 +349,31 @@ try {
   const cancelled = await page.evaluate(() => window.studioHost.openFiles(['.wav'], true));
   check('openFiles resolves [] when cancelled', Array.isArray(cancelled) && cancelled.length === 0);
 
+  // --- preferences round trip ------------------------------------------------------------------
+  const preferences = await page.evaluate(async () => {
+    const prefs = window.studioHost.preferences;
+    await prefs.set('smoke.roundTrip', 'Grüße 🎛️');
+    await prefs.set('smoke.deleted', 'gone soon');
+    const afterSet = await prefs.load();
+    await prefs.delete('smoke.deleted');
+    const afterDelete = await prefs.load();
+    return { afterSet, afterDelete };
+  });
+  preferencesWritten = true;
+  check(
+    'preferences set → load round trip',
+    preferences.afterSet['smoke.roundTrip'] === 'Grüße 🎛️' &&
+      preferences.afterSet['smoke.deleted'] === 'gone soon',
+    preferences.afterSet,
+  );
+  check(
+    'preferences delete → load round trip',
+    preferences.afterDelete['smoke.roundTrip'] === 'Grüße 🎛️' &&
+      !('smoke.deleted' in preferences.afterDelete) &&
+      !('smoke.big' in preferences.afterDelete),
+    preferences.afterDelete,
+  );
+
   // --- navigation ------------------------------------------------------------------------------
   await page.evaluate(() => {
     location.href = 'https://example.com/';
@@ -336,6 +388,17 @@ try {
 } finally {
   await app.close().catch(() => undefined);
   clearTimeout(watchdog);
+  if (preferencesWritten) {
+    // Quitting flushes the debounced preferences write (before-quit / will-quit).
+    const stored = await readFile(join(userDataDir, 'preferences.json'), 'utf8')
+      .then((text) => JSON.parse(text))
+      .catch((error) => ({ error: String(error) }));
+    check(
+      'preferences are flushed to userData/preferences.json on quit',
+      stored.version === 1 && stored.entries?.['smoke.roundTrip'] === 'Grüße 🎛️',
+      stored,
+    );
+  }
   await rm(userDataDir, { recursive: true, force: true }).catch(() => undefined);
 }
 

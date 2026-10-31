@@ -1,0 +1,5 @@
+interface:
+  display_name: "audio/ui"
+  short_description: "Picks, installs and wires accessible audio components in React: knobs, faders, meters, timelines, piano rolls."
+  icon_small: "./assets/audio-ui-small.png"
+  icon_large: "./assets/audio-ui.png"

@@ -127,7 +127,9 @@ export function securityHeaders(
     'Content-Type': contentType,
     'Content-Security-Policy': buildContentSecurityPolicy(cspOptions),
     'X-Content-Type-Options': 'nosniff',
+    // COOP + COEP make the page cross-origin isolated, which enables SharedArrayBuffer.
     'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Embedder-Policy': 'require-corp',
     'Referrer-Policy': 'no-referrer',
     'Cache-Control': 'no-cache',
   };

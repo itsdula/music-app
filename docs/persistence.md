@@ -318,6 +318,107 @@ To sweep stale entries, use `deleteByPrefix(derivedCachePrefix(kind))` for an al
 `derivedCachePrefix(kind, contentHash)` for one asset. IndexedDB serves `deleteByPrefix` with a
 single key range `[prefix, successor(prefix))` and never scans.
 
+## Preferences (key-value)
+
+Small UI preferences go through `PlatformServices.preferences`: the theme configuration, keymap
+overrides, panel layout and toggles. They must be readable before first paint, so their port,
+`KeyValueStore` (`packages/project-storage/src/preferences.ts`), works differently from
+`SettingsRepository`:
+
+- **Reads are synchronous.** Every adapter keeps all entries in memory. `get` and `keys` never do
+  I/O.
+- **Writes go through.** `set` and `delete` update memory at once, notify subscribers, and then
+  persist. A failed write never reaches the caller. This covers a full quota, blocked storage and
+  disk errors. The value stays in memory for the session and the adapter logs one warning.
+- **`flush()`** resolves once every earlier write is persisted or has failed. It never rejects.
+- **Values are strings.** Encode structured values as JSON and validate them when you read them
+  (with zod, for example). Stored data can come from an older build or from another tab.
+- **Subscribers** run synchronously after each change, including changes made in another tab.
+  Writes that change nothing don't notify. `usePersistentToggle` reads through
+  `useSyncExternalStore`.
+
+Structured settings that can be read asynchronously stay on `SettingsRepository`. These are MIDI
+mappings, recording latency, the last project and tutorial progress.
+
+### Adapter per host
+
+| Host     | Adapter                              | Data lives in                        |
+| -------- | ------------------------------------ | ------------------------------------ |
+| Next.js  | `createLocalStorageKeyValueStore()`  | localStorage, as `studio.pref.<key>` |
+| Vite     | `createLocalStorageKeyValueStore()`  | localStorage, as `studio.pref.<key>` |
+| Electron | `createBridgedKeyValueStore(bridge)` | `<userData>/preferences.json`        |
+| Tests    | `createMemoryKeyValueStore()`        | memory                               |
+
+Each host passes its adapter to `createBrowserPlatform({ preferences })` explicitly
+(`apps/web/app/studio/studio-client.tsx`, `apps/vite-host/src/main.tsx`,
+`apps/electron-host/src/renderer/main.tsx`). localStorage is also the default. In Electron the
+bridge is `window.studioHost.preferences`, and the main process owns the file. The platform owns
+the store, and its `dispose()` flushes it.
+
+- **Why localStorage in browsers.** It is the only synchronous persistent browser storage, and it
+  works where IndexedDB is unavailable. Origins differ (`:3000` for Next, `:3001` for Vite), so
+  each host keeps its own preferences.
+- **Why a Node file in Electron.** The main process owns the file. It can read preferences before
+  any window exists, for example a theme background colour for `BrowserWindow`. The file is plain
+  JSON that a user can inspect, and it survives clearing Chromium's storage. A single owner also
+  avoids races between processes. The renderer's own localStorage would work too, but main could
+  not read it.
+
+**localStorage adapter** (`platform-browser/src/storage/local-storage.ts`):
+
+- It reads every key that starts with the prefix (default `studio.pref.`) once, and ignores all
+  other keys. Invalid stored entries are skipped.
+- With the default prefix it first moves UI toggles saved by older builds (`studio.ui.<key>`) to
+  `studio.pref.ui.<key>`, keeping a value already there, and deletes the old keys. Electron does
+  not carry the renderer's old localStorage toggles into `preferences.json`; they reset once.
+- It listens to `storage` events. A change in another tab updates this tab and notifies its
+  subscribers. A `clear()` in another tab resynchronises the whole namespace.
+- If localStorage is missing or throws on access, as with blocked site data or some private
+  modes, it keeps values in memory only (`persistent: false`).
+
+**Bridged adapter** (`platform-browser/src/storage/bridged.ts`):
+
+- It awaits `bridge.load()` once. The Electron renderer's async platform provider does this before
+  `<Studio />` mounts. If the load fails or returns something malformed, the store starts empty
+  and logs a warning.
+- It then sends writes to the bridge one call at a time, in order. Writes to a key that is still
+  queued are coalesced into the latest value, so dragging a splitter sends a few IPC calls, not
+  hundreds.
+- It is generic: the bridge is any `{ load, set, delete }` object, and nothing in it imports
+  Electron.
+
+**Electron main store** (`apps/electron-host/src/main/preferences-store.ts`):
+
+- The file is `{ "version": 1, "entries": { ... } }` with sorted keys and 2-space indentation.
+- It is loaded synchronously when the app is ready. A missing file means no preferences. An
+  unreadable file is renamed to `preferences.json.corrupt` and the store starts empty. That covers
+  invalid JSON, another version and files over 8 MiB. Invalid entries are skipped.
+- Writes are debounced by 250 ms. Each write goes to `preferences.json.tmp`, is fsynced, and is
+  renamed over the old file, so a crash leaves either the old or the new file. The store is
+  flushed on `before-quit` and `will-quit`. A failed write is retried on the next change or
+  flush.
+- The IPC handlers check the sender and validate every argument again
+  ([hosts.md §1.6](hosts.md#16-ipc-surface)).
+
+Every adapter passes `runKeyValueStoreContract` in
+`packages/project-storage/tests/repository-contracts.ts`. It runs against memory, localStorage (a
+fake `Storage` in Node and jsdom's real one) and the bridged store over a fake bridge.
+
+### Keys and limits
+
+- **Keys** are 1–128 characters of `A–Z a–z 0–9 _ . -` and start with a letter or digit
+  (`PREFERENCE_KEY_PATTERN`). Use dotted camelCase segments named after the feature, such as
+  `ui.pianoRoll.velocityLane.editor`, `theme.config`, `keymap.overrides` or `layout.panels`.
+  `ui.` holds the `usePersistentToggle` toggles.
+- **Changing a format.** When a value's format changes incompatibly, use a new key (`theme.v2`)
+  rather than rewriting the old value, so an older build still reads what it wrote.
+- **Values** are strings of at most 64 KiB in UTF-8 (`PREFERENCE_LIMITS.maxValueBytes`). Every
+  adapter throws `InvalidRecordError` for an invalid key or an oversized value. A bug therefore
+  shows up in the browser too, not only in Electron.
+- **Total size.** Electron's main process keeps keys plus values within 1 MiB
+  (`MAX_PREFERENCES_TOTAL_BYTES`) and refuses writes beyond it. Browsers apply their own
+  localStorage quota, about 5 MiB per origin, which the adapter handles as a failed write.
+
 ## Electron and Tauri adapters
 
 The ports, the `planProjectSave`/`resolveProjectLoad` logic, the schema, migrations, bundles and
@@ -334,6 +435,9 @@ An Electron or Tauri adapter replaces the storage layer:
 - **Derived cache.** Use a cache directory keyed by the same key strings, or SQLite. A plain file
   directory needs prefix deletion by listing it.
 - **Settings.** Use the app config file.
+- **Preferences.** Electron already keeps them in a JSON file owned by the main process (see
+  [Preferences](#preferences-key-value)). Tauri can follow the same pattern with a Rust command
+  as the `createBridgedKeyValueStore` bridge.
 - **Quota.** Map `ENOSPC` to `StorageQuotaError`.
 - **Bundles.** Write them to user-chosen paths with native file dialogs (`FileDialogs`).
 

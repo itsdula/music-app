@@ -7,12 +7,14 @@
 import {
   createMemoryAssetRepository,
   createMemoryDerivedCache,
+  createMemoryKeyValueStore,
   createMemoryProjectRepository,
   createMemorySettingsRepository,
 } from '../src';
 import {
   runAssetRepositoryContract,
   runDerivedCacheContract,
+  runKeyValueStoreContract,
   runProjectRepositoryContract,
   runSettingsRepositoryContract,
 } from './repository-contracts';
@@ -20,10 +22,15 @@ import {
 export {
   runAssetRepositoryContract,
   runDerivedCacheContract,
+  runKeyValueStoreContract,
   runProjectRepositoryContract,
   runSettingsRepositoryContract,
 } from './repository-contracts';
-export type { Harness, ProjectRepositoryHarness } from './repository-contracts';
+export type {
+  Harness,
+  KeyValueStoreHarness,
+  ProjectRepositoryHarness,
+} from './repository-contracts';
 
 runProjectRepositoryContract('memory', () => {
   const repository = createMemoryProjectRepository();
@@ -35,3 +42,7 @@ runProjectRepositoryContract('memory', () => {
 runAssetRepositoryContract('memory', () => ({ repository: createMemoryAssetRepository() }));
 runDerivedCacheContract('memory', () => ({ repository: createMemoryDerivedCache() }));
 runSettingsRepositoryContract('memory', () => ({ repository: createMemorySettingsRepository() }));
+runKeyValueStoreContract('memory', () => {
+  const store = createMemoryKeyValueStore();
+  return { store, externalChange: (key, value) => store.receive(key, value) };
+});

@@ -51,6 +51,20 @@ export {
   type ProjectRecordSlot,
 } from './memory';
 export {
+  createMemoryKeyValueStore,
+  assertValidPreference,
+  assertValidPreferenceKey,
+  preferenceKeyError,
+  preferenceValueError,
+  utf8ByteLength,
+  PREFERENCE_KEY_PATTERN,
+  PREFERENCE_LIMITS,
+  type KeyValueStore,
+  type KeyValueListener,
+  type MemoryKeyValueStore,
+  type MemoryKeyValueStoreOptions,
+} from './preferences';
+export {
   derivedCacheKey,
   derivedCachePrefix,
   parseDerivedCacheKey,

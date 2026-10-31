@@ -74,7 +74,10 @@ Reasons for choosing it over `file://`:
   encoded separators (`%2f`, `%5c`), NUL bytes and anything that resolves outside the root
   (`resolveAppFile`), and it answers only `GET`/`HEAD`.
 - **Headers.** Every response carries the CSP, `X-Content-Type-Options: nosniff`,
-  `Cross-Origin-Opener-Policy: same-origin` and `Referrer-Policy: no-referrer`. A `file://`
+  `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp` and
+  `Referrer-Policy: no-referrer`. COOP plus COEP make the page cross-origin isolated, so
+  `SharedArrayBuffer` and `Atomics` are available. The CSP already limits subresources to
+  `'self'`, `blob:` and `data:`, so `require-corp` blocks nothing the app loads. A `file://`
   page could only use a `<meta>` CSP.
 - **Relative asset paths still work.** Vite builds with `base: './'`, so the same output would
   also load from `file://` if ever needed.
@@ -152,8 +155,21 @@ interface StudioHostApi {
   saveFile(bytes: Uint8Array, suggestedName: string, mimeType: string): Promise<boolean>;
   openFiles(accept: string[], multiple: boolean): Promise<Array<{ name; mimeType; bytes }>>;
   readonly platform: { os: string; versions: { electron: string; chrome: string } };
+  readonly preferences: {
+    load(): Promise<Record<string, string>>;
+    set(key: string, value: string): Promise<void>;
+    delete(key: string): Promise<void>;
+  };
 }
 ```
+
+| Channel (`IPC_CHANNELS`)         | Preload method       | Arguments validated in main                  |
+| -------------------------------- | -------------------- | -------------------------------------------- |
+| `studio-host:save-file`          | `saveFile`           | `validateSaveFileArgs`                       |
+| `studio-host:open-files`         | `openFiles`          | `validateOpenFilesArgs`                      |
+| `studio-host:preferences-load`   | `preferences.load`   | `validatePreferencesLoadArgs` (no arguments) |
+| `studio-host:preferences-set`    | `preferences.set`    | `validatePreferenceSetArgs` (key, value)     |
+| `studio-host:preferences-delete` | `preferences.delete` | `validatePreferenceDeleteArgs` (key)         |
 
 - The preload exposes only this frozen object. It never exposes `ipcRenderer`, `process` or
   `require`. It type-checks arguments for early errors.
@@ -167,13 +183,22 @@ interface StudioHostApi {
       sanitised for Windows-reserved characters and device names;
     - the MIME type matches `type/subtype`;
     - the accept list has at most 64 entries, each `.ext`, `type/subtype`, `type/*` or `*/*`;
-    - `multiple` is a boolean.
+    - `multiple` is a boolean;
+    - preference keys are 1–128 characters of `A–Z a–z 0–9 _ . -` and start with a letter or
+      digit. Preference values are strings of at most 64 KiB in UTF-8.
 - `saveFile` runs `dialog.showSaveDialog` with the default path in Documents, an extension
   filter and overwrite confirmation, then `fs.writeFile`. A cancel resolves `false`.
 - `openFiles` maps the accept list to extensions and uses them as the dialog filter. It then
   re-checks every chosen path against those extensions, because the user can type any path in
   GTK. It `stat`s each file (at most 2 GiB per file and in total, at most 256 files) and returns
   sanitised base names, MIME types guessed from the extension, and bytes. A cancel resolves `[]`.
+- `preferences.*` reads and writes the main-process store
+  (`src/main/preferences-store.ts`), which is kept in `<userData>/preferences.json`. `load`
+  returns a copy of every entry. `set` also refuses a write that would take the total of keys
+  plus values over 1 MiB. Writes reach the disk debounced (250 ms) and atomically (temporary
+  file, fsync, rename). The store is flushed on `before-quit` and `will-quit`. The renderer does
+  not call these methods directly: `createBridgedKeyValueStore(host.preferences)` loads once and
+  then mirrors its writes. See [persistence.md, Preferences](persistence.md#preferences-key-value).
 - Bytes cross IPC by structured clone, which copies them. The 2 GiB cap mirrors the
   `FileDialogs` contract. In practice Chromium's IPC is comfortable well below that. Very large
   imports should move to a streamed path, for example a `MessageChannelMain` port carrying
@@ -187,15 +212,19 @@ interface StudioHostApi {
 | `midiAccess`                             | Web MIDI (`platform-browser/midi`); `midi` granted, SysEx denied by main       |
 | `projectRepository`, `assetRepository`…  | IndexedDB (Dexie) in the `studio://app` origin, under Electron's `userData`    |
 | `fileDialogs`                            | **Native**: `createElectronFileDialogs(window.studioHost)` → IPC → `dialog`    |
+| `preferences`                            | **Native**: `createBridgedKeyValueStore` → IPC → main → `preferences.json`     |
 | `permissions`                            | Browser Permissions API, answered by the main-process permission check handler |
 | `deviceInfo`                             | Browser detection with `hostKind: 'electron'`                                  |
 | `createVocalProcessor`                   | Blob-URL Worker (allowed by `worker-src blob:`)                                |
 | `audioDecoder`, `hasher`, `logger`, etc. | Browser implementations, unchanged                                             |
 
-`createBrowserPlatform({ hostKind: 'electron' })` builds everything, and the renderer overrides
-`fileDialogs`. The adapter is typed structurally. Apps may not import
-`@studio/platform-contracts` (dependency-cruiser rule `apps-only-public-entry-points`), so the
-compiler checks it where it is assigned into the `PlatformServices`-typed object.
+The renderer passes an async platform provider to `<Studio />`. It first awaits
+`createBridgedKeyValueStore(window.studioHost.preferences)`, so preferences are in memory before
+Studio renders. Then `createBrowserPlatform({ hostKind: 'electron', preferences })` builds
+everything else, and the renderer overrides `fileDialogs`. The file-dialogs adapter is typed
+structurally. Apps may not import `@studio/platform-contracts` (dependency-cruiser rule
+`apps-only-public-entry-points`), so the compiler checks it where the provider returns the
+`PlatformServices` object.
 
 ### 1.8 Build, run and smoke-test
 
@@ -225,17 +254,40 @@ pnpm --filter @studio/electron-host typecheck:host       # main/preload/shared/t
     temporary `userData` directory.
   - **Load checks.** It waits for `[data-testid="studio-root"][data-studio-status="ready"]`,
     or the probe page in `--probe` mode. It checks that the page is on `studio://app/`, that
-    `window.studioHost` exists with only `openFiles`/`platform`/`saveFile`, and that `require`,
-    `process`, `module` and `Buffer` are undefined. It also checks for a secure context and for
-    no console errors during load.
+    `window.studioHost` exists with only `openFiles`/`platform`/`preferences`/`saveFile` (and
+    `preferences` with only `load`/`set`/`delete`, frozen), and that `require`,
+    `process`, `module` and `Buffer` are undefined. It also checks for a secure context, for
+    cross-origin isolation with `SharedArrayBuffer` available, and for no console errors during
+    load.
   - **Security checks.** CSP header present, `eval` and inline scripts blocked. Protocol
     traversal, other-host and `POST` requests refused. The permission states listed above.
-    `window.open` denied and navigation to `https://` blocked. Invalid IPC arguments rejected.
+    `window.open` denied and navigation to `https://` blocked. Invalid IPC arguments rejected,
+    including an invalid preference key and a preference value over 64 KiB.
   - **Round trip.** It stubs `dialog.showSaveDialog`/`showOpenDialog` in the main process
-    (`electronApp.evaluate`) to test save → open → cancel end to end.
-  - **Probe mode** also asserts that a Blob-URL Worker and a Blob-URL AudioWorklet module run
-    under the production CSP.
-  - It exits non-zero on any failure.
+    (`electronApp.evaluate`) to test save → open → cancel end to end. It also runs preferences
+    set → load → delete → load, and after quitting checks that `preferences.json` in the
+    temporary `userData` holds the value, which shows the quit-time flush works.
+
+### 1.9 Package a macOS app
+
+```bash
+pnpm package:mac   # build, then out/Studio-darwin-<arch>/Studio.app and out/Studio-mac-<arch>.zip
+```
+
+`scripts/package-mac.mjs` stages `dist/` (without source maps or the probe page) with a minimal
+`package.json` and packages it with `@electron/packager`: a `Studio.app` for this Mac's
+architecture, using the Electron version the host is pinned to, with the icon from
+`resources/icon.icns` (drawn in `resources/icon.svg`) and an asar archive. `dist/` is fully
+bundled, so the app carries no `node_modules`.
+
+The app is signed ad hoc, not with an Apple Developer ID, and is not notarized. On another Mac,
+Gatekeeper blocks the first launch: right-click the app and choose **Open**, or run
+`xattr -cr Studio.app`. The packaged app keeps its projects under its own `userData` folder
+(`~/Library/Application Support/Studio`), separate from `pnpm --filter @studio/electron-host start`.
+
+- **Probe mode** also asserts that a Blob-URL Worker and a Blob-URL AudioWorklet module run
+  under the production CSP.
+- It exits non-zero on any failure.
 
 The pure modules have unit tests in `tests/`. They are not matched by the root Vitest `unit`
 project, which only includes `packages/*/tests/**`. Run them with the package `test` script, or

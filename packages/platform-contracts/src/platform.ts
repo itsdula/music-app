@@ -11,11 +11,14 @@ import type { MidiAccessPort } from '@studio/midi-core';
 import type {
   AssetRepository,
   DerivedDataCache,
+  KeyValueStore,
   ProjectRepository,
   SettingsRepository,
 } from '@studio/project-storage';
 import type { VocalProcessor } from '@studio/vocal-dsp';
 import type { AssistantTransport } from './assistant';
+
+export type { KeyValueListener, KeyValueStore } from '@studio/project-storage';
 
 export type HostKind = 'browser' | 'electron' | 'tauri' | 'test';
 
@@ -102,6 +105,12 @@ export interface PlatformServices {
   readonly assetRepository: AssetRepository;
   readonly derivedCache: DerivedDataCache;
   readonly settingsRepository: SettingsRepository;
+  /**
+   * Small UI preferences (theme, keymap overrides, layout, toggles), readable synchronously
+   * before first paint. Browser hosts use localStorage; Electron a JSON file in `userData`
+   * through the preload bridge (docs/persistence.md, "Preferences").
+   */
+  readonly preferences: KeyValueStore;
   readonly fileDialogs: FileDialogs;
   readonly permissions: PermissionsService;
   readonly deviceInfo: DeviceInfo;

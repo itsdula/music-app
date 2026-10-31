@@ -14,7 +14,9 @@ import {
   type ProjectId,
 } from '@studio/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { InvalidRecordError } from '../src/errors';
 import type { ProjectRecordSlot } from '../src/memory';
+import { PREFERENCE_LIMITS, type KeyValueStore } from '../src/preferences';
 import type {
   AssetRepository,
   DerivedDataCache,
@@ -541,6 +543,176 @@ export function runSettingsRepositoryContract(
       expect(await settings().get('midi.globalMappings')).toEqual({
         global: [{ id: 'map_1', enabled: true }],
       });
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// KeyValueStore (preferences)
+// ---------------------------------------------------------------------------
+
+export interface KeyValueStoreHarness {
+  readonly store: KeyValueStore;
+  /**
+   * Opens a new store over the same backing storage, as a reload would. Omitted for
+   * stores without persistence.
+   */
+  readonly reopen?: () => MaybePromise<KeyValueStore>;
+  /**
+   * Changes the backing storage behind the store's back, as another tab or process would,
+   * and returns once the store has seen it. Omitted when the host has no such source.
+   */
+  readonly externalChange?: (key: string, value: string | undefined) => MaybePromise<void>;
+  readonly dispose?: () => MaybePromise<void>;
+}
+
+export function runKeyValueStoreContract(
+  name: string,
+  factory: () => MaybePromise<KeyValueStoreHarness>,
+): void {
+  describe(`KeyValueStore contract: ${name}`, () => {
+    const harness = useHarness(factory);
+    const store = () => harness().store;
+
+    it('reads, overwrites and deletes synchronously', () => {
+      expect(store().get('theme.config')).toBeUndefined();
+      store().set('theme.config', '{"primary":"#7c5cff"}');
+      expect(store().get('theme.config')).toBe('{"primary":"#7c5cff"}');
+      store().set('theme.config', '{}');
+      expect(store().get('theme.config')).toBe('{}');
+      store().delete('theme.config');
+      expect(store().get('theme.config')).toBeUndefined();
+      expect(() => store().delete('theme.config')).not.toThrow();
+    });
+
+    it('stores strings exactly, including empty and non-ASCII values', () => {
+      const values = ['', ' ', 'null', 'Grüße 🎛️ 音', '{"a":[1,{"b":null}]}', 'a\nb\u0000c'];
+      values.forEach((value, i) => store().set(`exact.${i}`, value));
+      values.forEach((value, i) => expect(store().get(`exact.${i}`)).toBe(value));
+    });
+
+    it('lists keys in order, filtered by prefix', () => {
+      for (const key of ['ui.b', 'theme.config', 'ui.a', 'ui.a.nested', 'keymap.overrides']) {
+        store().set(key, '1');
+      }
+      expect(store().keys()).toEqual([
+        'keymap.overrides',
+        'theme.config',
+        'ui.a',
+        'ui.a.nested',
+        'ui.b',
+      ]);
+      expect(store().keys('ui.')).toEqual(['ui.a', 'ui.a.nested', 'ui.b']);
+      expect(store().keys('ui.a')).toEqual(['ui.a', 'ui.a.nested']);
+      expect(store().keys('nothing.')).toEqual([]);
+      store().delete('ui.a');
+      expect(store().keys('ui.')).toEqual(['ui.a.nested', 'ui.b']);
+    });
+
+    it('notifies subscribers of changes only, until they unsubscribe', () => {
+      const seen: Array<[string, string | undefined]> = [];
+      const unsubscribe = store().subscribe((key, value) => seen.push([key, value]));
+      store().set('ui.toggle', '1');
+      store().set('ui.toggle', '1'); // unchanged
+      store().set('ui.toggle', '0');
+      store().delete('ui.toggle');
+      store().delete('ui.toggle'); // already absent
+      expect(seen).toEqual([
+        ['ui.toggle', '1'],
+        ['ui.toggle', '0'],
+        ['ui.toggle', undefined],
+      ]);
+      unsubscribe();
+      unsubscribe();
+      store().set('ui.toggle', '1');
+      expect(seen).toHaveLength(3);
+    });
+
+    it('notifies every subscriber after the value is readable', () => {
+      const reads: Array<string | undefined> = [];
+      const offA = store().subscribe((key) => reads.push(store().get(key)));
+      const offB = store().subscribe((key) => reads.push(store().get(key)));
+      store().set('layout.panels', 'wide');
+      expect(reads).toEqual(['wide', 'wide']);
+      offA();
+      offB();
+    });
+
+    it.each([
+      ['empty', ''],
+      ['leading dot', '.ui'],
+      ['leading dash', '-ui'],
+      ['space', 'ui toggle'],
+      ['slash', 'ui/toggle'],
+      ['colon', 'ui:toggle'],
+      ['non-ASCII', 'thème'],
+      ['too long', 'k'.repeat(PREFERENCE_LIMITS.maxKeyLength + 1)],
+    ])('rejects an invalid key (%s) without storing it', (_label, key) => {
+      expect(() => store().set(key, '1')).toThrow(InvalidRecordError);
+      expect(() => store().delete(key)).toThrow(InvalidRecordError);
+      expect(store().get(key)).toBeUndefined();
+      expect(store().keys()).toEqual([]);
+    });
+
+    it('accepts the longest valid key and a value at the size limit', () => {
+      const key = `k${'.'.repeat(PREFERENCE_LIMITS.maxKeyLength - 1)}`;
+      const value = 'x'.repeat(PREFERENCE_LIMITS.maxValueBytes);
+      store().set(key, value);
+      expect(store().get(key)).toBe(value);
+    });
+
+    it('rejects values over the size limit (UTF-8 bytes) and non-strings', () => {
+      const ascii = 'x'.repeat(PREFERENCE_LIMITS.maxValueBytes + 1);
+      // Under the limit in UTF-16 units, over it in UTF-8 bytes (3 bytes each).
+      const wide = '音'.repeat(Math.floor(PREFERENCE_LIMITS.maxValueBytes / 3) + 1);
+      store().set('big', 'small');
+      expect(() => store().set('big', ascii)).toThrow(InvalidRecordError);
+      expect(() => store().set('big', wide)).toThrow(InvalidRecordError);
+      expect(() => store().set('big', 42 as unknown as string)).toThrow(InvalidRecordError);
+      expect(() => store().set('big', undefined as unknown as string)).toThrow(InvalidRecordError);
+      expect(store().get('big')).toBe('small');
+    });
+
+    it('flush resolves with and without pending writes', async () => {
+      await expect(store().flush()).resolves.toBeUndefined();
+      store().set('ui.a', '1');
+      store().delete('ui.a');
+      store().set('ui.b', '2');
+      await expect(store().flush()).resolves.toBeUndefined();
+    });
+
+    it('persists sets and deletes across a reopen', async (context) => {
+      const { reopen } = harness();
+      if (!reopen) return context.skip();
+      store().set('theme.config', 'dark');
+      store().set('ui.a', '1');
+      store().set('ui.b', '2');
+      store().delete('ui.a');
+      store().set('ui.b', '3');
+      await store().flush();
+      const reopened = await reopen();
+      expect(reopened.keys()).toEqual(['theme.config', 'ui.b']);
+      expect(reopened.get('theme.config')).toBe('dark');
+      expect(reopened.get('ui.b')).toBe('3');
+      await reopened.flush();
+    });
+
+    it('applies and announces changes made elsewhere', async (context) => {
+      const { externalChange } = harness();
+      if (!externalChange) return context.skip();
+      const seen: Array<[string, string | undefined]> = [];
+      store().set('ui.a', '1');
+      store().subscribe((key, value) => seen.push([key, value]));
+      await externalChange('ui.a', '2');
+      await externalChange('ui.b', 'new');
+      await externalChange('ui.a', undefined);
+      expect(store().get('ui.a')).toBeUndefined();
+      expect(store().get('ui.b')).toBe('new');
+      expect(seen).toEqual([
+        ['ui.a', '2'],
+        ['ui.b', 'new'],
+        ['ui.a', undefined],
+      ]);
     });
   });
 }

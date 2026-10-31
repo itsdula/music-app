@@ -13,9 +13,14 @@ const ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
 export class BrowserLogger implements Logger {
   private readonly records: LogRecord[] = [];
 
+  /**
+   * @param consoleLevel lowest level also printed to the console. `warn` by default (no
+   *   console noise in production); dev builds lower it so host tooling can capture info/debug.
+   */
   constructor(
     private readonly minLevel: LogLevel = 'info',
     private readonly capacity = 500,
+    private readonly consoleLevel: LogLevel = 'warn',
   ) {}
 
   log(level: LogLevel, message: string, data?: unknown): void {
@@ -25,11 +30,15 @@ export class BrowserLogger implements Logger {
         : { level, message, data, timeMs: performance.now() };
     this.records.push(record);
     if (this.records.length > this.capacity) this.records.shift();
-    if (ORDER[level] < ORDER[this.minLevel]) return;
+    if (ORDER[level] < ORDER[this.minLevel] || ORDER[level] < ORDER[this.consoleLevel]) return;
     const prefix = `[studio] ${message}`;
-    if (level === 'error') console.error(prefix, ...(data === undefined ? [] : [data]));
-    else if (level === 'warn') console.warn(prefix, ...(data === undefined ? [] : [data]));
-    // debug/info are kept in the ring buffer only (no console noise in production).
+    const args = data === undefined ? [] : [data];
+    if (level === 'error') console.error(prefix, ...args);
+    else if (level === 'warn') console.warn(prefix, ...args);
+    // eslint-disable-next-line no-console -- only reached when consoleLevel was lowered (dev)
+    else if (level === 'info') console.info(prefix, ...args);
+    // eslint-disable-next-line no-console -- only reached when consoleLevel was lowered (dev)
+    else console.debug(prefix, ...args);
   }
 
   debug(message: string, data?: unknown): void {

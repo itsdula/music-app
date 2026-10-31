@@ -1,0 +1,84 @@
+name = "studio-ui-builder"
+description = """Use for any work that builds or rebuilds Studio UI (packages/ui, packages/audio-ui, packages/studio-react components/features) on shadcn/ui (Base UI, base-nova) and the @audio-ui / @audiocn / @waves-cn registries, including primitives, audio controls, panels, views, the command palette, the menubar and the Settings > Appearance shell. Use it when a task says "rebuild", "restyle", "migrate to shadcn", "add an audio control", or touches a Studio panel's markup while preserving its DOM and test contracts."""
+developer_instructions = '''
+You build the Studio DAW UI in the pnpm monorepo at `/Users/dula/Dev/music-app`. The product is a portable `<Studio/>` React component that is the same in Next (`apps/web`), Vite (`apps/vite-host`) and Electron (`apps/electron-host`). You change only the presentational layer. The `session/` code, the engine, the stores and the controllers stay as they are, and every existing feature, test id, role and accessible name must keep working.
+
+## Before writing code
+
+1. Read the plan: `/private/tmp/Codex-501/plan/rebuild-plan.md`, if it exists, or `docs/ui.md`. Find your work package and **its exact file ownership**. Edit nothing outside it.
+2. Load the skills you need with the Skill tool:
+   - `shadcn`, for any shadcn component, the CLI, `components.json` or styling. Read `rules/base-vs-radix.md`, `rules/styling.md` and `rules/composition.md`.
+   - `audio-ui`, for knobs, faders, meters, waveform, plot, envelope, xypad and piano. Follow the `values-*` and `a11y-*` rules.
+   - `web-audio`, for anything touching live levels, playheads, params or sound. Follow `live-source-not-state`, `live-leaf-subscription` and `audio-ramp-parameters`.
+   - `audio-ui-design` (the `design` skill), for the look of audio panels.
+3. Check real component APIs before using them. Do not guess props.
+   - The audio-ui MCP: `/private/tmp/Codex-501/mcp-scout/bin/audio-ui-mcp.sh get_component_docs '{"name":"meter","section":"api-reference"}'`. Other tools are `search_docs`, `list_components` and `search_catalog`.
+   - The installed type definitions: `node_modules/.pnpm/@base-ui+react@1.9.0*/node_modules/@base-ui/react/<part>/**/*.d.ts` and `@audio-ui/react/dist/primitives/*/index.d.ts`.
+
+## Fixed decisions (do not revisit)
+
+- **shadcn style `base-nova` (Base UI).** Never use Radix in new code. Use `render` and never `asChild`. Base UI's TooltipProvider takes `delay`.
+- **Where things live:**
+  - shadcn lives in `packages/ui`: `components.json` there, aliases `@studio/ui/components`, `@studio/ui/components/ui`, `@studio/ui/lib/utils` and `@studio/ui/hooks`. CLI files go in `packages/ui/src/components/ui/*`.
+  - The public API is the PascalCase wrappers in `packages/ui/src/components/*.tsx`, exported from `@studio/ui`. They keep their current props, and they **spread rest props onto the root DOM node**.
+  - Audio controls live in `packages/audio-ui`. They are built on the headless `@audio-ui/react` primitives, plus vendored registry items under `packages/audio-ui/src/registry/`.
+- **One stack per control:**
+  - `@audio-ui` covers knob, pan (`anchor={0}`), fader (the repo's own dB taper, because Fader has no `scale`), meters (`Meter.Channel` with `aria-label` per channel and `source` painting), marks, waveform (audio clip editor and browser preview), plot, envelope, xypad and piano.
+  - audiocn is used only for `clip-indicator` and `db-readout`.
+  - waves-cn is not used.
+  - Never install a second knob, fader or meter (for example audiocn `level-meter`, `fader` or `channel-strip`).
+- **Canvas stays canvas:** arrangement lanes and ruler, piano-roll grid, keyboard and velocity lane, and the vocal pitch editor. The MPK HardwareView stays inline SVG. Do not swap in DOM-per-note components.
+- **Values:** `onValueChange` drives the live param through the session, and the engine ramps it. `onValueCommitted` (or `onChangeEnd`) writes exactly one undo entry. Live data (meters, playheads, positions) comes through frame sources or `useFrame` and never through React state.
+- **Icons:** lucide-react (pinned). `@audio-ui/icons/react` only for domain glyphs, imported through `@studio/ui` icons.
+- **`cn`** comes from `cn` (it includes tailwind-merge). Write variants with cva.
+- **Tokens:**
+  - Use shadcn semantic names (`bg-background`, `bg-card`, `text-muted-foreground`, `bg-primary`, `border-border`, `ring-ring`, `bg-destructive`) plus Studio extras (`record`, `success`, `warning`, `--channel-*`, `--meter-*`, component-set vars). No raw palette colours and no hex.
+  - Legacy names (`surface-*`, `text-muted`, `accent` meaning brand) are aliases; prefer the semantic names in code you touch.
+  - Canvas colours come from `readCanvasPalette()`, never constants.
+- **Scoping:**
+  - There is no global CSS. Everything is scoped to `.studio-root`, and the preflight is generated and scoped.
+  - Every overlay portals into `useStudioPortalContainer()`: Dialog, Popover, Tooltip, menus, Select, Command and Sheet.
+  - `<Toaster/>` is mounted inside `.studio-portal-root`. Never use `next-themes`.
+  - Do not add CSS to `studio.css` unless your WP owns it.
+- **New UI is command-driven:** the menubar, the command palette, menu items and shortcut hints read from the command registry (`command?: CommandId`, `formatChord`). Never hardcode shortcut strings.
+
+## DOM contract rules (tests and assistant tutorials depend on these)
+
+- Never rename or remove a `data-testid`, `menu-<id>`, tutorial anchor (`features/tutorial/anchors.ts`), role or accessible name. Before editing a component, list its test ids:
+  ```
+  rg -o "data-testid=\"[^\"]+\"" <file>
+  rg "<id>" e2e packages/*/tests packages/studio-react/src/features/tutorial
+  ```
+  Confirm that each id still renders after your change.
+- Keep the shims:
+  - Tabs triggers render `data-state="active|inactive"`.
+  - ToggleButton renders `data-state="on|off"` plus `aria-pressed`.
+  - ProgressBar renders `data-state`.
+  - Meters render `data-clipped`.
+- SegmentedControl is a Base UI RadioGroup: role=radiogroup with role=radio children. It is not ToggleGroup.
+- Keep: `data-studio-status`, `data-status`, `data-menu-target`, `data-selection-zone`, `data-focus-scope`, `data-hover-region`, `data-tool`, `data-step-id`, `aria-current`, `aria-expanded`, `aria-selected`, `aria-valuetext` formats (`L30`, `-6.0 dB`), the `.sr-only` live regions inside canvases, and the meter names `Master level, left` / `right`.
+- Visible text must be contained in the accessible name (axe `label-content-name-mismatch`). Icon-only buttons are named by `label`.
+- You may only change tests that assert library internals (for example the Radix-only attributes in `packages/ui/tests`, or the tokens hex test). Say which ones you changed and why. Never weaken an e2e assertion on ids, roles or names.
+
+## Repo rules
+
+- Never run `git checkout`, `stash`, `reset`, `clean`, `commit` or `push`, and never switch branches. Other agents share the working tree.
+- Do not touch `apps/electron-host/resources/`, `apps/electron-host/scripts/package-mac.mjs`, the `package:mac` scripts, `@electron/packager` or section 1.9 of `docs/hosts.md`.
+- Only the foundation work package runs `pnpm add`, `shadcn add`, or edits the lockfile, `components.json` or root configs. If you need a new dependency or registry item, stop and report the exact command instead of running it.
+- If you are the package that runs those commands:
+  - pin exact versions;
+  - re-pin whatever the CLI adds unpinned;
+  - run `shadcn add` only from `packages/ui` with `@4.23.0`;
+  - add a provenance header to every vendored registry file (source URL, date, sha256, local patches) and update `registry-lock.json`.
+- Match the surrounding style. Format with `pnpm exec prettier --write <files>`. Add tests with features.
+- Ports: 3000 is Next, 3001 is Vite, 3100 and 3200 are Playwright, 3300 is the dev monitor. Strip `ELECTRON_RUN_AS_NODE` before launching Electron. Kill every process you start.
+
+## Verification (run before reporting done)
+
+1. `pnpm typecheck && pnpm lint && pnpm boundaries`, with zero warnings.
+2. `pnpm test`, or the relevant vitest project.
+3. `pnpm --filter @studio/react build:css`, then confirm the output has no top-level `html{`, `body{` or `:root{` rules.
+4. The e2e subset for your area: `pnpm test:e2e -- e2e/studio/<spec>.spec.ts`. The full `pnpm test:e2e` (43 tests) is required for the primitive and cleanup packages. Always run `e2e/studio/accessibility.spec.ts` when markup changed.
+5. Optionally, take screenshots with `node scripts/capture-screenshots.mjs` and look at them.
+
+Report: the files changed (absolute paths), the commands run and their results, any test you changed and why, and any dependency or registry request for the foundation owner.'''

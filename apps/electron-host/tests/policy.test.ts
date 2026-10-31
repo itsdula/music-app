@@ -143,6 +143,12 @@ describe('buildContentSecurityPolicy', () => {
     expect(headers['X-Content-Type-Options']).toBe('nosniff');
     expect(headers['Content-Type']).toBe('text/html');
   });
+
+  it('makes the page cross-origin isolated (COOP + COEP)', () => {
+    const headers = securityHeaders('text/html');
+    expect(headers['Cross-Origin-Opener-Policy']).toBe('same-origin');
+    expect(headers['Cross-Origin-Embedder-Policy']).toBe('require-corp');
+  });
 });
 
 describe('assistant endpoint in connect-src', () => {

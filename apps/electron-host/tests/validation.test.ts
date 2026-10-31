@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_ACCEPT_ENTRIES, MAX_FILE_BYTES } from '../src/shared/host-api';
+import {
+  MAX_ACCEPT_ENTRIES,
+  MAX_FILE_BYTES,
+  MAX_PREFERENCE_VALUE_BYTES,
+} from '../src/shared/host-api';
 import {
   extensionOf,
   extensionsForAccept,
@@ -7,7 +11,12 @@ import {
   isAcceptedFile,
   mimeTypeForName,
   sanitizeFileName,
+  utf8ByteLength,
   validateOpenFilesArgs,
+  validatePreferenceDeleteArgs,
+  validatePreferenceKey,
+  validatePreferenceSetArgs,
+  validatePreferencesLoadArgs,
   validateSaveFileArgs,
 } from '../src/main/validation';
 
@@ -163,5 +172,88 @@ describe('file names', () => {
       expect(hasPathSeparator(out)).toBe(false);
       expect(out.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('utf8ByteLength', () => {
+  it.each([
+    ['', 0],
+    ['abc', 3],
+    ['é', 2],
+    ['音', 3],
+    ['🎛', 4],
+    ['a\u{1F39B}b', 6],
+    ['\uD800', 3], // lone high surrogate encodes as U+FFFD
+    ['\uDC00x', 4], // lone low surrogate
+  ])('%j is %i bytes', (value, bytes) => {
+    expect(utf8ByteLength(value)).toBe(bytes);
+    expect(utf8ByteLength(value)).toBe(Buffer.byteLength(value, 'utf8'));
+  });
+});
+
+describe('preference validators', () => {
+  it('accepts dotted keys of letters, digits, _ . -', () => {
+    for (const key of [
+      'a',
+      'theme.config',
+      'ui.pianoRoll.velocityLane.editor',
+      'k_1-x',
+      `k${'.'.repeat(127)}`,
+    ]) {
+      expect(validatePreferenceKey(key)).toEqual({ ok: true, value: key });
+    }
+  });
+
+  it.each([
+    ['non-string', 42],
+    ['empty', ''],
+    ['leading dot', '.a'],
+    ['path', '../a'],
+    ['space', 'a b'],
+    ['colon', 'a:b'],
+    ['proto', '__proto__'],
+    ['non-ASCII', 'thème'],
+    ['too long', `k${'x'.repeat(128)}`],
+  ])('rejects a key that is %s', (_label, key) => {
+    expect(validatePreferenceKey(key).ok).toBe(false);
+  });
+
+  it('validates set arguments', () => {
+    expect(validatePreferenceSetArgs(['ui.a', '1'])).toEqual({
+      ok: true,
+      value: { key: 'ui.a', value: '1' },
+    });
+    expect(validatePreferenceSetArgs(['ui.a', '']).ok).toBe(true);
+    expect(validatePreferenceSetArgs(['ui.a', 'x'.repeat(MAX_PREFERENCE_VALUE_BYTES)]).ok).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    ['no arguments', []],
+    ['one argument', ['ui.a']],
+    ['extra argument', ['ui.a', '1', '2']],
+    ['bad key', ['a b', '1']],
+    ['number value', ['ui.a', 1]],
+    ['object value', ['ui.a', { toString: () => '1' }]],
+    ['null value', ['ui.a', null]],
+    ['oversized value', ['ui.a', 'x'.repeat(MAX_PREFERENCE_VALUE_BYTES + 1)]],
+    ['oversized in UTF-8', ['ui.a', '音'.repeat(MAX_PREFERENCE_VALUE_BYTES / 2)]],
+  ])('rejects set with %s', (_label, args) => {
+    expect(validatePreferenceSetArgs(args).ok).toBe(false);
+  });
+
+  it('rejects huge strings without measuring them', () => {
+    const result = validatePreferenceSetArgs(['ui.a', 'x'.repeat(50 * 1024 * 1024)]);
+    expect(result).toEqual({ ok: false, error: 'value exceeds the 64 KiB limit' });
+  });
+
+  it('validates load and delete arguments', () => {
+    expect(validatePreferencesLoadArgs([])).toEqual({ ok: true, value: null });
+    expect(validatePreferencesLoadArgs(['x']).ok).toBe(false);
+    expect(validatePreferenceDeleteArgs(['ui.a'])).toEqual({ ok: true, value: 'ui.a' });
+    expect(validatePreferenceDeleteArgs([]).ok).toBe(false);
+    expect(validatePreferenceDeleteArgs(['ui.a', 'x']).ok).toBe(false);
+    expect(validatePreferenceDeleteArgs(['../a']).ok).toBe(false);
   });
 });

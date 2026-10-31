@@ -1,6 +1,6 @@
 /**
- * PlatformServices for tests: memory repositories, fake engine and MIDI port, deterministic
- * ids/clock, WAV-only decoder. Lets the real session run in jsdom/Node.
+ * PlatformServices for tests: memory repositories and preferences, fake engine and MIDI port,
+ * deterministic ids/clock, WAV-only decoder. Lets the real session run in jsdom/Node.
  */
 import { decodeWav } from '@studio/audio-dsp';
 import type {
@@ -13,8 +13,10 @@ import type {
 import {
   createMemoryAssetRepository,
   createMemoryDerivedCache,
+  createMemoryKeyValueStore,
   createMemoryProjectRepository,
   createMemorySettingsRepository,
+  type KeyValueStore,
 } from '@studio/project-storage';
 import { createInlineVocalProcessor } from '@studio/vocal-dsp';
 import { FakeAudioEngine } from './fake-engine';
@@ -42,6 +44,8 @@ export function createTestPlatform(
     projects?: ReturnType<typeof createMemoryProjectRepository>;
     /** Optional AI assistant transport (e.g. a FakeAssistantTransport). */
     assistant?: AssistantTransport;
+    /** Preferences store; defaults to a fresh in-memory one. */
+    preferences?: KeyValueStore;
   } = {},
 ): TestPlatform {
   let counter = 0;
@@ -65,6 +69,7 @@ export function createTestPlatform(
     assetRepository: createMemoryAssetRepository(),
     derivedCache: createMemoryDerivedCache(),
     settingsRepository: createMemorySettingsRepository(),
+    preferences: overrides.preferences ?? createMemoryKeyValueStore(),
     fileDialogs: {
       openFiles: async () => platform.pickFiles,
       saveFile: async (bytes, options) => {

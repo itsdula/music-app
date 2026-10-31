@@ -11,7 +11,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { app, BrowserWindow, protocol, session, type WebContents } from 'electron';
-import { APP_ENTRY_URL, APP_SCHEME } from '../shared/host-api';
+import { APP_ENTRY_URL, APP_SCHEME, PREFERENCES_FILE_NAME } from '../shared/host-api';
 import { contentTypeFor, resolveAppFile } from './app-files';
 import { registerIpcHandlers } from './ipc';
 import {
@@ -22,6 +22,8 @@ import {
   securityHeaders,
   type CspOptions,
 } from './policy';
+import { createPreferencesStore } from './preferences-store';
+import { devLog } from './dev-log';
 
 const distDir = join(import.meta.dirname, '..');
 /** `STUDIO_ELECTRON_PROBE=1` serves the bundled security probe page instead of Studio (smoke tests). */
@@ -35,6 +37,17 @@ const cspOptions: CspOptions = {
 };
 
 if (process.env.STUDIO_USER_DATA_DIR) app.setPath('userData', process.env.STUDIO_USER_DATA_DIR);
+
+/** `pnpm dev` only: a dev build (`__STUDIO_DEV__`) run with STUDIO_DEV=1. Production bundles
+ * fold this to `false` and drop dev-mode.ts (OpenTelemetry export, window reload) entirely. */
+const devMode =
+  typeof __STUDIO_DEV__ !== 'undefined' &&
+  __STUDIO_DEV__ === true &&
+  process.env.STUDIO_DEV === '1';
+if (typeof __STUDIO_DEV__ !== 'undefined' && __STUDIO_DEV__ === true && devMode) {
+  const { startDevMode } = await import('./dev-mode');
+  startDevMode(app, distDir);
+}
 
 // Must run before `ready`.
 protocol.registerSchemesAsPrivileged([
@@ -117,10 +130,14 @@ function createWindow(): BrowserWindow {
     },
   });
   win.once('ready-to-show', () => win.show());
+  win.webContents.on('did-finish-load', () =>
+    devLog('info', 'window loaded', { 'window.id': win.id }),
+  );
   win.on('closed', () => {
     if (mainWindow === win) mainWindow = null;
   });
   void win.loadURL(APP_ENTRY_URL);
+  devLog('info', 'window created', { 'window.id': win.id, 'url.full': APP_ENTRY_URL });
   return win;
 }
 
@@ -128,6 +145,10 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
+    devLog('info', 'second instance launched');
+    // Dev only: the monitor's "Open Electron" relaunches through this lock; reopen a window
+    // that was closed (macOS keeps the app running without one).
+    if (!mainWindow && devMode && app.isReady()) mainWindow = createWindow();
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -140,9 +161,29 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(() => {
+    devLog('info', 'app ready', {
+      'process.pid': process.pid,
+      'electron.version': process.versions.electron ?? '',
+      'app.user_data': app.getPath('userData'),
+    });
     installAppProtocol();
     installPermissionPolicy();
-    registerIpcHandlers();
+    // UI preferences: read synchronously before the window exists, written debounced, and
+    // flushed before the process exits.
+    const preferences = createPreferencesStore({
+      filePath: join(app.getPath('userData'), PREFERENCES_FILE_NAME),
+    });
+    app.on('before-quit', () => preferences.flush());
+    app.on('will-quit', () => preferences.flush());
+    registerIpcHandlers(
+      preferences,
+      devMode
+        ? {
+            onError: (channel, error) =>
+              devLog('error', `IPC ${channel} failed: ${String(error)}`, { 'rpc.method': channel }),
+          }
+        : {},
+    );
     mainWindow = createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();

@@ -33,6 +33,7 @@ export default defineConfig(
     '**/src/generated/**',
     '**/next-env.d.ts',
     '.claude/**',
+    '.agents/**',
     'playwright-report/**',
     'test-results/**',
     'docs/**',

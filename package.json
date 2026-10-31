@@ -5,11 +5,13 @@
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.15.0"
   },
   "scripts": {
-    "dev": "turbo run dev --filter=@studio/web...",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "turbo run dev --filter=@studio/web...",
     "dev:vite": "turbo run dev --filter=@studio/vite-host...",
+    "package:mac": "turbo run build --filter=@studio/electron-host... && pnpm --filter @studio/electron-host package:mac",
     "build": "turbo run build",
     "codegen": "turbo run codegen",
     "typecheck": "turbo run typecheck && tsc -p tsconfig.json",

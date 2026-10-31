@@ -1,0 +1,11 @@
+{
+  "version": "1.2.0",
+  "organization": "audio/ui",
+  "date": "October 2026",
+  "abstract": "How to pick, install and wire audio/ui components in React, for AI agents and LLMs: how a control's value flows, accessibility, styling and letting a model drive the interface. Rules across four categories, prioritized by impact, each with the incorrect code an agent tends to write and the correct code with the real audio/ui API.",
+  "references": [
+    "https://www.audio-ui.dev/docs",
+    "https://www.audio-ui.dev/llms.txt",
+    "https://www.w3.org/WAI/ARIA/apg/patterns/slider/"
+  ]
+}

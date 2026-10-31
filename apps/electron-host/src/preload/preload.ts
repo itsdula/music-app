@@ -38,6 +38,23 @@ const api: StudioHostApi = {
       chrome: process.versions.chrome ?? '',
     }),
   }),
+  preferences: Object.freeze({
+    load(): Promise<Record<string, string>> {
+      return ipcRenderer.invoke(IPC_CHANNELS.preferencesLoad) as Promise<Record<string, string>>;
+    },
+    set(key: string, value: string): Promise<void> {
+      if (typeof key !== 'string' || typeof value !== 'string') {
+        return Promise.reject(new TypeError('preferences.set: key and value must be strings'));
+      }
+      return ipcRenderer.invoke(IPC_CHANNELS.preferencesSet, key, value) as Promise<void>;
+    },
+    delete(key: string): Promise<void> {
+      if (typeof key !== 'string') {
+        return Promise.reject(new TypeError('preferences.delete: key must be a string'));
+      }
+      return ipcRenderer.invoke(IPC_CHANNELS.preferencesDelete, key) as Promise<void>;
+    },
+  }),
 };
 
 contextBridge.exposeInMainWorld(HOST_GLOBAL, Object.freeze(api));

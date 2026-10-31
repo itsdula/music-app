@@ -2,7 +2,13 @@
  * Validation of every value that crosses the IPC boundary from the (untrusted) renderer,
  * and file-name sanitising. Pure functions only; unit-tested in tests/validation.test.ts.
  */
-import { MAX_ACCEPT_ENTRIES, MAX_FILE_BYTES, MAX_FILE_NAME_LENGTH } from '../shared/host-api';
+import {
+  MAX_ACCEPT_ENTRIES,
+  MAX_FILE_BYTES,
+  MAX_FILE_NAME_LENGTH,
+  MAX_PREFERENCE_VALUE_BYTES,
+  PREFERENCE_KEY_PATTERN,
+} from '../shared/host-api';
 
 export type Validated<T> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
@@ -164,4 +170,70 @@ export function isAcceptedFile(path: string, extensions: readonly string[] | nul
   if (extensions === null) return true;
   const ext = extensionOf(path);
   return ext !== '' && extensions.includes(ext);
+}
+
+/** UTF-8 encoded length of `value` without allocating (lone surrogates count as U+FFFD). */
+export function utf8ByteLength(value: string): number {
+  let bytes = 0;
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
+      const next = value.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        bytes += 4;
+        i++;
+      } else bytes += 3;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
+/** A preference key: 1-128 characters of `A-Z a-z 0-9 _ . -`, starting alphanumeric. */
+export function validatePreferenceKey(key: unknown): Validated<string> {
+  if (typeof key !== 'string') return fail('key must be a string');
+  if (!PREFERENCE_KEY_PATTERN.test(key)) {
+    return fail(`invalid key ${JSON.stringify(key.slice(0, 40))}`);
+  }
+  return ok(key);
+}
+
+/** A preference value: a string of at most 64 KiB in UTF-8. */
+export function validatePreferenceValue(value: unknown): Validated<string> {
+  if (typeof value !== 'string') return fail('value must be a string');
+  // Each UTF-16 unit is at least one UTF-8 byte: reject huge strings before counting.
+  if (
+    value.length > MAX_PREFERENCE_VALUE_BYTES ||
+    utf8ByteLength(value) > MAX_PREFERENCE_VALUE_BYTES
+  ) {
+    return fail('value exceeds the 64 KiB limit');
+  }
+  return ok(value);
+}
+
+/** Validates the (empty) argument list of `studio-host:preferences-load`. */
+export function validatePreferencesLoadArgs(args: readonly unknown[]): Validated<null> {
+  return args.length === 0 ? ok(null) : fail('preferences.load expects no arguments');
+}
+
+export interface PreferenceSetArgs {
+  readonly key: string;
+  readonly value: string;
+}
+
+/** Validates the `[key, value]` tuple of `studio-host:preferences-set`. */
+export function validatePreferenceSetArgs(args: readonly unknown[]): Validated<PreferenceSetArgs> {
+  if (args.length !== 2) return fail('preferences.set expects exactly 2 arguments');
+  const key = validatePreferenceKey(args[0]);
+  if (!key.ok) return key;
+  const value = validatePreferenceValue(args[1]);
+  if (!value.ok) return value;
+  return ok({ key: key.value, value: value.value });
+}
+
+/** Validates the `[key]` tuple of `studio-host:preferences-delete`. */
+export function validatePreferenceDeleteArgs(args: readonly unknown[]): Validated<string> {
+  if (args.length !== 1) return fail('preferences.delete expects exactly 1 argument');
+  return validatePreferenceKey(args[0]);
 }
