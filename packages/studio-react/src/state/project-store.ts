@@ -16,6 +16,11 @@ export interface ProjectStoreState {
   readonly redoLabel: string | undefined;
   readonly saveStatus: SaveStatus;
   readonly lastSavedAt: string | null;
+  /**
+   * False until the user creates, opens or imports a project. Until then `project` is an unsaved
+   * placeholder and the Studio shows the start screen instead of the workspace.
+   */
+  readonly isOpen: boolean;
 }
 
 export type ProjectStore = StoreApi<ProjectStoreState>;
@@ -40,6 +45,7 @@ export function createProjectStore(history: CommandHistory): {
     ...snapshot(history),
     saveStatus: 'idle',
     lastSavedAt: null,
+    isOpen: false,
   }));
   const detach = history.subscribe(() => store.setState(snapshot(history)));
   return { store, detach };

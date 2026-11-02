@@ -13,6 +13,7 @@ import { Studio } from '../src/Studio';
 import type * as UiStoreModule from '../src/state/ui-store';
 import type { UiStore } from '../src/state/ui-store';
 import { createTestPlatform } from './helpers/test-platform';
+import { startEmptyProject } from './helpers/start';
 
 // Capture the session's history so tests can assert recorded commands.
 const captured = vi.hoisted(() => ({
@@ -96,6 +97,7 @@ async function openAnalyzedVocal() {
       timeout: 5000,
     },
   );
+  await startEmptyProject();
 
   // Import through the browser panel (the platform's file picker returns our WAV).
   platform.pickFiles = [{ name: 'Lead Vox.wav', mimeType: 'audio/wav', bytes: wavBytes }];

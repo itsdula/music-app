@@ -1,6 +1,12 @@
 import { decodeWav } from '@studio/audio-dsp';
 import { expect, test } from '@playwright/test';
-import { openStudio, positionBars, readDownload, resetStorage } from '../helpers';
+import {
+  openStudio,
+  positionBars,
+  readDownload,
+  resetStorage,
+  startEmptyProject,
+} from '../helpers';
 
 test.describe('Phase 2 vertical slice: MIDI clip → piano roll → synth → loop → WAV', () => {
   test.beforeEach(async ({ page }) => {
@@ -10,6 +16,7 @@ test.describe('Phase 2 vertical slice: MIDI clip → piano roll → synth → lo
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test('create a clip, draw notes, play, loop, stop, seek and export an audible WAV', async ({

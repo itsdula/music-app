@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openStudio, resetStorage } from '../helpers';
+import { openStudio, resetStorage, startEmptyProject } from '../helpers';
 
 const clipTab = (page: Page) => page.getByRole('tab', { name: 'Piano Roll' });
 const trackTab = (page: Page) => page.getByRole('tab', { name: 'Track', exact: true });
@@ -14,6 +14,7 @@ test.describe('Selection and the bottom panel', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test('the piano roll follows the selected region and clicking away deselects it', async ({

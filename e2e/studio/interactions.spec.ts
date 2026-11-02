@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openStudio, resetStorage } from '../helpers';
+import { openStudio, resetStorage, startEmptyProject } from '../helpers';
 
 /**
  * Editor interactions: Studio-owned context menus (never the browser's), selection-aware
@@ -52,6 +52,7 @@ test.describe('Editor interactions', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test("right-clicking a region opens Studio's menu instead of the browser's", async ({ page }) => {

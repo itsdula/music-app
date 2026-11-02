@@ -71,22 +71,36 @@ export class ProjectController {
     return n;
   }
 
-  async openInitial(initialProjectId?: string): Promise<OpenResult> {
-    const preferred =
-      initialProjectId ?? (await this.platform.settingsRepository.get<string>(LAST_PROJECT_KEY));
-    if (preferred) {
-      const opened = await this.open(preferred as ProjectId).catch(() => null);
-      if (opened) return opened;
-    }
-    const projects = await this.list();
-    const recent = projects[0];
-    if (recent) {
-      const opened = await this.open(recent.id).catch(() => null);
-      if (opened) return opened;
-    }
-    const project = createStarterProject(this.ids, this.platform.now());
-    await this.adopt(project, true, 0);
-    return { project, recoveredFromBackup: false, migratedFrom: null, createdNew: true };
+  /**
+   * Opens the project a host asked for at mount (`config.initialProjectId`). Without one, or if
+   * it cannot be opened, nothing is opened and the start screen asks the user what to do.
+   */
+  async openInitial(initialProjectId?: string): Promise<OpenResult | null> {
+    if (!initialProjectId) return null;
+    return this.open(initialProjectId as ProjectId).catch((error: unknown) => {
+      this.platform.logger.warn('Could not open the initial project', error);
+      return null;
+    });
+  }
+
+  /** The project opened most recently, if it still exists (the start screen highlights it). */
+  lastOpenedId(): Promise<string | null> {
+    return this.platform.settingsRepository
+      .get<string>(LAST_PROJECT_KEY)
+      .then((id) => id ?? null)
+      .catch(() => null);
+  }
+
+  /** Saves and closes the open project, going back to the start screen. */
+  async close(): Promise<void> {
+    await this.flush();
+    this.detachHistory?.();
+    this.detachHistory = null;
+    this.autosave?.dispose();
+    this.autosave = null;
+    this.assets.clear();
+    this.history.reset(createStarterProject(this.ids, this.platform.now()));
+    this.projectStore.setState({ isOpen: false, saveStatus: 'idle', lastSavedAt: null });
   }
 
   async open(id: ProjectId): Promise<OpenResult> {
@@ -242,6 +256,7 @@ export class ProjectController {
     this.detachHistory = this.history.subscribe(({ reason, present }) => {
       if (reason !== 'reset') autosave.notifyChanged(present);
     });
+    this.projectStore.setState({ isOpen: true });
     if (saveImmediately) {
       autosave.notifyChanged(project);
       await autosave.flush();

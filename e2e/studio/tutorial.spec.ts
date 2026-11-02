@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { openStudio, positionBars, resetStorage } from '../helpers';
+import {
+  openStudio,
+  positionBars,
+  resetStorage,
+  reopenLastProject,
+  startEmptyProject,
+} from '../helpers';
 
 /**
  * Tutorials in a real browser: the built-in "Getting started" tour is run end to end by
@@ -15,6 +21,7 @@ async function freshStudio(page: Page) {
   await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
     timeout: 30_000,
   });
+  await startEmptyProject(page);
 }
 
 /** Reads one entry of the browser platform's `settings` store (database `studio`) directly. */
@@ -160,6 +167,7 @@ test.describe('Tutorials', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await reopenLastProject(page);
     await page.getByTestId('tutorial-menu').click();
     await expect(page.getByTestId('tutorial-item-getting-started')).toHaveAttribute(
       'data-status',
@@ -208,6 +216,7 @@ test.describe('Tutorials', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await reopenLastProject(page);
     await page.getByTestId('tutorial-menu').click();
     await expect(page.getByTestId('tutorial-item-recording-audio')).toHaveAttribute(
       'data-status',

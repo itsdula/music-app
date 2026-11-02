@@ -8,6 +8,7 @@ import {
   createTestPlatform,
   FakeAssistantTransport,
 } from './helpers/test-platform';
+import { startEmptyProject } from './helpers/start';
 
 async function renderStudio(transport?: FakeAssistantTransport) {
   const platform = createTestPlatform(transport ? { assistant: transport } : {});
@@ -16,6 +17,7 @@ async function renderStudio(transport?: FakeAssistantTransport) {
     () => expect(screen.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready'),
     { timeout: 5000 },
   );
+  await startEmptyProject();
   return { platform, ...utils };
 }
 

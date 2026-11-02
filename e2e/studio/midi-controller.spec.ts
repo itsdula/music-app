@@ -6,7 +6,7 @@ import {
   sendMidiBatch,
   setMidiPortConnected,
 } from '../fake-midi';
-import { openStudio, resetStorage } from '../helpers';
+import { openStudio, resetStorage, reopenLastProject, startEmptyProject } from '../helpers';
 
 /**
  * Phase 5 with a simulated controller. The fake reproduces Web MIDI semantics and the
@@ -42,6 +42,7 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test('detects the controller by port name, applies its profile and never requests SysEx', async ({
@@ -155,6 +156,7 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await reopenLastProject(page);
     await openControllerView(page, 'Mappings');
     const rows = page.getByTestId('mapping-row');
     await expect(rows.filter({ hasText: 'CC 21' })).toHaveCount(1);

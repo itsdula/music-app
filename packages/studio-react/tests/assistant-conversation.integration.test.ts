@@ -21,6 +21,7 @@ async function startSession(transport?: FakeAssistantTransport) {
   const session = createStudioSession(platform, { ...DEFAULT_STUDIO_CONFIG, autosaveDelayMs: 5 });
   sessions.push(session);
   await session.start();
+  await session.projects.newProject('empty');
   return session;
 }
 
