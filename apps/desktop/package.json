@@ -1,6 +1,6 @@
 {
   "name": "@studio/desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "productName": "Nawa",
   "private": true,
   "description": "Nawa desktop app (Electron): secure main process + preload bridge; the renderer mounts the portable <Studio />.",
