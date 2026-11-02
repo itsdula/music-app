@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openStudio, resetStorage } from '../helpers';
+import { openStudio, resetStorage, startEmptyProject } from '../helpers';
 
 async function fresh(page: Page): Promise<void> {
   await openStudio(page);
@@ -8,6 +8,7 @@ async function fresh(page: Page): Promise<void> {
   await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
     timeout: 30_000,
   });
+  await startEmptyProject(page);
 }
 
 async function goToProjects(page: Page): Promise<void> {
@@ -79,5 +80,37 @@ test.describe('Projects page', () => {
     await expect(page.getByRole('spinbutton', { name: 'Tempo (BPM)' })).toHaveValue('97');
     await page.keyboard.press('ControlOrMeta+z');
     await expect(page.getByRole('spinbutton', { name: 'Tempo (BPM)' })).toHaveValue('120');
+  });
+});
+
+test.describe('Start screen', () => {
+  test('asks for a project on load, opens a sample and comes back after closing it', async ({
+    page,
+  }) => {
+    await openStudio(page);
+    await resetStorage(page);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'No project open' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId('transport-bar')).toHaveCount(0);
+    await expect(page.getByTestId('start-recent-empty')).toBeVisible();
+    await expect(page.getByTestId('start-sample')).toHaveCount(30);
+
+    await page.getByRole('button', { name: 'Techno', exact: true }).click();
+    await page.getByTestId('start-sample').first().click();
+    await expect(page.getByTestId('project-name')).toHaveText('Black Diamond');
+
+    await page.getByTestId('project-menu').click();
+    await page.getByTestId('menu-close-project').click();
+    await expect(page.getByRole('heading', { name: 'No project open' })).toBeVisible();
+    const recent = page.getByTestId('start-recent');
+    await expect(recent).toHaveCount(1);
+    await expect(recent).toContainText('Black Diamond');
+    await expect(recent).toContainText('Last opened');
+
+    await page.reload();
+    await page.getByTestId('start-recent').click();
+    await expect(page.getByTestId('project-name')).toHaveText('Black Diamond');
   });
 });

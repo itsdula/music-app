@@ -2,7 +2,7 @@ import { decodeWav } from '@studio/audio-dsp';
 import { analyzeVocal } from '@studio/vocal-dsp';
 import { expect, test } from '@playwright/test';
 import { detunedVocalWav, VOCAL_NOTES } from '../audio-fixtures';
-import { openStudio, readDownload, resetStorage } from '../helpers';
+import { openStudio, readDownload, resetStorage, startEmptyProject } from '../helpers';
 
 /**
  * Phases 6–7 in a real browser: analysis runs in Studio's Web Worker (inline Blob bundle),
@@ -25,6 +25,7 @@ test.describe('Phases 6–7: vocal analysis and pitch correction', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test('analyzes a detuned vocal, shows its notes and exports an audibly corrected WAV', async ({

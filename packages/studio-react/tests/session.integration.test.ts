@@ -19,6 +19,7 @@ async function startSession(platform: TestPlatform = createTestPlatform()) {
   const session = createStudioSession(platform, { ...DEFAULT_STUDIO_CONFIG, autosaveDelayMs: 5 });
   sessions.push(session);
   await session.start();
+  await session.projects.newProject('empty');
   return { session, platform };
 }
 
@@ -76,11 +77,56 @@ describe('session lifecycle', () => {
     );
     sessions.push(second);
     await second.start();
+    expect(second.projectStore.getState().isOpen).toBe(false);
+    expect(await second.projects.lastOpenedId()).toBe(saved.id);
+    await second.projects.open(saved.id);
     const reopened = second.history.present;
     expect(reopened.id).toBe(saved.id);
     const clip = reopened.clips[clipId] as MidiClip;
     expect(clip.startTick).toBe(PPQ * 4);
     expect(clip.notes.map((n) => n.pitch)).toEqual([60]);
+  });
+});
+
+describe('start screen', () => {
+  it('opens no project on start, so the user chooses one', async () => {
+    const platform = createTestPlatform();
+    const session = createStudioSession(platform, DEFAULT_STUDIO_CONFIG);
+    sessions.push(session);
+    await session.start();
+    expect(session.projectStore.getState().isOpen).toBe(false);
+    expect(await platform.projectRepository.list()).toEqual([]);
+    expect(await session.projects.lastOpenedId()).toBeNull();
+  });
+
+  it('opens the project a host passes as initialProjectId', async () => {
+    const platform = createTestPlatform();
+    const { session } = await startSession(platform);
+    const id = session.history.present.id;
+    await session.dispose();
+    sessions.length = 0;
+
+    const second = createStudioSession(
+      { ...platform, audioBackendFactory: { ...platform.audioBackendFactory } },
+      { ...DEFAULT_STUDIO_CONFIG, initialProjectId: id },
+    );
+    sessions.push(second);
+    await second.start();
+    expect(second.projectStore.getState().isOpen).toBe(true);
+    expect(second.history.present.id).toBe(id);
+    expect(second.uiStore.getState().selection.trackId).toBe(second.history.present.trackOrder[0]);
+  });
+
+  it('closes the open project after saving it', async () => {
+    const { session, platform } = await startSession();
+    const trackId = session.history.present.trackOrder[0]!;
+    const clipId = session.edits.createMidiClip(trackId, 0)!;
+    const id = session.history.present.id;
+    await session.projects.close();
+    expect(session.projectStore.getState().isOpen).toBe(false);
+    expect(session.history.present.id).not.toBe(id);
+    const stored = await platform.projectRepository.load(id);
+    expect(stored.status === 'ok' && stored.project.clips[clipId]).toBeTruthy();
   });
 });
 

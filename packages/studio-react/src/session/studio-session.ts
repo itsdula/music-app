@@ -11,7 +11,7 @@ import { RenderLoop } from '../canvas/render-loop';
 import type { StudioConfig } from '../config';
 import { createEngineStore, type EngineStore } from '../state/engine-store';
 import { createProjectStore, type ProjectStore } from '../state/project-store';
-import { createUiStore, pruneSelection, type UiStore } from '../state/ui-store';
+import { createUiStore, pruneSelection, selectTrack, type UiStore } from '../state/ui-store';
 import { AssetLibrary } from './asset-library';
 import { createStarterProject } from './demo-project';
 import { EditController } from './edit-controller';
@@ -88,6 +88,13 @@ export function createStudioSession(
   });
 
   // Keep selection valid after undo/redo/deletes/project switches.
+  // Whenever a project is opened, select its first track so live MIDI and shortcuts have a
+  // target.
+  const detachOpen = projectStore.subscribe((state, previous) => {
+    if (!state.isOpen || (previous.isOpen && state.project.id === previous.project.id)) return;
+    const first = state.project.trackOrder[0];
+    uiStore.setState((s) => selectTrack(s, first ?? null));
+  });
   const detachPrune = history.subscribe(({ present }) => {
     uiStore.setState((s) =>
       pruneSelection(s, {
@@ -168,9 +175,6 @@ export function createStudioSession(
           .init()
           .catch((error: unknown) => platform.logger.warn('MIDI initialisation failed', error));
       }
-      // Select the first track so live MIDI and shortcuts have a target.
-      const first = history.present.trackOrder[0];
-      if (first) uiStore.setState((s) => ({ ...s, selection: { ...s.selection, trackId: first } }));
       uninstallTools = installStudioTools(session);
     },
     async dispose() {
@@ -180,6 +184,7 @@ export function createStudioSession(
       unsubscribeEngine();
       midi.dispose();
       vocal.dispose();
+      detachOpen();
       detachPrune();
       detachProjectStore();
       bridge.detach();

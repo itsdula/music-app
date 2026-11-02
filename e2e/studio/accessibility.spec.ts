@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { detunedVocalWav } from '../audio-fixtures';
-import { openStudio, resetStorage } from '../helpers';
+import { openStudio, resetStorage, startEmptyProject } from '../helpers';
 
 /**
  * Automated WCAG 2.1 A/AA checks (axe-core) on Studio's main surfaces and dialogs.
@@ -14,6 +14,13 @@ async function expectNoViolations(
   label: string,
   selector = '[data-testid="studio-root"]',
 ) {
+  // Let open/close transitions finish first: a dialog fading in has partly transparent text, which
+  // axe would report as low contrast.
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
+  );
   const results = await new AxeBuilder({ page })
     .include(selector)
     // WCAG 2.5.3 Label in Name (`label-content-name-mismatch`) is experimental in axe, so it is
@@ -41,6 +48,7 @@ test.describe('Accessibility (axe, WCAG 2.1 AA)', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test('arrangement, track devices, mixer and controller panel', async ({ page }) => {

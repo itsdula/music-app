@@ -25,6 +25,7 @@ async function setup() {
   });
   sessions.push(session);
   await session.start();
+  await session.projects.newProject('empty');
   const trackId = session.history.present.trackOrder[0]!;
   const bar = ticksPerBar(session.history.present.meter);
   const a = session.edits.createMidiClip(trackId, 0, bar)!;

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { Studio } from '../src/Studio';
 import { createTestPlatform } from './helpers/test-platform';
+import { startEmptyProject } from './helpers/start';
 
 async function renderStudio() {
   const platform = createTestPlatform();
@@ -11,6 +12,7 @@ async function renderStudio() {
     () => expect(screen.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready'),
     { timeout: 5000 },
   );
+  await startEmptyProject();
   return { platform, ...utils };
 }
 

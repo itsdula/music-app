@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openStudio, resetStorage } from '../helpers';
+import { openStudio, resetStorage, startEmptyProject } from '../helpers';
 
 async function freshStudio(page: Page): Promise<void> {
   await openStudio(page);
@@ -8,6 +8,7 @@ async function freshStudio(page: Page): Promise<void> {
   await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
     timeout: 30_000,
   });
+  await startEmptyProject(page);
 }
 
 test.describe('Error states are explained, not silent', () => {

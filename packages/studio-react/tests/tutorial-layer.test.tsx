@@ -23,6 +23,7 @@ async function renderShell() {
   const session = createStudioSession(platform, { ...DEFAULT_STUDIO_CONFIG, autosaveDelayMs: 5 });
   sessions.push(session);
   await session.start();
+  await session.projects.newProject('empty');
   const controller = TutorialController.forSession(session);
   await controller.load();
   const utils = render(

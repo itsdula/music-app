@@ -37,3 +37,15 @@ export async function readDownload(path: string): Promise<Uint8Array> {
 export async function positionBars(page: Page): Promise<string> {
   return (await page.getByTestId('position-bars').textContent()) ?? '';
 }
+
+/** On the start screen shown after every load, creates an empty project and waits for the workspace. */
+export async function startEmptyProject(page: Page): Promise<void> {
+  await page.getByTestId('start-new').click();
+  await expect(page.getByTestId('transport-bar')).toBeVisible();
+}
+
+/** On the start screen, reopens the most recently edited project (first in the list). */
+export async function reopenLastProject(page: Page): Promise<void> {
+  await page.getByTestId('start-recent').first().click();
+  await expect(page.getByTestId('transport-bar')).toBeVisible();
+}

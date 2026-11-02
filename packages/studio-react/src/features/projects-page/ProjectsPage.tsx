@@ -24,8 +24,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SAMPLE_PROJECTS } from '../../generated/samples';
 import { useProjectState, useSession } from '../../session/context';
 import { navigate } from '../../state/ui-store';
+import { importProjectFile, openSampleProject } from './actions';
 import { ProjectSettingsDialog } from './ProjectSettingsDialog';
-import { base64ToBytes, GENRE_LABELS, type SampleProject } from './samples';
+import { GENRE_LABELS, type SampleProject } from './samples';
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -84,31 +85,9 @@ export function ProjectsPage() {
   };
 
   const openSample = (sample: SampleProject) =>
-    run(
-      `sample:${sample.id}`,
-      async () => {
-        const bytes = base64ToBytes(await sample.load());
-        await session.projects.importBundle({
-          name: `${sample.id}.studio`,
-          mimeType: 'application/zip',
-          bytes,
-        });
-      },
-      true,
-    );
+    run(`sample:${sample.id}`, () => openSampleProject(session, sample), true);
 
-  const importFile = () =>
-    run(
-      'import',
-      async () => {
-        const [file] = await session.platform.fileDialogs.openFiles({
-          accept: ['.studio', 'application/zip'],
-          multiple: false,
-        });
-        if (file) await session.projects.importBundle(file);
-      },
-      true,
-    );
+  const importFile = () => run('import', () => importProjectFile(session), true);
 
   const samples = useMemo(
     () => (genre === 'all' ? SAMPLE_PROJECTS : SAMPLE_PROJECTS.filter((s) => s.genre === genre)),

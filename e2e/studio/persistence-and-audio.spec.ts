@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { sineWav, wavStats } from '../audio-fixtures';
-import { openStudio, readDownload, resetStorage } from '../helpers';
+import {
+  openStudio,
+  readDownload,
+  resetStorage,
+  reopenLastProject,
+  startEmptyProject,
+} from '../helpers';
 
 async function ready(page: Page): Promise<void> {
   await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
@@ -45,6 +51,7 @@ test.describe('Phases 3–4: audio import, persistence, bundles and effects', ()
     await resetStorage(page);
     await page.reload();
     await ready(page);
+    await startEmptyProject(page);
   });
 
   test('autosaves edits and restores them, including audio, after a reload', async ({ page }) => {
@@ -55,6 +62,7 @@ test.describe('Phases 3–4: audio import, persistence, bundles and effects', ()
 
     await page.reload();
     await ready(page);
+    await reopenLastProject(page);
     await expect(page.getByTestId('project-name')).toHaveText('Autosave Song');
     await expect(page.getByTestId('track-header')).toHaveCount(2);
     await expect(page.getByTestId('browser-panel')).toContainText('tone');

@@ -16,6 +16,7 @@ async function startSession() {
   });
   sessions.push(session);
   await session.start();
+  await session.projects.newProject('empty');
   return { session, controller: TutorialController.forSession(session) };
 }
 

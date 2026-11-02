@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { wavStats } from '../audio-fixtures';
-import { openStudio, readDownload, resetStorage } from '../helpers';
+import { openStudio, readDownload, resetStorage, startEmptyProject } from '../helpers';
 
 /**
  * Phase 4 recording with Chromium's synthetic microphone (--use-fake-device-for-media-stream
@@ -15,6 +15,7 @@ test.describe('Phase 4: microphone recording (fake capture device)', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('data-studio-status', 'ready', {
       timeout: 30_000,
     });
+    await startEmptyProject(page);
   });
 
   test('records an armed audio track into a new clip that is audible in the bounce', async ({

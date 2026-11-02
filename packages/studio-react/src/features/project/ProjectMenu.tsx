@@ -20,6 +20,7 @@ import {
   PackageOpen,
   Save,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useProjectState, useSession } from '../../session/context';
@@ -115,6 +116,19 @@ export function ProjectMenu() {
             onSelect={() => void session.projects.exportBundle().catch(report)}
           >
             Export project bundle…
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            icon={<X />}
+            data-testid="menu-close-project"
+            onSelect={() =>
+              void (async () => {
+                await session.transport.stop().catch(() => undefined);
+                await session.projects.close();
+              })().catch(report)
+            }
+          >
+            Close project
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
