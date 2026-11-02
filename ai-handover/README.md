@@ -80,8 +80,6 @@ against `vp preview` on http://localhost:3200.
 1. Bump `version` in `apps/desktop/package.json` and `apps/site/package.json` (the site footer
    shows it); merge to `main`. The installers take their version from the tag either way.
 2. `git tag v0.2.0 && git push origin v0.2.0`.
-3. After the first release exists, set `HAS_DESKTOP_RELEASE = true` in
-   `apps/site/src/landing/links.ts` so the landing page shows the download buttons.
 
 ## History: what was built, in order
 

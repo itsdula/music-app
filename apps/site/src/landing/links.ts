@@ -9,8 +9,7 @@ export const RELEASES_URL = 'https://github.com/itsdula/nawa/releases';
 export const DOCS_URL = 'https://github.com/itsdula/nawa/tree/main/docs';
 
 /**
- * Flip to `true` once the release workflow has published the first desktop build. Until
- * then `releases/latest` redirects to an empty page, so the page offers the browser app
- * and the source instead of a download that does not exist yet.
+ * Whether a published desktop release exists (v0.1.0 onward). When `false`, `releases/latest`
+ * would land on an empty page, so the page offers the browser app and the source instead.
  */
-export const HAS_DESKTOP_RELEASE = false;
+export const HAS_DESKTOP_RELEASE = true;

@@ -83,7 +83,6 @@ export function Hero() {
             <motion.a
               {...pill}
               href={DOWNLOAD_URL}
-              aria-label="New: the desktop app for macOS, Windows and Linux"
               className={cx(
                 'group inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pr-3 pl-1 text-[13px] text-text-muted backdrop-blur transition-colors hover:border-white/20 hover:text-text',
                 focusRing,

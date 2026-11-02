@@ -246,8 +246,6 @@ repository's Pages source must be set to **GitHub Actions** once.
 3. The workflow creates a draft release with generated notes, builds the installers on macOS,
    Windows and Linux, uploads them, and publishes the release once every platform succeeded.
    A tag with a suffix (`v0.2.0-beta.1`) becomes a pre-release.
-4. After the first release, set `HAS_DESKTOP_RELEASE = true` in
-   `apps/site/src/landing/links.ts` so the landing page shows the download buttons.
 
 Running the workflow by hand (workflow_dispatch) is a dry run: it packages every platform
 without publishing and keeps the installers as workflow artifacts. Details:
