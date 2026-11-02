@@ -12,14 +12,14 @@ export const GETTING_STARTED: Tutorial = {
   steps: [
     {
       id: 'welcome',
-      title: 'Welcome to Studio',
+      title: 'Welcome to Nawa',
       body: 'This short tour walks you through making a loop from scratch. Each step waits for you to try it — or press Next to move on.',
       advance: { type: 'next' },
     },
     {
       id: 'create-project',
       title: 'Create a project',
-      body: 'Open the Studio menu and choose “New project”. Your current project is saved automatically.',
+      body: 'Open the Nawa menu and choose “New project”. Your current project is saved automatically.',
       target: 'project-menu',
       placement: 'right',
       advance: { type: 'condition', condition: { type: 'projectChanged' } },
@@ -215,7 +215,7 @@ export const VOCAL_PITCH_BASICS: Tutorial = {
     {
       id: 'analyze',
       title: 'Analyze the vocal',
-      body: 'Click “Analyze vocal”. Studio detects every sung note; this takes a few seconds.',
+      body: 'Click “Analyze vocal”. Nawa detects every sung note; this takes a few seconds.',
       target: 'button:Analyze vocal',
       placement: 'top',
       advance: { type: 'condition', condition: { type: 'vocalAnalyzed' } },

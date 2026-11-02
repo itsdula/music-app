@@ -376,13 +376,13 @@ function TutorialOffer({ controller }: { controller: TutorialController }) {
   return (
     <section
       {...layerProps}
-      aria-label="Studio tour"
+      aria-label="Nawa tour"
       className="flex shrink-0 items-center gap-3 border-t border-line bg-surface-2 px-3 py-1.5 text-[12px]"
       data-testid="tutorial-offer"
     >
       <GraduationCap className="size-4 shrink-0 text-accent" aria-hidden />
       <span className="flex-1">
-        New to Studio? Take the 2-minute tour: make a loop, add an effect and export it.
+        New to Nawa? Take the 2-minute tour: make a loop, add an effect and export it.
       </span>
       <Button
         size="sm"

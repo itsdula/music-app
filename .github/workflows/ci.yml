@@ -46,6 +46,9 @@ jobs:
         run: pnpm test:browser
       - name: Build
         run: pnpm build
+        env:
+          # The e2e tests serve the site from the root; GitHub Pages builds use '/nawa/'.
+          NAWA_BASE_PATH: /
       - name: End-to-end tests
         run: pnpm test:e2e:only
       - name: Upload Playwright report
@@ -57,7 +60,7 @@ jobs:
           retention-days: 7
 
   electron:
-    name: Electron host (unit tests + headless smoke)
+    name: Desktop app (Electron unit tests, headless smoke, packaging)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -77,8 +80,13 @@ jobs:
       - name: Codegen
         run: pnpm codegen
       - name: Host unit tests
-        run: pnpm --filter @studio/electron-host test
+        run: pnpm --filter @studio/desktop test
       - name: Smoke test (real Electron under Xvfb; probe page, then the full Studio)
         run: |
-          pnpm --filter @studio/electron-host smoke:probe
-          pnpm --filter @studio/electron-host smoke
+          pnpm --filter @studio/desktop smoke:probe
+          pnpm --filter @studio/desktop smoke
+      # Catches electron-builder.yml mistakes before a release tag does. The smoke test above
+      # left the full build in dist/; an unpacked Linux app skips the slow installer step.
+      - name: Package check (unpacked Linux app, not published)
+        working-directory: apps/desktop
+        run: pnpm exec electron-builder --linux dir --publish never

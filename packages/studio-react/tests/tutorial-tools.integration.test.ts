@@ -87,7 +87,7 @@ describe('tutorial tools', () => {
     const started = await session.tools.call('start_tutorial', { id: 'getting-started' });
     expect(started).toMatchObject({
       started: 'getting-started',
-      active: { id: 'getting-started', step: 1, of: 14, stepTitle: 'Welcome to Studio' },
+      active: { id: 'getting-started', step: 1, of: 14, stepTitle: 'Welcome to Nawa' },
     });
     expect(controller.store.getState().active?.tutorial.id).toBe('getting-started');
     expect(await session.tools.call('stop_tutorial', {})).toEqual({ stopped: 'getting-started' });

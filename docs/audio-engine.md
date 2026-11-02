@@ -49,8 +49,9 @@ UI session ──diffProjects(prev, next)──► AudioEngine.applyChanges(chan
 | `decode.ts`, `assets.ts`                                 | File decoding; asset AudioBuffer cache with overrides                               |
 
 Worker and worklet code is pre-bundled to strings by `packages/audio-web/scripts/codegen.mjs`
-(esbuild via `scripts/inline-bundles.mjs`) and loaded from Blob URLs, which works identically in
-Next.js, Vite, Electron and Tauri. Hosts with a CSP need `script-src blob:` (worklet) and
+(esbuild via `scripts/inline-bundles.mjs`) and loaded from Blob URLs, which works identically on
+the Vite site and in Electron (and did in the former Next.js host); a future WebView host would
+load them the same way. Hosts with a CSP need `script-src blob:` (worklet) and
 `worker-src blob:` (heartbeat); without them the heartbeat falls back to `setInterval` and meters
 fall back to `AnalyserNode` (recording then reports `recording: false`).
 

@@ -1,8 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
-/** Opens the Vite host with a fresh IndexedDB database and the download fallback for saves. */
-export async function openStudio(page: Page, path = '/'): Promise<void> {
+/** Opens the site's Studio page with a fresh IndexedDB database and the download fallback for saves. */
+export async function openStudio(page: Page, path = '/studio/'): Promise<void> {
   await page.addInitScript(() => {
     // Force the <a download> path so Playwright can capture exported files.
     Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });

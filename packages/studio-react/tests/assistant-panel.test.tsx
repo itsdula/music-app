@@ -31,7 +31,7 @@ describe('<AssistantPanel />', () => {
     const panel = await openPanel(user);
     expect(panel).toHaveAccessibleName('AI assistant');
     expect(within(panel).getByRole('alert')).toHaveTextContent(
-      "The AI assistant isn't configured on this server: set OPENROUTER_API_KEY",
+      "The AI assistant isn't available here: no assistant endpoint is configured for this copy of Nawa.",
     );
     expect(screen.getByTestId('assistant-input')).toBeDisabled();
     expect(screen.getByTestId('assistant-send')).toBeDisabled();
@@ -43,7 +43,7 @@ describe('<AssistantPanel />', () => {
     await openPanel(user);
     await user.type(screen.getByTestId('assistant-input'), 'hello{Enter}');
     expect(await screen.findByTestId('assistant-not-configured')).toHaveTextContent(
-      'set OPENROUTER_API_KEY',
+      'no assistant endpoint is configured',
     );
   });
 

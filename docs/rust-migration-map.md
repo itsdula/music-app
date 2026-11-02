@@ -1,7 +1,7 @@
 # Rust migration map
 
 The Rust path is a **function-by-function, contract-preserving port**, never a rewrite.
-Only class A (portable) code is in scope; React components, Next routing and browser
+Only class A (portable) code is in scope; React components, host pages and browser
 adapters are never ported. Each entry keeps its TypeScript implementation until the Rust
 implementation passes the same golden fixtures and contract suites.
 

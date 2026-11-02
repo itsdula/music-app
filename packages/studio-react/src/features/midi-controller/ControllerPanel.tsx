@@ -121,7 +121,7 @@ export function ControllerPanel() {
           aria-label="Compatibility matrix"
         >
           <p className="mb-2 text-text-muted">
-            What Studio does with this controller and how well each item is evidenced. Nothing below
+            What Nawa does with this controller and how well each item is evidenced. Nothing below
             has been tested on a physical unit yet; see docs/midi-integration.md for the hardware
             test protocol.
           </p>
@@ -129,7 +129,7 @@ export function ControllerPanel() {
             <thead className="text-[10px] tracking-wide text-text-faint uppercase">
               <tr>
                 <th className="py-1">Capability</th>
-                <th className="py-1">Studio</th>
+                <th className="py-1">Nawa</th>
                 <th className="py-1">Evidence</th>
                 <th className="py-1">Notes</th>
               </tr>

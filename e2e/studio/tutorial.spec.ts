@@ -17,6 +17,35 @@ async function freshStudio(page: Page) {
   });
 }
 
+/** Reads one entry of the browser platform's `settings` store (database `studio`) directly. */
+function readSetting(page: Page, key: string): Promise<unknown> {
+  return page.evaluate(
+    (settingKey) =>
+      new Promise<unknown>((resolve, reject) => {
+        const open = indexedDB.open('studio');
+        open.onerror = () => reject(open.error ?? new Error('could not open IndexedDB'));
+        open.onsuccess = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains('settings')) {
+            db.close();
+            resolve(undefined);
+            return;
+          }
+          const get = db
+            .transaction('settings', 'readonly')
+            .objectStore('settings')
+            .get(settingKey);
+          get.onerror = () => reject(get.error ?? new Error(`could not read ${settingKey}`));
+          get.onsuccess = () => {
+            db.close();
+            resolve(get.result);
+          };
+        };
+      }),
+    key,
+  );
+}
+
 test.describe('Tutorials', () => {
   test.beforeEach(async ({ page }) => {
     await freshStudio(page);
@@ -39,7 +68,7 @@ test.describe('Tutorials', () => {
     await expect(card).toHaveAttribute('role', 'dialog');
     await page.getByTestId('tutorial-next').click();
 
-    // 1. Create a project from the Studio menu.
+    // 1. Create a project from the Nawa menu.
     await atStep('create-project', '2 of 14');
     await expect(spotlight).toBeVisible();
     // The spotlight surrounds the real control.
@@ -166,6 +195,13 @@ test.describe('Tutorials', () => {
     await card.focus();
     await page.keyboard.press('Escape');
     await expect(card).toHaveCount(0);
+
+    // Progress is written to IndexedDB without being awaited by the UI; reloading before the
+    // write commits would lose it, so wait for it to land before checking it survives a reload.
+    await expect
+      .poll(() => readSetting(page, 'studio.tutorials.progress'))
+      .toMatchObject({ 'recording-audio': { status: 'dismissed' } });
+    await expect.poll(() => readSetting(page, 'studio.tutorials.firstRunOffer')).toBe('dismissed');
 
     // Dismissing the offer is remembered.
     await page.reload();

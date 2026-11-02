@@ -115,12 +115,6 @@ module.exports = {
       to: { dependencyTypes: ['core'] },
     },
     {
-      name: 'only-web-app-imports-next',
-      severity: 'error',
-      from: { path: '^packages/' },
-      to: { path: 'node_modules/next/' },
-    },
-    {
       name: 'studio-react-platform-browser-only-in-default-platform',
       severity: 'error',
       comment:
@@ -151,7 +145,7 @@ module.exports = {
   options: {
     doNotFollow: { path: 'node_modules' },
     exclude: {
-      path: ['(^|/)(dist|\\.next|coverage|\\.turbo)/', '(^|/)src/generated/', '\\.claude/'],
+      path: ['(^|/)(dist|coverage|\\.turbo)/', '(^|/)src/generated/', '\\.claude/'],
     },
     includeOnly: [
       '^packages/',

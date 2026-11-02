@@ -1,7 +1,7 @@
 {
-  "name": "studio-monorepo",
+  "name": "nawa",
   "private": true,
-  "description": "Studio \u2014 a local-first, portable digital audio workstation.",
+  "description": "Nawa \u2014 a local-first, portable digital audio workstation.",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -9,9 +9,8 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "dev:web": "turbo run dev --filter=@studio/web...",
-    "dev:vite": "turbo run dev --filter=@studio/vite-host...",
-    "package:mac": "turbo run build --filter=@studio/electron-host... && pnpm --filter @studio/electron-host package:mac",
+    "dev:site": "turbo run dev --filter=@studio/site...",
+    "package:desktop": "turbo run build --filter=@studio/desktop... && pnpm --filter @studio/desktop package",
     "build": "turbo run build",
     "codegen": "turbo run codegen",
     "typecheck": "turbo run typecheck && tsc -p tsconfig.json",
@@ -24,7 +23,7 @@
     "test:integration": "pnpm codegen && vitest run --passWithNoTests --project integration",
     "test:contracts": "vitest run --passWithNoTests --project contracts",
     "test:coverage": "pnpm codegen && vitest run --passWithNoTests --project unit --project react --project integration --project contracts --coverage",
-    "test:e2e": "pnpm build && playwright test",
+    "test:e2e": "NAWA_BASE_PATH=/ pnpm build && playwright test",
     "test:e2e:only": "playwright test",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm boundaries && pnpm test && pnpm build",
     "test:browser": "pnpm codegen && vitest run --passWithNoTests --project browser",

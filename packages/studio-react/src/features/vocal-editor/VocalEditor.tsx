@@ -86,7 +86,7 @@ export function VocalEditor({ clip }: { clip: AudioClip }) {
       <EmptyState
         icon={<Mic />}
         title="Pitch-correct this vocal"
-        description="Studio finds the notes of a single-voice (monophonic) vocal so you can tune them. Analysis runs locally on this device; nothing is uploaded."
+        description="Nawa finds the notes of a single-voice (monophonic) vocal so you can tune them. Analysis runs locally on this device; nothing is uploaded."
         action={
           <Button
             variant="primary"

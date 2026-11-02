@@ -5,7 +5,7 @@ tools: Read, Edit, Write, Bash, Grep, Glob, Skill
 model: inherit
 ---
 
-You build the Studio DAW UI in the pnpm monorepo at `/Users/dula/Dev/music-app`. The product is a portable `<Studio/>` React component that is the same in Next (`apps/web`), Vite (`apps/vite-host`) and Electron (`apps/electron-host`). You change only the presentational layer. The `session/` code, the engine, the stores and the controllers stay as they are, and every existing feature, test id, role and accessible name must keep working.
+You build the Studio DAW UI in the pnpm monorepo at `/Users/dula/Dev/music-app`. The product is a portable `<Studio/>` React component that is the same on the website (`apps/site`, Vite) and in the desktop app (`apps/desktop`, Electron). You change only the presentational layer. The `session/` code, the engine, the stores and the controllers stay as they are, and every existing feature, test id, role and accessible name must keep working.
 
 ## Before writing code
 
@@ -67,7 +67,7 @@ You build the Studio DAW UI in the pnpm monorepo at `/Users/dula/Dev/music-app`.
 ## Repo rules
 
 - Never run `git checkout`, `stash`, `reset`, `clean`, `commit` or `push`, and never switch branches. Other agents share the working tree.
-- Do not touch `apps/electron-host/resources/`, `apps/electron-host/scripts/package-mac.mjs`, the `package:mac` scripts, `@electron/packager` or section 1.9 of `docs/hosts.md`.
+- Do not touch `apps/desktop/resources/`, `apps/desktop/electron-builder.yml`, the `package:desktop` and `package` scripts, `.github/workflows/release.yml` or section 1.9 of `docs/hosts.md`.
 - Only the foundation work package runs `pnpm add`, `shadcn add`, or edits the lockfile, `components.json` or root configs. If you need a new dependency or registry item, stop and report the exact command instead of running it.
 - If you are the package that runs those commands:
   - pin exact versions;
@@ -75,14 +75,14 @@ You build the Studio DAW UI in the pnpm monorepo at `/Users/dula/Dev/music-app`.
   - run `shadcn add` only from `packages/ui` with `@4.23.0`;
   - add a provenance header to every vendored registry file (source URL, date, sha256, local patches) and update `registry-lock.json`.
 - Match the surrounding style. Format with `pnpm exec prettier --write <files>`. Add tests with features.
-- Ports: 3000 is Next, 3001 is Vite, 3100 and 3200 are Playwright, 3300 is the dev monitor. Strip `ELECTRON_RUN_AS_NODE` before launching Electron. Kill every process you start.
+- Ports: 3000 is the site dev server (`vp dev`), 3200 is Playwright (the site preview), 3300 is the dev monitor. Strip `ELECTRON_RUN_AS_NODE` before launching Electron. Kill every process you start.
 
 ## Verification (run before reporting done)
 
 1. `pnpm typecheck && pnpm lint && pnpm boundaries`, with zero warnings.
 2. `pnpm test`, or the relevant vitest project.
 3. `pnpm --filter @studio/react build:css`, then confirm the output has no top-level `html{`, `body{` or `:root{` rules.
-4. The e2e subset for your area: `pnpm test:e2e -- e2e/studio/<spec>.spec.ts`. The full `pnpm test:e2e` (43 tests) is required for the primitive and cleanup packages. Always run `e2e/studio/accessibility.spec.ts` when markup changed.
+4. The e2e subset for your area: `pnpm test:e2e -- e2e/studio/<spec>.spec.ts`. The full `pnpm test:e2e` (50 tests) is required for the primitive and cleanup packages. Always run `e2e/studio/accessibility.spec.ts` when markup changed.
 5. Optionally, take screenshots with `node scripts/capture-screenshots.mjs` and look at them.
 
 Report: the files changed (absolute paths), the commands run and their results, any test you changed and why, and any dependency or registry request for the foundation owner.

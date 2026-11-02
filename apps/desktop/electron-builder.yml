@@ -1,0 +1,88 @@
+# electron-builder config for the Nawa desktop app.
+#   pnpm package:desktop            (repo root) builds the workspace, then packages for this OS
+#   pnpm --filter @studio/desktop package    packages an existing dist/ for this OS
+# Output goes to apps/desktop/out/ (git-ignored). The tag-triggered .github/workflows/release.yml runs the
+# same config on macOS, Windows and Linux with `--publish always` to attach the installers to the
+# GitHub Release for the tag.
+#
+# dist/ is fully bundled (esbuild main and preload, Vite renderer), so the app ships only dist/
+# and package.json: no node_modules, no source maps and no smoke-test probe page.
+# Builds are not code-signed with a paid certificate: macOS is signed ad hoc (Apple Silicon
+# refuses to run unsigned code, and an ad-hoc signature needs no certificate in CI), Windows
+# and Linux are unsigned. Gatekeeper and SmartScreen therefore warn on first launch.
+appId: app.nawa.desktop
+productName: Nawa
+copyright: Copyright © 2026 Nawa contributors
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+# The packaged package.json is named after the product, not the `@studio/desktop` workspace.
+extraMetadata:
+  name: nawa
+
+directories:
+  output: out
+  buildResources: resources
+
+files:
+  - package.json
+  - dist/main/**
+  - dist/preload/**
+  - dist/renderer/**
+  - '!**/*.map'
+  - '!node_modules{,/**}'
+
+# Everything runs from the bundles: no native modules to rebuild, nothing to install.
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+includePdb: false
+asar: true
+
+publish:
+  provider: github
+  owner: itsdula
+  repo: nawa
+  # The release workflow creates a draft release first and publishes it after every platform
+  # uploaded, so a release is never public with half its installers.
+  releaseType: draft
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  category: public.app-category.music
+  icon: icon.icns
+  darkModeSupport: true
+  # Ad-hoc signature, no certificate. Hardened runtime would reject the Electron framework's
+  # Team ID under an ad-hoc signature, and it only matters for notarization, which needs a
+  # Developer ID anyway.
+  identity: '-'
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  extendInfo:
+    NSMicrophoneUsageDescription: Nawa records audio from your microphone or audio interface.
+
+dmg:
+  writeUpdateInfo: false
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  differentialPackage: false
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: icon.png
+  category: AudioVideo
+  synopsis: Local-first music workstation

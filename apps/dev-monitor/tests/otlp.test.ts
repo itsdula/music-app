@@ -59,11 +59,11 @@ const jsonRequest = {
   resourceLogs: [
     {
       resource: {
-        attributes: [{ key: 'service.name', value: { stringValue: 'studio-next' } }],
+        attributes: [{ key: 'service.name', value: { stringValue: 'studio-electron-main' } }],
       },
       scopeLogs: [
         {
-          scope: { name: 'studio.next', version: '1' },
+          scope: { name: 'studio.electron', version: '1' },
           logRecords: [
             {
               timeUnixNano: '1793405920261000000',
@@ -91,8 +91,8 @@ describe('OTLP/JSON', () => {
   it('flattens records with resource, scope, attributes and times', () => {
     const [first, second] = flattenLogsRequest(jsonRequest, 42);
     expect(first).toMatchObject({
-      service: 'studio-next',
-      scope: 'studio.next',
+      service: 'studio-electron-main',
+      scope: 'studio.electron',
       timeMs: 1_793_405_920_261,
       severityNumber: 9,
       severityText: 'INFO',

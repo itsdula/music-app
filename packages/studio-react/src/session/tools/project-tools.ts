@@ -212,7 +212,7 @@ export function registerProjectTools(registry: ToolRegistry, session: StudioSess
         const meter = history.present.meter;
         await transport.play(fromBar !== undefined ? barToTick(fromBar, meter) : undefined);
         if (!transport.isPlaying)
-          fail('Audio could not start. Ask the user to click anywhere in Studio, then try again.');
+          fail('Audio could not start. Ask the user to click anywhere in Nawa, then try again.');
         return position();
       },
     }),

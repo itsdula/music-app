@@ -1,5 +1,8 @@
 # ADR 0002 — Portable cores vs host adapters vs UI, enforced by tooling
 
+> **Update (2026-11):** the `next`-only-in-`apps/web` rule was dropped with the Next.js host;
+> the remaining rules are unchanged. See [architecture.md §4](../architecture.md).
+
 Status: Accepted (2026-10-29)
 
 ## Decision

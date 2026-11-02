@@ -41,7 +41,7 @@ export function safeFileName(name: string): string {
     .replace(/[\\/:*?"<>|]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return cleaned.length > 0 ? cleaned.slice(0, 80) : 'Studio Export';
+  return cleaned.length > 0 ? cleaned.slice(0, 80) : 'Nawa Export';
 }
 
 export class ExportController {

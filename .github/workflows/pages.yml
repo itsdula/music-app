@@ -1,0 +1,67 @@
+# Pages: builds the Nawa website (apps/site: the landing page and /studio/) and deploys it to
+# GitHub Pages at https://itsdula.github.io/nawa/ on every push to main.
+#
+# The site is static. The build base path is '/nawa/' (the repository name), set through
+# NAWA_BASE_PATH, which apps/site/vite.config.ts reads and apps/site/turbo.json declares so Turbo
+# passes it through and keys its cache on it.
+#
+# One-time repository setting: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time. A deploy that is already running is allowed to finish, so the live
+# site is never left half updated; the newest queued run goes next.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+        env:
+          # The site build does not launch Electron; skip the ~100 MB binary download.
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Build apps/site (and the workspace packages it uses)
+        run: pnpm turbo run build --filter=@studio/site...
+        env:
+          NAWA_BASE_PATH: /nawa/
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/site/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

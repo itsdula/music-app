@@ -57,7 +57,7 @@ export function MappingsTable() {
     const file: MappingFile = { format: 'studio.midi-mappings', version: 1, mappings: all };
     const bytes = new TextEncoder().encode(JSON.stringify(file, null, 2));
     await session.platform.fileDialogs.saveFile(bytes, {
-      suggestedName: 'studio-midi-mappings.json',
+      suggestedName: 'nawa-midi-mappings.json',
       mimeType: 'application/json',
     });
   };
@@ -73,7 +73,7 @@ export function MappingsTable() {
       mappings?: unknown;
     };
     if (parsed.format !== 'studio.midi-mappings' || !Array.isArray(parsed.mappings))
-      throw new Error('Not a Studio MIDI mapping file.');
+      throw new Error('Not a Nawa MIDI mapping file.');
     // Untrusted input: validate every mapping, then give each a fresh id.
     const valid: MidiMapping[] = [];
     for (const candidate of parsed.mappings as unknown[]) {

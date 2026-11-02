@@ -2,7 +2,7 @@
   "name": "@studio/dev-monitor",
   "version": "0.1.0",
   "private": true,
-  "description": "Dev orchestrator behind `pnpm dev`: starts Next.js and Electron, receives their OpenTelemetry logs and serves the dev-monitor page.",
+  "description": "Dev orchestrator behind `pnpm dev`: starts the site's Vite dev server and Electron, receives their OpenTelemetry logs and serves the dev-monitor page.",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

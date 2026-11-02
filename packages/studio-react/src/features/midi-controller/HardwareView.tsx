@@ -199,7 +199,7 @@ export function HardwareView({
                   fill="#d7e7ff"
                   fontFamily="ui-monospace, monospace"
                 >
-                  Studio · ready
+                  Nawa · ready
                 </text>
               </g>
             );

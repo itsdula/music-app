@@ -104,7 +104,7 @@ export function migrateWith(
   if (version > targetVersion) {
     return err(
       versionError(
-        `project was saved by a newer version of Studio (schema ${version}); this version supports up to ${targetVersion}. Update Studio to open it.`,
+        `project was saved by a newer version of Nawa (schema ${version}); this version supports up to ${targetVersion}. Update Nawa to open it.`,
       ),
     );
   }

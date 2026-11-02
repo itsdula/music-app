@@ -281,7 +281,7 @@ function EmptyState({ disabled, onPick }: { disabled: boolean; onPick: (text: st
   return (
     <div className="mb-3">
       <p className="text-[12px] text-text-muted">
-        I can build parts for your song, change sounds and take you around Studio. Try:
+        I can build parts for your song, change sounds and take you around Nawa. Try:
       </p>
       <ul aria-label="Suggestions" className="mt-2 flex flex-wrap gap-1.5">
         {ASSISTANT_SUGGESTIONS.map((s) => (

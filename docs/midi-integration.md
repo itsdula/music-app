@@ -162,16 +162,16 @@ CC120 close a channel's notes; `finish(endTick)` closes everything still soundin
 
 ## 7. Permissions per host
 
-| Host                  | Behaviour                                                                      | Studio handling                                                           |
-| --------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Chrome / Edge         | Since Chrome 124 a prompt appears for any MIDI access; secure context required | Call `requestAccess` from a user gesture; `NotAllowedError` → `denied`    |
-| Firefox desktop       | Requires installing a site-permission add-on (user prompt); no `statechange`   | Same API; polling covers hotplug                                          |
-| Safari / iOS / WebKit | No Web MIDI                                                                    | `supported: false` → status `unsupported`; show a message                 |
-| Electron              | Approves every permission unless a handler is installed                        | The Electron host must allow `midi` and deny `midiSysex`                  |
-| Tauri (Windows)       | WebView2 exposes Web MIDI (runtime prompt behaviour untested)                  | Same adapter                                                              |
-| Tauri (macOS / Linux) | No Web MIDI in WKWebView / WebKitGTK                                           | Needs a native `MidiAccessPort` (e.g. `midir`) feeding `MidiStreamParser` |
+| Host                          | Behaviour                                                                      | Nawa handling                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Chrome / Edge                 | Since Chrome 124 a prompt appears for any MIDI access; secure context required | Call `requestAccess` from a user gesture; `NotAllowedError` → `denied`    |
+| Firefox desktop               | Requires installing a site-permission add-on (user prompt); no `statechange`   | Same API; polling covers hotplug                                          |
+| Safari / iOS / WebKit         | No Web MIDI                                                                    | `supported: false` → status `unsupported`; show a message                 |
+| Electron                      | Approves every permission unless a handler is installed                        | The Electron host must allow `midi` and deny `midiSysex`                  |
+| Tauri, future (Windows)       | WebView2 exposes Web MIDI (runtime prompt behaviour untested)                  | Same adapter                                                              |
+| Tauri, future (macOS / Linux) | No Web MIDI in WKWebView / WebKitGTK                                           | Needs a native `MidiAccessPort` (e.g. `midir`) feeding `MidiStreamParser` |
 
-Studio never requests SysEx (`MidiService.requestAccess` only accepts `{ sysex: false }`).
+Nawa never requests SysEx (`MidiService.requestAccess` only accepts `{ sysex: false }`).
 Mapping errors: `NotAllowedError`/`SecurityError` → `denied`; `NotSupportedError` or no API →
 `unsupported`; anything else (e.g. `InvalidStateError` in headless Linux without ALSA) → `error`.
 
@@ -215,7 +215,7 @@ capture (hex, from the diagnostics view or `formatMidiBytes`) and PASS / FAIL / 
 for the items that passed, quoting the evidence file in the control's `note`, and update the
 matrix in `docs/midi-device-research.md`.
 
-**Capture setup.** Use Studio's MIDI diagnostics view when available, or a page that wires
+**Capture setup.** Use Nawa's MIDI diagnostics view when available, or a page that wires
 `createWebMidiAccessPort()` → `MidiService` and logs `describeMidiMessage(e.message)`,
 `formatMidiBytes(...)`, `e.control?.controlId` and `e.timestampMs`. A system monitor
 (`aseqdump -p "MPK mini 3"`, macOS MIDI Monitor) is an acceptable cross-check.
@@ -237,7 +237,7 @@ Program 1, octave 0, ARP off, FULL LEVEL off, Bank A, pad Note mode.
 | 10  | Pad CC mode: press/release each pad                                                    | CC 16–23 (A) / 24–31 (B) ch 10; record press and release values; momentary vs toggle                                                                                         |
 | 11  | Pad PROG CHANGE mode: press each pad                                                   | Program Change ch 10; record numbers and whether Bank Select precedes it                                                                                                     |
 | 12  | ARP on with held keys; NOTE REPEAT with held pad                                       | Arp notes on ch 1; repeat notes on ch 10                                                                                                                                     |
-| 13  | Set Clock Source = External (editor); send Studio clock (experimental) + Start/Stop    | Arp follows tempo; stops on Stop. Record drift and behaviour without clock                                                                                                   |
+| 13  | Set Clock Source = External (editor); send Nawa clock (experimental) + Start/Stop      | Arp follows tempo; stops on Stop. Record drift and behaviour without clock                                                                                                   |
 | 14  | Internal clock with ARP running: watch for F8/FA/FC                                    | Expected: nothing sent (unverified)                                                                                                                                          |
 | 15  | Compare swing presets on keys vs editor options                                        | Record values                                                                                                                                                                |
 | 16  | PROG SELECT + pad n                                                                    | Record anything sent (PC? nothing?)                                                                                                                                          |
@@ -249,6 +249,6 @@ Program 1, octave 0, ARP off, FULL LEVEL off, Bank A, pad Note mode.
 | 22  | Tauri on Windows (if built): `requestMIDIAccess()`                                     | Record whether a permission event appears                                                                                                                                    |
 | 23  | Unplug and replug while holding a key and the sustain pedal                            | On unplug: synthetic noteOff + CC64 0 delivered, device shows disconnected (Firefox within ~2 s); on replug: same display name, input works; record whether port ids persist |
 
-Studio-side checks to add to the same evidence file: pickup on K1 (turning from the far end
+Nawa-side checks to add to the same evidence file: pickup on K1 (turning from the far end
 does not jump the volume until crossing), MIDI Learn of K5 and of a pad, a recorded take with
 sustain matches what was played, and `panic()` silences everything.

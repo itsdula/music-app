@@ -28,7 +28,7 @@ export function severityName(severityNumber: number): SeverityName {
 
 /** Service names (`service.name`) the monitor knows how to group. Others land in "All". */
 export const SERVICES = {
-  next: 'studio-next',
+  site: 'studio-site',
   electronMain: 'studio-electron-main',
   electronRenderer: 'studio-electron-renderer',
   build: 'studio-build',

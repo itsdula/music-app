@@ -16,11 +16,11 @@ export function StartupScreen({
       {status === 'booting' ? (
         <>
           <Spinner />
-          <span className="text-[12px]">Starting Studio…</span>
+          <span className="text-[12px]">Starting Nawa…</span>
         </>
       ) : (
         <div className="max-w-md rounded-lg border border-record/40 bg-record/10 p-4 text-[12px] text-text">
-          <p className="mb-1 font-semibold text-record">Studio could not start</p>
+          <p className="mb-1 font-semibold text-record">Nawa could not start</p>
           <p className="text-text-muted">{message}</p>
         </div>
       )}

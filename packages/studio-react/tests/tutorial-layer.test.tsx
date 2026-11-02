@@ -271,7 +271,7 @@ describe('first-run offer and tutorial menu', () => {
     const user = userEvent.setup();
     const { controller, platform } = await renderShell();
     const offer = await screen.findByTestId('tutorial-offer');
-    expect(offer).toHaveAccessibleName('Studio tour');
+    expect(offer).toHaveAccessibleName('Nawa tour');
     expect(screen.queryByTestId('tutorial-card')).not.toBeInTheDocument();
     await user.click(within(offer).getByTestId('tutorial-offer-dismiss'));
     expect(screen.queryByTestId('tutorial-offer')).not.toBeInTheDocument();

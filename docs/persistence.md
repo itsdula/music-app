@@ -1,6 +1,6 @@
 # Persistence
 
-How Studio stores projects, assets and derived data, and how it keeps them intact.
+How Nawa stores projects, assets and derived data, and how it keeps them intact.
 
 - Portable logic lives in `@studio/project-storage` (no DOM or Node APIs): schema, migrations,
   bundles, autosave, the in-memory repositories and the revision/backup/recovery rules.
@@ -344,20 +344,22 @@ mappings, recording latency, the last project and tutorial progress.
 
 | Host     | Adapter                              | Data lives in                        |
 | -------- | ------------------------------------ | ------------------------------------ |
-| Next.js  | `createLocalStorageKeyValueStore()`  | localStorage, as `studio.pref.<key>` |
-| Vite     | `createLocalStorageKeyValueStore()`  | localStorage, as `studio.pref.<key>` |
+| Website  | `createLocalStorageKeyValueStore()`  | localStorage, as `studio.pref.<key>` |
 | Electron | `createBridgedKeyValueStore(bridge)` | `<userData>/preferences.json`        |
 | Tests    | `createMemoryKeyValueStore()`        | memory                               |
 
 Each host passes its adapter to `createBrowserPlatform({ preferences })` explicitly
-(`apps/web/app/studio/studio-client.tsx`, `apps/vite-host/src/main.tsx`,
-`apps/electron-host/src/renderer/main.tsx`). localStorage is also the default. In Electron the
+(`apps/site/src/studio/main.tsx`, `apps/desktop/src/renderer/main.tsx`). localStorage is also the default. In Electron the
 bridge is `window.studioHost.preferences`, and the main process owns the file. The platform owns
 the store, and its `dispose()` flushes it.
 
 - **Why localStorage in browsers.** It is the only synchronous persistent browser storage, and it
-  works where IndexedDB is unavailable. Origins differ (`:3000` for Next, `:3001` for Vite), so
-  each host keeps its own preferences.
+  works where IndexedDB is unavailable. Storage is per origin, so the dev server
+  (`localhost:3000`), the local preview (`localhost:3200`) and the live site
+  (`itsdula.github.io`) each keep their own preferences and projects. On GitHub Pages the origin
+  is `https://itsdula.github.io`, which every project site of that account shares, so pages
+  there could read Nawa's localStorage and IndexedDB. The `studio.pref.` prefix only avoids key
+  collisions; a custom domain would give Nawa its own origin.
 - **Why a Node file in Electron.** The main process owns the file. It can read preferences before
   any window exists, for example a theme background colour for `BrowserWindow`. The file is plain
   JSON that a user can inspect, and it survives clearing Chromium's storage. A single owner also
@@ -387,7 +389,7 @@ the store, and its `dispose()` flushes it.
 - It is generic: the bridge is any `{ load, set, delete }` object, and nothing in it imports
   Electron.
 
-**Electron main store** (`apps/electron-host/src/main/preferences-store.ts`):
+**Electron main store** (`apps/desktop/src/main/preferences-store.ts`):
 
 - The file is `{ "version": 1, "entries": { ... } }` with sorted keys and 2-space indentation.
 - It is loaded synchronously when the app is ready. A missing file means no preferences. An
@@ -419,12 +421,14 @@ fake `Storage` in Node and jsdom's real one) and the bridged store over a fake b
   (`MAX_PREFERENCES_TOTAL_BYTES`) and refuses writes beyond it. Browsers apply their own
   localStorage quota, about 5 MiB per origin, which the adapter handles as a failed write.
 
-## Electron and Tauri adapters
+## Native storage adapters (desktop, future)
 
 The ports, the `planProjectSave`/`resolveProjectLoad` logic, the schema, migrations, bundles and
 autosave are all portable and reused as they are.
 
-An Electron or Tauri adapter replaces the storage layer:
+The desktop app currently keeps projects in IndexedDB, like the website. A file-based adapter for
+the desktop app (or a future native host, see [hosts.md §2](hosts.md)) would replace the storage
+layer:
 
 - **Projects.** Store them as files, e.g. `<projectsDir>/<id>/project.json` plus
   `project.backup.json`. Get atomicity by writing a temporary file, calling fsync, renaming it over
@@ -436,8 +440,8 @@ An Electron or Tauri adapter replaces the storage layer:
   directory needs prefix deletion by listing it.
 - **Settings.** Use the app config file.
 - **Preferences.** Electron already keeps them in a JSON file owned by the main process (see
-  [Preferences](#preferences-key-value)). Tauri can follow the same pattern with a Rust command
-  as the `createBridgedKeyValueStore` bridge.
+  [Preferences](#preferences-key-value)). A native host could follow the same pattern with a
+  backend command as the `createBridgedKeyValueStore` bridge.
 - **Quota.** Map `ENOSPC` to `StorageQuotaError`.
 - **Bundles.** Write them to user-chosen paths with native file dialogs (`FileDialogs`).
 

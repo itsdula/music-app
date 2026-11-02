@@ -3,7 +3,7 @@ import { LogHub, MAX_CLIENT_BACKLOG_BYTES, sseFrame, type SseSink } from '../src
 import type { LogRecordInput } from '../src/shared/types';
 
 const input = (body: string): LogRecordInput => ({
-  service: 'studio-next',
+  service: 'studio-site',
   timeMs: 1,
   severityNumber: 9,
   severityText: 'INFO',
@@ -36,7 +36,7 @@ describe('LogHub', () => {
 
   it('replays statuses then the buffer to a new client, then streams', () => {
     const hub = new LogHub(2);
-    hub.setStatus({ id: 'next', label: 'Next.js', state: 'running', sinceMs: 1 });
+    hub.setStatus({ id: 'site', label: 'Site', state: 'running', sinceMs: 1 });
     hub.publish(input('old'));
     hub.publish(input('a'));
     hub.publish(input('b'));

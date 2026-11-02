@@ -1,5 +1,9 @@
 # ADR 0001 — pnpm + Turborepo monorepo with TypeScript-source internal packages
 
+> **Update (2026-11):** the hosts are now a static Vite+ site (`apps/site`) and an Electron app
+> (`apps/desktop`); the Next.js and standalone Vite hosts were removed and Tauri is a future
+> option only. The monorepo decision is unchanged. See [hosts.md](../hosts.md).
+
 Status: Accepted (2026-10-29)
 
 ## Context

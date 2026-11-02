@@ -13,13 +13,13 @@ async function freshStudio(page: Page): Promise<void> {
 
 test.describe('AI assistant', () => {
   test('opens from the toolbar and explains that no assistant is configured', async ({ page }) => {
-    // The Vite host ships without an assistant transport.
+    // The site (GitHub Pages) ships without an assistant transport.
     await freshStudio(page);
     await page.getByTestId('open-assistant').click();
     const panel = page.getByTestId('assistant-panel');
     await expect(panel).toBeVisible();
     await expect(panel.getByRole('alert')).toContainText(
-      "The AI assistant isn't configured on this server: set OPENROUTER_API_KEY",
+      "The AI assistant isn't available here: no assistant endpoint is configured for this copy of Nawa.",
     );
     await expect(page.getByTestId('assistant-input')).toBeDisabled();
     const axe = await new AxeBuilder({ page })

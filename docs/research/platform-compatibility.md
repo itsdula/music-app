@@ -4,6 +4,12 @@
 - **Date:** 2026-10-29
 - **Status:** research input for freezing configuration. Nothing in this document is production code.
 
+> **Historical (2026-11):** written when the hosts were a Next.js site (`apps/web`), a standalone
+> Vite app and a planned Tauri app. Those were replaced by the static Vite+ site (`apps/site`) and
+> the Electron app (`apps/desktop`); Tauri is a future option only. The browser and Electron
+> capability findings still apply; the Next.js and Tauri sections are kept for reference. Current
+> hosts: [hosts.md](../hosts.md).
+
 **How to read the evidence.** `[S#]` refers to a source in §8. `[X#]` refers to an experiment I ran in a throwaway scratch folder (listed in §8.2). Anything marked **UNVERIFIED** comes from secondary sources or inference, and should be checked before the team relies on it.
 
 **Browser compat baseline.** Browser support versions come from `@mdn/browser-compat-data` 8.1.7 (timestamp 2026-10-22) [S1] and `web-features` 3.44.0 [S2], queried locally.
