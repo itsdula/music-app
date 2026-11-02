@@ -1,12 +1,13 @@
 /**
  * `pnpm dev` / `npm run dev`: starts the whole dev environment and prints one line, the
- * dev-monitor URL. Everything else (build output, Next.js, Electron) is shown on that page
- * as log records. See docs/dev-monitor.md.
+ * dev-monitor URL. Everything else (build output, the site's Vite dev server, Electron) is
+ * shown on that page as log records. See docs/dev-monitor.md.
  *
  *   1. bundle the monitor page, bind the monitor to 127.0.0.1:3300 (or the next free port)
- *   2. prepare: workspace codegen + the package builds Next.js and Electron need
- *   3. spawn (directly, not through turbo): the @studio/react CSS watcher, `next dev`, the
- *      Electron watch build, then Electron itself once main/preload/renderer are built
+ *   2. prepare: workspace codegen + the package builds the site and Electron need
+ *   3. spawn (directly, not through turbo): the @studio/react CSS watcher, the site's
+ *      `vp dev`, the Electron watch build, then Electron itself once main/preload/renderer
+ *      are built
  *   4. Ctrl+C / SIGTERM: stop every child process group, then exit 0
  */
 import { mkdirSync } from 'node:fs';
@@ -24,15 +25,15 @@ import { childEnv, ManagedProcess } from './supervisor';
 const HOST = '127.0.0.1';
 const FIRST_PORT = 3300;
 const LAST_PORT = 3399;
-const NEXT_PORT = 3000;
+const SITE_PORT = 3000;
 const STOP_TIMEOUT_MS = 5000;
 
 /** dev.mjs bundles this file into apps/dev-monitor/dist/orchestrator.mjs. */
 const appDir =
   process.env.STUDIO_DEV_MONITOR_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = join(appDir, '..', '..');
-const webDir = join(repoRoot, 'apps', 'web');
-const electronDir = join(repoRoot, 'apps', 'electron-host');
+const siteDir = join(repoRoot, 'apps', 'site');
+const electronDir = join(repoRoot, 'apps', 'desktop');
 const reactDir = join(repoRoot, 'packages', 'studio-react');
 
 function fatal(message: string): never {
@@ -61,7 +62,7 @@ try {
   fatal(`cannot bundle the monitor page: ${String(error)}`);
 }
 
-let nextUrl = `http://localhost:${NEXT_PORT}`;
+let siteUrl = `http://localhost:${SITE_PORT}`;
 let shuttingDown = false;
 
 const actions = {
@@ -73,7 +74,7 @@ const server = createMonitorServer({
   hub,
   assets: () => assets,
   actions,
-  info: () => ({ monitorUrl, nextUrl, studioUrl: `${nextUrl}/studio` }),
+  info: () => ({ monitorUrl, siteUrl, studioUrl: `${siteUrl}/studio/` }),
 });
 
 let port: number;
@@ -112,8 +113,8 @@ const prepare = new ManagedProcess(
       'run',
       'codegen',
       'build',
-      '--filter=@studio/web^...',
-      '--filter=@studio/electron-host^...',
+      '--filter=@studio/site^...',
+      '--filter=@studio/desktop^...',
       '--output-logs=new-only',
       '--ui=stream',
     ],
@@ -140,23 +141,30 @@ const css = new ManagedProcess(
   hub,
 );
 
-const nextBin = createRequire(join(webDir, 'package.json')).resolve('next/dist/bin/next');
-const next = new ManagedProcess(
+// The site's Vite+ CLI (`vp`, a Node script). Without --strictPort Vite moves to the next free
+// port when 3000 is taken; the URL it prints is picked up below.
+const vpBin = join(
+  dirname(createRequire(join(siteDir, 'package.json')).resolve('vite-plus/package.json')),
+  'bin',
+  'vp',
+);
+const site = new ManagedProcess(
   {
-    id: 'next',
-    label: 'Next.js',
-    service: SERVICES.next,
+    id: 'site',
+    label: 'Site',
+    service: SERVICES.site,
     command: node,
-    args: [nextBin, 'dev', '--port', String(NEXT_PORT)],
-    cwd: webDir,
-    env: childEnv(process.env, otelEnv(SERVICES.next)),
-    isReady: (line) => /\bReady in\b/.test(line),
+    args: [vpBin, 'dev', '--port', String(SITE_PORT)],
+    cwd: siteDir,
+    // STUDIO_DEV=1 turns on `server.forwardConsole` (apps/site/vite.config.ts), so the pages'
+    // browser console reaches this process as `[console.<level>]` lines.
+    env: childEnv(process.env, { STUDIO_DEV: '1' }),
+    isReady: (line) => /\bready in\b/i.test(line),
     onLine: (line) => {
       const url = detectLocalUrl(line);
-      if (url && url !== nextUrl) {
-        nextUrl = url;
-        next.setUrl(url);
-      } else if (url) next.setUrl(url);
+      if (!url) return;
+      siteUrl = url;
+      site.setUrl(url);
     },
   },
   hub,
@@ -265,7 +273,7 @@ async function openElectron(): Promise<void> {
 
 // ---------- shutdown ----------
 
-const everyChild = [electron, next, electronBuild, css, prepare];
+const everyChild = [electron, site, electronBuild, css, prepare];
 
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) {
@@ -296,7 +304,7 @@ setInterval(() => {
 
 // ---------- start ----------
 
-note('INFO', 'prepare: codegen and package builds for Next.js and Electron');
+note('INFO', 'prepare: codegen and package builds for the site and Electron');
 prepare.start();
 await prepare.waitForExit();
 if (!shuttingDown) {
@@ -306,6 +314,6 @@ if (!shuttingDown) {
     note('INFO', 'prepare finished');
   }
   css.start();
-  next.start();
+  site.start();
   electronBuild.start();
 }

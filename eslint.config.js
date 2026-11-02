@@ -27,11 +27,9 @@ export default defineConfig(
   globalIgnores([
     '**/node_modules/**',
     '**/dist/**',
-    '**/.next/**',
     '**/.turbo/**',
     '**/coverage/**',
     '**/src/generated/**',
-    '**/next-env.d.ts',
     '.claude/**',
     '.agents/**',
     'playwright-report/**',
@@ -104,16 +102,6 @@ export default defineConfig(
   {
     files: ['packages/{audio-web,platform-browser}/src/**/*.ts'],
     languageOptions: { globals: { ...globals.browser } },
-  },
-  {
-    files: ['packages/**/*.{ts,tsx}'],
-    ignores: ['packages/**/tests/**'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        { patterns: [{ group: ['next', 'next/*'], message: 'Only apps/web may import Next.js.' }] },
-      ],
-    },
   },
   {
     // Portable packages must stay host- and framework-neutral (also enforced by

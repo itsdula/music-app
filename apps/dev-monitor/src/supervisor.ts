@@ -1,6 +1,6 @@
 /**
  * Supervised child processes. Each child runs in its own process group (`detached`) so a
- * stop signal reaches its whole tree (next dev forks next-server; Electron spawns helpers),
+ * stop signal reaches its whole tree (Electron spawns helper processes),
  * and every stdout/stderr line becomes a log record instead of terminal output.
  */
 import { spawn, type ChildProcess } from 'node:child_process';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { detectLocalUrl, lineToRecord, stripAnsi } from '../src/lines';
 
-const ctx = { service: 'studio-next', stream: 'stdout' as const, nowMs: 1 };
+const ctx = { service: 'studio-site', stream: 'stdout' as const, nowMs: 1 };
 
 describe('stripAnsi', () => {
   it('removes colour and cursor sequences', () => {
@@ -11,13 +11,11 @@ describe('stripAnsi', () => {
 
 describe('lineToRecord', () => {
   it.each([
-    [' ⨯ Failed to compile', 'ERROR'],
-    [' ⚠ Port 3000 is in use', 'WARN'],
-    [' ✓ Ready in 256ms', 'INFO'],
-    [' ○ Compiling /studio ...', 'INFO'],
-    ['   ▲ Next.js 16.4.3 (Turbopack)', 'INFO'],
-    [' » something', 'INFO'],
-    [' GET /studio 200 in 173ms', 'INFO'],
+    ['  VITE v8.0.0  ready in 256 ms', 'INFO'],
+    ['3:04:05 PM [vite+] (client) hmr update /src/landing/Hero.tsx', 'INFO'],
+    ['  VITE+ v1.4.0  ready in 152 ms', 'INFO'],
+    ['3:04:05 PM [vite] Internal server error: Failed to resolve import', 'ERROR'],
+    ['15:04:05 [vite] Pre-transform error: Unexpected token', 'ERROR'],
     ['Error: boom', 'ERROR'],
     ['TypeError: x is not a function', 'ERROR'],
     ['    at foo (file.js:1:1)', 'ERROR'],
@@ -35,26 +33,43 @@ describe('lineToRecord', () => {
   });
 
   it('builds the record with stream, attributes and stripped body', () => {
-    const record = lineToRecord('\u001b[31m⨯\u001b[39m bad\r', {
+    const record = lineToRecord('\u001b[31mError:\u001b[39m bad\r', {
       ...ctx,
       stream: 'stderr',
       attributes: { 'studio.task': 'css' },
     });
     expect(record).toEqual({
-      service: 'studio-next',
+      service: 'studio-site',
       timeMs: 1,
       severityNumber: 17,
       severityText: 'ERROR',
-      body: '⨯ bad',
+      body: 'Error: bad',
       scope: 'stdio',
       attributes: { 'studio.task': 'css', 'log.iostream': 'stderr' },
     });
   });
 
-  it('tags [browser] lines from logging.browserToTerminal', () => {
-    const record = lineToRecord('[browser] [studio] ready (app/page.tsx:3:1)', ctx);
-    expect(record?.body).toBe('[studio] ready (app/page.tsx:3:1)');
-    expect(record?.attributes['studio.source']).toBe('next-browser');
+  it('tags the browser console lines Vite forwards (server.forwardConsole)', () => {
+    const record = lineToRecord('8:50:10 PM [vite+] (client) [console.log] [studio] ready', ctx);
+    expect(record?.body).toBe('[studio] ready');
+    expect(record?.severityText).toBe('INFO');
+    expect(record?.attributes['studio.source']).toBe('site-browser');
+    const warn = lineToRecord('\u001b[2m[console.warn] \u001b[22mslow', {
+      ...ctx,
+      stream: 'stderr',
+    });
+    expect(warn?.body).toBe('slow');
+    expect(warn?.severityText).toBe('WARN');
+    expect(lineToRecord('[console.debug] detail', ctx)?.severityText).toBe('DEBUG');
+    expect(lineToRecord('[console.error] boom', { ...ctx, stream: 'stderr' })?.severityText).toBe(
+      'ERROR',
+    );
+    const unhandled = lineToRecord('3:04:05 PM [vite] [Unhandled error] TypeError: x', {
+      ...ctx,
+      stream: 'stderr',
+    });
+    expect(unhandled?.severityText).toBe('ERROR');
+    expect(unhandled?.attributes['studio.source']).toBe('site-browser');
   });
 
   it('reads Chromium log levels', () => {
@@ -73,13 +88,13 @@ describe('lineToRecord', () => {
 });
 
 describe('detectLocalUrl', () => {
-  it('finds the next dev URL', () => {
-    expect(detectLocalUrl('   - Local:        http://localhost:3002')).toBe(
-      'http://localhost:3002',
-    );
-    expect(detectLocalUrl('\u001b[1m- Local:\u001b[22m http://localhost:3000/')).toBe(
-      'http://localhost:3000',
-    );
-    expect(detectLocalUrl(' ✓ Ready in 2s')).toBeNull();
+  it('finds the Vite dev server URL', () => {
+    expect(detectLocalUrl('  ➜  Local:   http://localhost:3002/')).toBe('http://localhost:3002');
+    expect(
+      detectLocalUrl(
+        '\u001b[32m  ➜\u001b[39m  \u001b[1mLocal\u001b[22m:   \u001b[36mhttp://localhost:\u001b[1m3000\u001b[22m/\u001b[39m',
+      ),
+    ).toBe('http://localhost:3000');
+    expect(detectLocalUrl('  VITE v8.0.0  ready in 256 ms')).toBeNull();
   });
 });

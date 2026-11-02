@@ -51,14 +51,28 @@ controller panel, settings, export and all Playwright suites; agents took separa
 | ------------------ | ------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------- |
 | agent-landing      | `agent/w2-landing`       | medium | `apps/web/app/page.tsx`, `apps/web/components/landing/**`, `e2e/landing.spec.ts`                                     | done — 6 landing E2E tests; illustrations later replaced by real screenshots | merged `233402e` |
 | agent-vocal-editor | `agent/w2-vocal-editor`  | high   | `packages/studio-react/src/features/vocal-editor/**`, its tests; small edits to `vocal-controller.ts`, test platform | done — 20 tests (3 UI flows, 17 model)                                       | merged `91f9b76` |
-| agent-electron     | `agent/w2-electron-host` | medium | `apps/electron-host/**`, `docs/hosts.md`                                                                             | done — 95 unit tests, probe smoke (40 checks)                                | merged `b5357fe` |
+| agent-electron     | `agent/w2-electron-host` | medium | `apps/desktop/**`, `docs/hosts.md`                                                                                   | done — 95 unit tests, probe smoke (40 checks)                                | merged `b5357fe` |
 
 Agent suggestions the lead acted on after merging: engine-core re-exports `AudioGraphChange`
 from audio-contracts (mirror removed); vocal-dsp tests import `@studio/test-fixtures` as a
 devDependency; global shortcuts moved to a document-level listener so editors can claim keys
 (the vocal editor agent spotted that Delete in the piano roll also deleted the selected clip;
 a regression E2E test failed on the old build and passes now); jest-dom types for
-studio-react tests; electron-host unit tests in the root run and an Electron CI job.
+studio-react tests; Electron host unit tests in the root run and an Electron CI job.
+
+## Wave 3 — Nawa: website, desktop releases and rename (2026-11)
+
+The product was renamed **Nawa** and the repository moved to `itsdula/nawa`. Paths in the
+earlier waves above refer to the layout of their time (`apps/web`, `apps/vite-host`,
+`apps/electron-host`, all since removed or moved).
+
+| Agent    | Exclusive write ownership                                                                                | Outcome                                                                                                                                    |
+| -------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| scaffold | `apps/site` (new), `apps/dev-monitor`, root configs, e2e config; removal of `apps/web`, `apps/vite-host` | Vite+ site with landing and `/studio/` entries, base `/nawa/`; Electron host moved to `apps/desktop`; dev monitor runs `vp dev`            |
+| desktop  | `apps/desktop/**`, `.github/workflows/release.yml`                                                       | electron-builder config, icons, tag-triggered release workflow (draft → per-OS builds → publish); macOS package built and launched locally |
+| branding | `packages/studio-react/**` copy                                                                          | in-app brand reads "Nawa"; identifiers (`<Studio />`, `@studio/*`, storage keys) unchanged                                                 |
+| landing  | `apps/site/src/landing/**`, `apps/site/public/**`, `e2e/landing.spec.ts`                                 | landing page with scroll and micro-animations, live synth demo, new screenshots; download buttons gated on a first release                 |
+| docs     | `README.md`, `docs/**`, `ai-handover/README.md`, `CONTRIBUTING.md`, `.github/workflows/pages.yml`        | docs updated for the new hosts; GitHub Pages deploy workflow                                                                               |
 
 ## Integration log
 

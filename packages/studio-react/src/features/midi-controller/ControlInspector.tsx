@@ -158,10 +158,10 @@ export function ControlInspector({
 
       <section
         className="flex flex-col gap-2 rounded-md border border-line bg-surface-1 p-2"
-        aria-label="Studio mapping (software)"
+        aria-label="Nawa mapping (software)"
       >
         <h4 className="text-[11px] font-semibold tracking-wide text-text-muted uppercase">
-          Studio mapping · software
+          Nawa mapping · software
         </h4>
         {control.defaultSource ? (
           <>
@@ -269,7 +269,7 @@ export function ControlInspector({
           </>
         ) : (
           <p className="text-text-faint">
-            This control is handled inside the controller and sends no MIDI Studio can map.
+            This control is handled inside the controller and sends no MIDI Nawa can map.
           </p>
         )}
       </section>
@@ -279,10 +279,9 @@ export function ControlInspector({
         aria-label="Hardware settings"
       >
         <h4 className="mb-1 font-semibold tracking-wide uppercase">Hardware setting · read-only</h4>
-        Studio does not write to the controller’s internal programs: AKAI publishes no
-        program-editing protocol for the MPK Mini MK3, so channels, CC numbers and pad notes can
-        only be changed with AKAI’s own editor. Use Studio mappings above as the software
-        equivalent.
+        Nawa does not write to the controller’s internal programs: AKAI publishes no program-editing
+        protocol for the MPK Mini MK3, so channels, CC numbers and pad notes can only be changed
+        with AKAI’s own editor. Use Nawa mappings above as the software equivalent.
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 /**
  * Turns one line of a child's stdout/stderr into a log record: strips ANSI escapes and
- * infers the severity from Next.js' log prefixes (`next/dist/build/output/log.js`),
+ * infers the severity from the browser console lines Vite forwards (`server.forwardConsole`),
  * Chromium's `[pid:tid:...:LEVEL:file(line)]` prefix, or the stream it came from.
  */
 import { SEVERITY, severityName, type LogRecordInput } from './shared/types';
@@ -16,14 +16,26 @@ export function stripAnsi(line: string): string {
   return line.replace(ANSI, '');
 }
 
-const NEXT_PREFIXES: ReadonlyArray<readonly [string, number]> = [
-  ['⨯', SEVERITY.ERROR],
-  ['⚠', SEVERITY.WARN],
-  ['✓', SEVERITY.INFO],
-  ['○', SEVERITY.INFO],
-  ['▲', SEVERITY.INFO],
-  ['»', SEVERITY.INFO],
-];
+/**
+ * Vite's logger prefix when it logs with `timestamp: true`: the local time
+ * (`toLocaleTimeString()`, so `12:34:56 PM` or `12:34:56`), the tag (`[vite+]` under Vite+,
+ * `[vite]` under plain Vite) and the environment (`(client)`), e.g.
+ * `8:50:10 PM [vite+] (client) [console.log] ready`.
+ */
+const VITE_PREFIX = /^(?:\d{1,2}:\d{2}:\d{2}(?:\s?[AP]M)?\s+)?\[vite\+?\]\s+(?:\(\w+\)\s+)?/i;
+/** `server.forwardConsole`: the page's console, forwarded by the Vite dev server. */
+const VITE_CONSOLE = /^\[console\.(\w+)\]\s?/;
+/** `server.forwardConsole`: an uncaught error or unhandled rejection in the page. */
+const VITE_UNHANDLED = /^\[Unhandled (?:error|rejection)\]/;
+/** Vite's dev-server failures (`[vite] Internal server error: ...`, `Pre-transform error: ...`). */
+const VITE_ERROR = /^(?:internal server|pre-transform|transform) error\b/i;
+const CONSOLE_LEVEL: Record<string, number> = {
+  error: SEVERITY.ERROR,
+  warn: SEVERITY.WARN,
+  info: SEVERITY.INFO,
+  log: SEVERITY.INFO,
+  debug: SEVERITY.DEBUG,
+};
 
 // `[pid:tid:MMDD/HHMMSS.micros:LEVEL:file.cc(line)]`, with optional parts left out.
 const CHROMIUM = /^\[[\d:/.]+:(VERBOSE\d*|INFO|WARNING|ERROR|FATAL):[^\]]*\]\s*/;
@@ -37,7 +49,6 @@ const ERROR_WORD = /^(?:error|uncaught|unhandled|fatal)\b|^\w*Error:/i;
 /** A stack frame line: `at fn (file.js:1:2)` or `at file.js:1:2`. */
 const STACK_FRAME = /^at\s+(?:.+\s\()?\S+:\d+:\d+\)?$/;
 const WARN_WORD = /^(?:warn(?:ing)?)\b/i;
-const BROWSER = /^\[browser\]\s*/;
 
 export interface LineContext {
   readonly service: string;
@@ -59,29 +70,30 @@ export function lineToRecord(rawLine: string, context: LineContext): LogRecordIn
   };
   let severity: number | undefined;
 
-  if (BROWSER.test(body)) {
-    // `logging.browserToTerminal`: the page's console, forwarded by `next dev`.
-    attributes['studio.source'] = 'next-browser';
-    body = body.replace(BROWSER, '');
+  const vitePrefix = VITE_PREFIX.exec(body);
+  const afterPrefix = vitePrefix ? body.slice(vitePrefix[0].length) : body;
+  const browserConsole = VITE_CONSOLE.exec(afterPrefix);
+  if (browserConsole) {
+    attributes['studio.source'] = 'site-browser';
+    severity = CONSOLE_LEVEL[browserConsole[1]!.toLowerCase()] ?? SEVERITY.INFO;
+    body = afterPrefix.slice(browserConsole[0].length);
+  } else if (VITE_UNHANDLED.test(afterPrefix)) {
+    attributes['studio.source'] = 'site-browser';
+    severity = SEVERITY.ERROR;
+    body = afterPrefix;
   }
-  const chromium = CHROMIUM.exec(body);
+  const chromium = severity === undefined ? CHROMIUM.exec(body) : null;
   if (chromium) {
     const level = chromium[1]!;
     severity = level.startsWith('VERBOSE') ? SEVERITY.DEBUG : CHROMIUM_LEVEL[level];
     attributes['studio.source'] = 'chromium';
   }
-  const trimmed = body.trimStart();
+  // Judge Vite's own messages by what follows its `[vite]` prefix; the body keeps the prefix.
+  const trimmed = afterPrefix.trimStart();
   if (severity === undefined) {
-    for (const [prefix, level] of NEXT_PREFIXES) {
-      if (trimmed.startsWith(prefix)) {
-        severity = level;
-        break;
-      }
-    }
-  }
-  if (severity === undefined) {
-    if (ERROR_WORD.test(trimmed) || STACK_FRAME.test(trimmed)) severity = SEVERITY.ERROR;
-    else if (WARN_WORD.test(trimmed)) severity = SEVERITY.WARN;
+    if (ERROR_WORD.test(trimmed) || VITE_ERROR.test(trimmed) || STACK_FRAME.test(trimmed)) {
+      severity = SEVERITY.ERROR;
+    } else if (WARN_WORD.test(trimmed)) severity = SEVERITY.WARN;
     else if (context.stream === 'stderr') severity = context.stderrSeverity ?? SEVERITY.WARN;
     else severity = SEVERITY.INFO;
   }
@@ -99,7 +111,7 @@ export function lineToRecord(rawLine: string, context: LineContext): LogRecordIn
 
 const LOCAL_URL = /(?:Local|url):\s+(https?:\/\/[^\s]+)/i;
 
-/** Finds the URL `next dev` prints (`- Local:        http://localhost:3000`). */
+/** Finds the URL the Vite dev server prints (`➜  Local:   http://localhost:3000/`). */
 export function detectLocalUrl(line: string): string | null {
   const match = LOCAL_URL.exec(stripAnsi(line));
   return match ? match[1]!.replace(/\/$/, '') : null;

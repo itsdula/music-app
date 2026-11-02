@@ -31,7 +31,7 @@ export interface MonitorServerOptions {
   readonly hub: LogHub;
   readonly assets: () => PageAssets;
   readonly actions: MonitorActions;
-  /** Extra fields for GET /api/services (e.g. the Next.js URL). */
+  /** Extra fields for GET /api/services (e.g. the site's dev-server URL). */
   readonly info?: () => Record<string, unknown>;
 }
 

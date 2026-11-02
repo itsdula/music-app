@@ -1,13 +1,15 @@
 // Captures authentic screenshots of the running Studio for the landing page.
-// Usage: pnpm --filter @studio/vite-host build && pnpm --filter @studio/vite-host preview &
+// Usage: NAWA_BASE_PATH=/ pnpm turbo run build --filter=@studio/site... &&
+//        pnpm --filter @studio/site preview &
 //        node scripts/capture-screenshots.mjs
 // Everything shown is original: the built-in demo project and a synthesized vowel phrase.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 
-const base = process.env.STUDIO_URL ?? 'http://localhost:3200';
-const out = join(process.cwd(), 'apps/web/public/screenshots');
+// The Studio page of the site preview (vp preview, port 3200, built with base '/').
+const base = process.env.STUDIO_URL ?? 'http://localhost:3200/studio/';
+const out = join(process.cwd(), 'apps/site/public/screenshots');
 mkdirSync(out, { recursive: true });
 
 /** A short sung-vowel-like phrase (harmonic stack with vibrato), slightly out of tune. */

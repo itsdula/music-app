@@ -1,22 +1,43 @@
 # AI handover
 
-State of the project as of **2026-10-30**, written at the end of a Claude Code cloud session so
-work can continue on a local machine (by you or another AI agent). Read this first, then
-[`../README.md`](../README.md) and the docs it links.
+State of the project as of **2026-11-02**. Read this first, then [`../README.md`](../README.md)
+and the docs it links.
 
 ## What this project is
 
-**Studio**: a local-first browser DAW (arrangement, MIDI instruments, recording, mixer and
-effects, AKAI MPK Mini MK3 support, vocal pitch editor, AI assistant, tutorials). The whole app
-is one React component, `<Studio />` (`packages/studio-react`), mounted by three thin hosts:
+**Nawa** (repository [`itsdula/nawa`](https://github.com/itsdula/nawa), formerly `music-app`): a
+local-first browser DAW (arrangement, MIDI instruments, recording, mixer and effects, AKAI MPK
+Mini MK3 support, vocal pitch editor, guided tutorials, an AI assistant panel). The whole app is
+one React component, `<Studio />` (`packages/studio-react`). Internal names stay as they were:
+the component is still `<Studio />` and the packages are `@studio/*`; only user-facing text says
+Nawa.
 
-| Host             | Folder               | Run locally                                                                                                                         |
-| ---------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Next.js website  | `apps/web`           | `pnpm dev` (all hosts + dev monitor, see below) or `pnpm dev:web` → http://localhost:3000                                           |
-| Vite web app     | `apps/vite-host`     | `pnpm dev:vite` → http://localhost:3001                                                                                             |
-| Electron desktop | `apps/electron-host` | `pnpm dev` (watch build, opens the app) or `pnpm --filter @studio/electron-host build && pnpm --filter @studio/electron-host start` |
+Two thin hosts mount it:
 
-There is no backend: projects and audio live in IndexedDB in the browser.
+| Host    | Folder         | What it is                                                                             | Run locally                                                     |
+| ------- | -------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Website | `apps/site`    | Static Vite+ site: landing page (`index.html`) and the Studio (`studio/index.html`)    | `pnpm dev` (with the dev monitor) or `pnpm dev:site` → :3000    |
+| Desktop | `apps/desktop` | Electron app: hosts Chromium only, native file dialogs and a preference store over IPC | `pnpm dev`, or build then `pnpm --filter @studio/desktop start` |
+
+There is no backend: projects and audio live in IndexedDB. The audio engine is Web Audio in the
+page on both hosts. Tauri was dropped for now; its design is kept in
+[`../docs/hosts.md`](../docs/hosts.md) §2 as a future option (worth it only with a native audio
+and MIDI backend).
+
+## Where it is published
+
+- **Website:** <https://itsdula.github.io/nawa/> (landing) and
+  <https://itsdula.github.io/nawa/studio/> (the app). `.github/workflows/pages.yml` builds
+  `apps/site` with base `/nawa/` and deploys on every push to `main`. One-time setting: the
+  repository's Pages source must be **GitHub Actions**.
+- **Desktop:** GitHub Releases. `.github/workflows/release.yml` runs on a pushed `vX.Y.Z` tag,
+  builds macOS (dmg/zip, arm64 and x64), Windows (NSIS x64) and Linux (AppImage x64) with
+  electron-builder, and publishes the release once every platform uploaded. Builds are not
+  signed with a paid certificate (macOS ad hoc, not notarized).
+- **AI assistant:** not available on the static site (no transport is passed). The desktop app
+  can call an endpoint set at build time (`STUDIO_ASSISTANT_URL`), but the repository no longer
+  has a server for it. See [`../docs/assistant.md`](../docs/assistant.md).
+- Vercel and the Next.js host are gone.
 
 ## Getting started locally
 
@@ -24,57 +45,41 @@ Requirements: **Node 22.15+**, **pnpm 10** (`packageManager: pnpm@10.28.0`), a C
 browser (Web MIDI).
 
 ```bash
-git clone https://github.com/itsdula/music-app.git
-cd music-app
+git clone https://github.com/itsdula/nawa.git
+cd nawa
 pnpm install
 pnpm dev
 ```
 
-`pnpm dev` (or `npm run dev`) prints one line, the dev-monitor link (http://localhost:3300). It
-starts Next.js on http://localhost:3000 (`/studio`), opens the Electron app and shows the logs of
-both (Next.js, Electron main, Electron renderer, builds) on that page. Ctrl+C stops everything.
-`pnpm dev:web` runs only Next.js, as `pnpm dev` used to. Details: [`../docs/dev-monitor.md`](../docs/dev-monitor.md).
-
-Optional, for the AI assistant panel (web host, server side only): set `OPENROUTER_API_KEY`
-(and optionally `OPENROUTER_MODEL`) in `apps/web/.env.local`. Without it the assistant says it
-is not configured; everything else works. Details: [`../docs/assistant.md`](../docs/assistant.md).
+`pnpm dev` prints one line, the dev-monitor link (http://localhost:3300). It starts the site's
+Vite dev server on http://localhost:3000 (Studio at `/studio/`), opens the Electron app and shows
+the logs of both (site and forwarded browser console, Electron main, Electron renderer, builds)
+on that page. Ctrl+C stops everything. Details: [`../docs/dev-monitor.md`](../docs/dev-monitor.md).
 
 ### Checks (same as CI)
 
-| Command             | What                                                  |
-| ------------------- | ----------------------------------------------------- |
-| `pnpm typecheck`    | TypeScript across all packages                        |
-| `pnpm lint`         | ESLint, zero warnings allowed                         |
-| `pnpm format:check` | Prettier                                              |
-| `pnpm boundaries`   | dependency-cruiser package boundary rules             |
-| `pnpm test`         | unit + react + integration + contract tests (vitest)  |
-| `pnpm test:e2e`     | builds, then Playwright e2e on the web and vite hosts |
-| `pnpm check`        | all of the above except e2e, plus build               |
+| Command             | What                                                   |
+| ------------------- | ------------------------------------------------------ |
+| `pnpm typecheck`    | TypeScript across all packages                         |
+| `pnpm lint`         | ESLint, zero warnings allowed                          |
+| `pnpm format:check` | Prettier                                               |
+| `pnpm boundaries`   | dependency-cruiser package boundary rules              |
+| `pnpm test`         | unit + react + integration + contract tests (vitest)   |
+| `pnpm test:e2e`     | builds with base `/`, then Playwright against the site |
+| `pnpm check`        | all of the above except e2e, plus build                |
 
-First e2e run locally needs browsers: `pnpm exec playwright install chromium`.
+First e2e run locally needs browsers: `pnpm exec playwright install chromium`. The Playwright
+projects are `landing` (landing and portability specs) and `studio` (`e2e/studio/**`), both
+against `vp preview` on http://localhost:3200.
 
-Last verified state (merge commit on `main`): typecheck, lint, format, boundaries pass;
-1,675 unit/integration tests pass; 43/43 e2e tests pass.
+`pnpm test:e2e:only` reuses `apps/site/dist`. If that folder holds a `/nawa/` build (the default
+`pnpm build`), rebuild with `NAWA_BASE_PATH=/ pnpm build` first.
 
-## Repository and branch state
+### Releasing
 
-- **`main` contains everything.** All work branches were merged into it in this session.
-- Old branches, all fully contained in `main` and safe to delete:
-  `claude/studio-daw`, `claude/sample-projects`, `claude/studio-features`,
-  `claude/funny-sagan-cya30i`, `claude/brave-hawking-7rhel3`.
-- PRs #1–#4 show as "closed" on GitHub rather than "merged" because they were merged by
-  hand with merge commits; their content is on `main`.
-- CI: `.github/workflows/ci.yml` runs on pushes to `main` and `claude/**` (check job +
-  Electron build). It does not deploy anything.
-
-## Deployment
-
-- `apps/web` is set up for **Vercel** via `apps/web/vercel.json` (framework Next.js, build
-  `pnpm turbo run build --filter=@studio/web` from the repo root). In the Vercel project, set
-  the root directory to `apps/web` and add `OPENROUTER_API_KEY` if you want the assistant.
-- The Vercel project itself was connected outside the repo; its state (production URL,
-  previews) was not visible from the cloud session. Check the Vercel dashboard.
-- The Vite and Electron hosts have no deploy or publishing setup yet.
+1. Bump `version` in `apps/desktop/package.json` and `apps/site/package.json` (the site footer
+   shows it); merge to `main`. The installers take their version from the tag either way.
+2. `git tag v0.2.0 && git push origin v0.2.0`.
 
 ## History: what was built, in order
 
@@ -83,11 +88,17 @@ Last verified state (merge commit on `main`): typecheck, lint, format, boundarie
 3. **PR #3**: 30 sample projects (5 each of EDM, Rock, Rap, House, Pop, Techno), sample
    builder (`pnpm samples`), looped-clip fix.
 4. **PR #4**: projects page, piano roll, audio UI package (`@studio/audio-ui`), AI assistant
-   - WebMCP tools, guided tutorials, cursors, Studio context menus, knob overflow and
-     accessibility fixes.
-5. **Bottom panel / selection / drag-drop work** (branch `claude/funny-sagan-cya30i`, merged
-   in this session with conflict resolution, see below).
-6. **Vercel config** for `apps/web` (branch `claude/studio-daw`).
+   and WebMCP tools, guided tutorials, cursors, context menus, knob overflow and
+   accessibility fixes.
+5. Bottom panel, selection and drag-drop work; Vercel config for the Next.js host (since
+   removed).
+6. **PR #5**: audio controls and meters moved onto `@audio-ui/react`.
+7. Electron dev tooling (`pnpm dev` dev monitor), bridged preferences, `@studio/theme-core`,
+   cross-origin isolation in Electron.
+8. **Branch `nawa-site-and-desktop`**: renamed to Nawa; `apps/web` (Next.js) and
+   `apps/vite-host` replaced by `apps/site` (Vite+, GitHub Pages); `apps/electron-host` moved to
+   `apps/desktop` with electron-builder and the release workflow; new landing page with scroll
+   and micro-animations; docs updated.
 
 Per-phase evidence and known limitations: [`../docs/implementation-plan.md`](../docs/implementation-plan.md)
 and [`../docs/agent-workstreams.md`](../docs/agent-workstreams.md).
@@ -124,17 +135,24 @@ and [`../docs/agent-workstreams.md`](../docs/agent-workstreams.md).
 
 ## Open items / next steps
 
-- **Escape** clears highlighted clips but keeps the piano roll open, so it doesn't fully
-  match the click-away rules (left as is because Escape also deselects notes in the piano
-  roll). Decide whether to change.
-- The original side-panel complaint ("adding from the browser doesn't work") could not be
-  reproduced in headless Chromium; drop targets and reveal behaviour were fixed. Verify on
-  your machine and browser.
+- **First release.** The release workflow has not run on GitHub yet, and the Windows and Linux
+  installers have never been built. Push a pre-release tag (for example `v0.1.0-beta.1`) or run
+  the workflow by hand (dry run) first.
+- **Pages setting.** Set the repository's Pages source to GitHub Actions before the first deploy.
+- **Assistant on the site.** The site and the desktop app pass no assistant transport, so the
+  panel says no assistant endpoint is configured. Decide between a bring-your-own-key client and
+  a hosted endpoint ([`../docs/assistant.md`](../docs/assistant.md)).
+- **Tutorial progress is written without awaiting.** Reloading within a few milliseconds of
+  dismissing a tour can lose the record; the e2e test waits for the IndexedDB write before it
+  reloads (this used to make it flaky).
+- **Sample descriptions** in `projects/*/*/song.json` (about 10) still say "Studio" for the
+  product; change them together with the `.studio` bundles (`pnpm samples`).
+- **Escape** clears highlighted clips but keeps the piano roll open, so it doesn't fully match
+  the click-away rules (left as is because Escape also deselects notes in the piano roll).
 - AKAI MPK Mini MK3 support is tested only against a simulated Web MIDI port; verify on a
   physical unit (`docs/midi-device-research.md`).
 - Phase 8 polish is in progress (see `docs/implementation-plan.md`).
-- Housekeeping: delete the merged `claude/*` branches; confirm the Vercel project points at
-  `main` with root directory `apps/web`.
+- No licence has been chosen; the repository has no `LICENSE` file.
 
 ## Pointers for an AI agent picking this up
 
@@ -143,4 +161,6 @@ and [`../docs/agent-workstreams.md`](../docs/agent-workstreams.md).
   pure updater functions; project edits go through serializable commands with undo/redo
   (`packages/commands`).
 - Keep package boundaries (`pnpm boundaries`); portable packages must not use DOM/Node APIs.
+- Site links and asset URLs must go through `import.meta.env.BASE_URL` (`apps/site/src/urls.ts`),
+  or they break under the `/nawa/` base path.
 - Every change should keep `pnpm check` and `pnpm test:e2e` green; add tests with features.

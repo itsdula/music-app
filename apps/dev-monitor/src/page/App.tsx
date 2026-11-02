@@ -1,5 +1,5 @@
 /**
- * The dev-monitor page: service status pills, links to the Next.js app, Electron controls
+ * The dev-monitor page: service status pills, links to the site, Electron controls
  * and one log pane per service (plus "All"), with severity filter, search, pause,
  * autoscroll and clear.
  */
@@ -25,14 +25,14 @@ interface Tab {
 
 const TABS: readonly Tab[] = [
   { id: 'all', label: 'All', services: null },
-  { id: 'next', label: 'Next.js', services: [SERVICES.next] },
+  { id: 'site', label: 'Site', services: [SERVICES.site] },
   { id: 'electron-main', label: 'Electron main', services: [SERVICES.electronMain] },
   { id: 'electron-renderer', label: 'Electron renderer', services: [SERVICES.electronRenderer] },
   { id: 'build', label: 'Build', services: [SERVICES.build] },
 ];
 
 const SERVICE_LABEL: Record<string, string> = {
-  [SERVICES.next]: 'next',
+  [SERVICES.site]: 'site',
   [SERVICES.electronMain]: 'main',
   [SERVICES.electronRenderer]: 'renderer',
   [SERVICES.build]: 'build',
@@ -160,8 +160,8 @@ export function App() {
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const ids = useId();
 
-  const nextStatus = statuses.get('next');
-  const nextUrl = nextStatus?.url ?? 'http://localhost:3000';
+  const siteStatus = statuses.get('site');
+  const siteUrl = siteStatus?.url ?? 'http://localhost:3000';
   const electronStatus = statuses.get('electron');
   const electronRunning =
     electronStatus?.state === 'running' || electronStatus?.state === 'starting';
@@ -240,11 +240,11 @@ export function App() {
           <ConnectionBadge connection={connection} />
         </div>
         <nav className="links" aria-label="Apps">
-          <a className="link primary" href={`${nextUrl}/studio`} target="_blank" rel="noreferrer">
-            Open Studio (Next.js)
+          <a className="link primary" href={`${siteUrl}/studio/`} target="_blank" rel="noreferrer">
+            Open Studio (site)
           </a>
-          <a className="link" href={nextUrl} target="_blank" rel="noreferrer">
-            {nextUrl.replace(/^https?:\/\//, '')}
+          <a className="link" href={siteUrl} target="_blank" rel="noreferrer">
+            {siteUrl.replace(/^https?:\/\//, '')}
           </a>
           <button type="button" className="button" onClick={() => runAction('/api/electron/open')}>
             {electronRunning ? 'Focus Electron' : 'Open Electron'}

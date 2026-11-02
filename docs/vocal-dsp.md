@@ -4,7 +4,7 @@
 (`VOCAL_ALGORITHM_VERSION`). **Design input:** [research dossier](research/vocal-dsp-options.md)
 (cited as "R§n"). **Fixtures:** `@studio/test-fixtures`.
 
-Studio's vocal editor works in the spirit of Melodyne: it shows notes, lets the user correct
+Nawa's vocal editor works in the spirit of Melodyne: it shows notes, lets the user correct
 pitch, and renders the result for real. The resemblance is conceptual only. No proprietary UI
 or algorithm was copied. Every algorithm here was written from papers and permissively
 licensed descriptions: the pYIN and YIN papers, librosa's ISC-licensed pYIN description,

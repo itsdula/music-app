@@ -33,8 +33,8 @@ export function describeConditions(): string {
   }).join('\n');
 }
 
-const CREATE_DESCRIPTION = `Create and immediately start a guided, interactive tutorial in Studio that walks the user through a task step by step: each step spotlights a real control, explains it in a short card, and advances when the user actually does it.
-Use this when the user asks how to do something in Studio ("how do I add reverb?", "teach me to record"). Prefer start_tutorial when a built-in tour (see list_tutorials) already covers the task.
+const CREATE_DESCRIPTION = `Create and immediately start a guided, interactive tutorial in Nawa that walks the user through a task step by step: each step spotlights a real control, explains it in a short card, and advances when the user actually does it.
+Use this when the user asks how to do something in Nawa ("how do I add reverb?", "teach me to record"). Prefer start_tutorial when a built-in tour (see list_tutorials) already covers the task.
 If the result has ok:false, fix every listed error and call again.
 
 Format: {id, title, description, steps[]} with at most ${L.maxSteps} steps; ids are lowercase-with-dashes; title ≤ ${L.titleMaxLength} chars; description ≤ ${L.descriptionMaxLength}; body ≤ ${L.bodyMaxLength} chars of plain text (no markup).
@@ -45,8 +45,8 @@ Step: {id, title, body, target?, placement?, before?, advance}
 - advance (when the step is done):
   {"type":"next"} — the user presses Next (use for explanations);
   {"type":"click","target"?} — the user clicks the step target (or the given target);
-  {"type":"tool","name"} — a Studio tool with that name is called successfully;
-  {"type":"condition","condition"} — Studio state matches (preferred for actions). If a condition already holds when the step starts, the step is skipped.
+  {"type":"tool","name"} — a Nawa tool with that name is called successfully;
+  {"type":"condition","condition"} — Nawa state matches (preferred for actions). If a condition already holds when the step starts, the step is skipped.
 Conditions (count conditions take exactly one of "min" = absolute count or "added" = increase since the step started):
 ${describeConditions()}
 
@@ -141,7 +141,7 @@ export function registerTutorialTools(registry: ToolRegistry, session: StudioSes
       name: 'list_tutorials',
       title: 'List tutorials',
       description:
-        'Lists the guided tutorials available in Studio (built-in tours and ones created with create_tutorial), whether the user completed them, and the tutorial that is currently running, if any.',
+        'Lists the guided tutorials available in Nawa (built-in tours and ones created with create_tutorial), whether the user completed them, and the tutorial that is currently running, if any.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       readOnly: true,
       run: () => ({ tutorials: controller.list(), active: activeSummary() }),

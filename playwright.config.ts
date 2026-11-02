@@ -1,10 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * End-to-end tests run against production builds of both hosts:
- *  - web:  Next.js (landing page + /studio)        http://localhost:3100
- *  - vite: standalone Vite host mounting <Studio /> http://localhost:3200
- * Studio feature specs run on the Vite host; portability smoke specs run on both.
+ * End-to-end tests run against the production build of the site (apps/site), served by
+ * `vp preview` at http://localhost:3200 and built with base '/' (NAWA_BASE_PATH=/ in
+ * `pnpm test:e2e`; GitHub Pages builds use '/nawa/'):
+ *  - landing: the landing page at /, plus the portability smoke spec on /studio/
+ *  - studio:  the Studio feature specs on /studio/ (see e2e/helpers.ts `openStudio`)
  * Chromium flags allow audio without a user gesture and fake microphone input.
  */
 const CHROMIUM_ARGS = [
@@ -14,6 +15,7 @@ const CHROMIUM_ARGS = [
 ];
 
 const isCI = Boolean(process.env.CI);
+const SITE_URL = 'http://localhost:3200';
 
 export default defineConfig({
   testDir: './e2e',
@@ -30,29 +32,16 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
     launchOptions: { args: CHROMIUM_ARGS },
     permissions: ['microphone'],
+    baseURL: SITE_URL,
   },
   projects: [
-    {
-      name: 'web',
-      testMatch: /(landing|portability)\.spec\.ts/,
-      use: { baseURL: 'http://localhost:3100' },
-    },
-    {
-      name: 'vite',
-      testMatch: /(studio\/.*|portability)\.spec\.ts/,
-      use: { baseURL: 'http://localhost:3200' },
-    },
+    { name: 'landing', testMatch: /(landing|portability)\.spec\.ts/ },
+    { name: 'studio', testMatch: /studio\/.*\.spec\.ts/ },
   ],
   webServer: [
     {
-      command: 'pnpm --filter @studio/web start',
-      url: 'http://localhost:3100',
-      reuseExistingServer: !isCI,
-      timeout: 120_000,
-    },
-    {
-      command: 'pnpm --filter @studio/vite-host preview',
-      url: 'http://localhost:3200',
+      command: 'pnpm --filter @studio/site preview',
+      url: SITE_URL,
       reuseExistingServer: !isCI,
       timeout: 120_000,
     },

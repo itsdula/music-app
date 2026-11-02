@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Runs on both hosts (Next.js /studio and the Vite host): the same portable <Studio />
- * must boot to a ready state with the transport and arrangement visible.
+ * The site's Studio page (/studio/) mounts the portable <Studio />, which must boot to a
+ * ready state with the transport and arrangement visible.
  */
-test('the portable <Studio /> boots in this host', async ({ page, baseURL }) => {
-  const path = baseURL?.includes('3100') ? '/studio' : '/';
+test('the portable <Studio /> boots in this host', async ({ page }) => {
+  const path = '/studio/';
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(path);

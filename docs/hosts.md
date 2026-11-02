@@ -1,14 +1,18 @@
-# Hosts: Electron implementation and Tauri design
+# Hosts: website, desktop app and a future native backend
 
-Studio's UI is one portable component, `<Studio platform? config? />` from `@studio/react`.
+Nawa's UI is one portable component, `<Studio platform? config? />` from `@studio/react`.
 A host does three things. It mounts the component, provides `PlatformServices` (see
 `packages/platform-contracts/src/platform.ts`) and owns whatever the web platform cannot do
-by itself. The Next.js app (`apps/web`) and the Vite host (`apps/vite-host`) use the browser
-platform unchanged. This document covers:
+by itself. Nawa has two hosts today, and this document also keeps one design for later:
 
-- the **Electron host** (`apps/electron-host`), which is implemented and smoke-tested;
-- the **Tauri host**, a design only. It replaces audio, MIDI and file access with a Rust backend
-  without changing the React UI.
+- the **website** (`apps/site`), a static Vite+ site on GitHub Pages that uses the browser
+  platform unchanged (§0);
+- the **desktop app** (`apps/desktop`), Electron, implemented, smoke-tested and released through
+  GitHub Releases (§1);
+- a **Tauri host with a Rust audio backend**, a design kept as a **future option, not planned
+  work** (§2). Electron currently only hosts Chromium; the audio engine is Web Audio in the page
+  on both hosts. A native backend would be worth building only if it took over audio and MIDI so
+  the page becomes pure UI.
 
 Background: [architecture.md §11](architecture.md),
 [research/platform-compatibility.md §6](research/platform-compatibility.md) and
@@ -16,7 +20,45 @@ Background: [architecture.md §11](architecture.md),
 
 ---
 
-## 1. Electron host (`apps/electron-host`)
+## 0. Website (`apps/site`)
+
+A static site built with Vite+ (`vite-plus`, CLI `vp`) and deployed to GitHub Pages at
+<https://itsdula.github.io/nawa/>.
+
+| Entry               | Page                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `index.html`        | Landing page (`src/landing-main.tsx`, sections in `src/landing/`)                    |
+| `studio/index.html` | The Studio: `src/studio/main.tsx` mounts `<Studio />` with `createBrowserPlatform()` |
+
+- **No routes.** The Studio's views (projects, arrange, editor) are React state, so each page is
+  one HTML file and GitHub Pages needs no SPA fallback.
+- **Base path.** `apps/site/vite.config.ts` builds with base `/nawa/` (the repository name).
+  `NAWA_BASE_PATH` overrides it, for example `NAWA_BASE_PATH=/` for a root domain or for the e2e
+  build; the dev server uses `/` unless the variable is set. Code builds links and asset URLs
+  from `import.meta.env.BASE_URL` (`src/urls.ts`). `apps/site/turbo.json` declares the variable,
+  so Turbo passes it through and keys its cache on it.
+- **Preferences** live in the origin's localStorage (`createLocalStorageKeyValueStore()`);
+  projects and audio in IndexedDB, as in every browser host.
+- **No assistant.** The site passes no assistant transport, so the chat panel explains that the
+  assistant is unavailable ([assistant.md](assistant.md)).
+- **No custom headers.** GitHub Pages cannot set COOP/COEP or a CSP header. The Studio detects
+  cross-origin isolation and does not require it; `SharedArrayBuffer` is simply unavailable on
+  the site.
+- **Deploy.** `.github/workflows/pages.yml` builds `apps/site` with `NAWA_BASE_PATH=/nawa/` on
+  every push to `main` and deploys `apps/site/dist` with the official Pages actions. The
+  repository's Pages source must be **GitHub Actions**.
+
+```bash
+pnpm dev:site                                  # dev server, http://localhost:3000 (and /studio/)
+pnpm turbo run build --filter=@studio/site...  # workspace packages, then dist/ with base /nawa/
+pnpm --filter @studio/site preview             # serve dist/ at http://localhost:3200
+```
+
+---
+
+---
+
+## 1. Electron host (`apps/desktop`)
 
 ### 1.1 Process model
 
@@ -116,7 +158,7 @@ media-src 'self' blob: data:; connect-src 'self' blob: data:; object-src 'none';
 frame-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 ```
 
-- `blob:` in `script-src` and `worker-src` is required. Studio ships its AudioWorklet
+- `blob:` in `script-src` and `worker-src` is required. Nawa ships its AudioWorklet
   processors and Workers (vocal DSP) as inline bundles loaded from Blob URLs
   (`platform-browser/src/workers/inline-worker.ts`). `addModule()` is governed by `script-src`,
   and `new Worker()` by `worker-src`.
@@ -229,13 +271,13 @@ structurally. Apps may not import `@studio/platform-contracts` (dependency-cruis
 ### 1.8 Build, run and smoke-test
 
 ```bash
-pnpm turbo run build --filter=@studio/electron-host...   # codegen + @studio/react CSS + host
-pnpm --filter @studio/electron-host start                # electron .  (add --no-sandbox as root)
-pnpm --filter @studio/electron-host smoke                # full: waits for <Studio /> ready
-pnpm --filter @studio/electron-host smoke:probe          # shell only: protocol/CSP/IPC/permissions
-pnpm --filter @studio/electron-host test                 # Node unit tests (own vitest config)
-pnpm --filter @studio/electron-host typecheck            # whole app (renderer pulls in Studio)
-pnpm --filter @studio/electron-host typecheck:host       # main/preload/shared/tests only
+pnpm turbo run build --filter=@studio/desktop...   # codegen + @studio/react CSS + host
+pnpm --filter @studio/desktop start                # electron .  (add --no-sandbox as root)
+pnpm --filter @studio/desktop smoke                # full: waits for <Studio /> ready
+pnpm --filter @studio/desktop smoke:probe          # shell only: protocol/CSP/IPC/permissions
+pnpm --filter @studio/desktop test                 # Node unit tests (own vitest config)
+pnpm --filter @studio/desktop typecheck            # whole app (renderer pulls in Studio)
+pnpm --filter @studio/desktop typecheck:host       # main/preload/shared/tests only
 ```
 
 - `scripts/build.mjs` writes four outputs:
@@ -273,32 +315,54 @@ pnpm --filter @studio/electron-host typecheck:host       # main/preload/shared/t
 
 The pure modules have unit tests in `tests/`. They are not matched by the root Vitest `unit`
 project, which only includes `packages/*/tests/**`. Run them with the package `test` script, or
-with `pnpm exec vitest run --config apps/electron-host/vitest.config.ts`.
+with `pnpm exec vitest run --config apps/desktop/vitest.config.ts`.
 
-### 1.9 Package a macOS app
+### 1.9 Packaging and releases
+
+The app is packaged with **electron-builder** (`apps/desktop/electron-builder.yml`):
 
 ```bash
-pnpm package:mac   # build, then out/Studio-darwin-<arch>/Studio.app and out/Studio-mac-<arch>.zip
+pnpm package:desktop                        # repo root: build the workspace, then package for this OS
+pnpm --filter @studio/desktop package       # package an existing dist/ for this OS
 ```
 
-`scripts/package-mac.mjs` stages `dist/` (without source maps or the probe page) with a minimal
-`package.json` and packages it with `@electron/packager`: a `Studio.app` for this Mac's
-architecture, using the Electron version the host is pinned to, with the icon from
-`resources/icon.icns` (drawn in `resources/icon.svg`) and an asar archive. `dist/` is fully
-bundled, so the app carries no `node_modules`.
+- **Contents.** Only `package.json` and `dist/main`, `dist/preload`, `dist/renderer` go into the
+  asar archive: no source maps, no probe page, no `node_modules` (`dist/` is fully bundled).
+- **Identity.** Product name `Nawa`, app id `app.nawa.desktop`. `main.ts` calls
+  `app.setName('Nawa')` and pins `userData` to `<appData>/Nawa` (`STUDIO_USER_DATA_DIR`
+  overrides it), so dev runs and the packaged app share one profile.
+- **Targets.** macOS dmg and zip for arm64 and x64 (category music, microphone usage string,
+  dark mode); Windows NSIS x64 (not one-click); Linux AppImage x64. Output goes to
+  `apps/desktop/out/` (git-ignored). Icons: `resources/icon.icns`, `icon.ico`, `icon.png`, all
+  drawn from `resources/icon.svg`.
+- **Signing.** macOS is signed ad hoc (Apple Silicon refuses unsigned code; no certificate is
+  needed) and not notarized; Windows and Linux are unsigned. Gatekeeper and SmartScreen warn on
+  first launch; the README's Download section says how to get past them.
 
-The app is signed ad hoc, not with an Apple Developer ID, and is not notarized. On another Mac,
-Gatekeeper blocks the first launch: right-click the app and choose **Open**, or run
-`xattr -cr Studio.app`. The packaged app keeps its projects under its own `userData` folder
-(`~/Library/Application Support/Studio`), separate from `pnpm --filter @studio/electron-host start`.
+**Releases** (`.github/workflows/release.yml`) run on a pushed `v*` tag:
 
-Not in scope yet: Windows and Linux packages, auto-update, Developer ID signing and
-notarization, installers (DMG, electron-builder/forge) and fuses (`runAsNode`, `nodeOptions`,
-`onlyLoadAppFromAsar`).
+1. `draft` checks the tag is `vX.Y.Z[-pre]` and creates a draft GitHub Release with generated
+   notes (a pre-release when the tag has a suffix).
+2. `build` runs on macOS, Windows and Linux. Each job builds the workspace and runs
+   `electron-builder --publish always -c.extraMetadata.version=<tag version>`, which uploads into
+   the draft. The tag is the version, so `package.json` needs no bump for the build itself.
+3. `publish` makes the release public only after every platform succeeded, so a failure leaves
+   a draft, never a public release with missing downloads.
+
+A manual run (workflow_dispatch) is a dry run: `--publish never`, installers kept as workflow
+artifacts for 7 days. CI's desktop job also packages an unpacked Linux app on every push, so a
+broken `electron-builder.yml` fails before a tag does.
+
+Not in scope yet: auto-update, Developer ID signing and notarization, Windows code signing, and
+Electron fuses (`runAsNode`, `nodeOptions`, `onlyLoadAppFromAsar`).
 
 ---
 
-## 2. Tauri host (design only)
+## 2. Tauri host (future option, not planned)
+
+> This section is kept as a design for later. Nothing here is being built: the project
+> dropped Tauri for now and ships Electron. It is worth revisiting only together with a native
+> audio and MIDI backend, which is what would make a second desktop host pay off.
 
 Goal: the same `<Studio />` and the same `PlatformServices` contract. Audio, MIDI and file
 access move to a Rust backend wherever the system WebView is weaker than Chromium. The guiding
@@ -447,7 +511,7 @@ frame time (`engine.ts` header).
   hear.
 - Recording: `take.startTick = tick_at(record_start_frame) − (input + output latency)`, unless
   the caller passes `latencyCompensationSeconds`, which is the user-calibrated value from
-  Studio's settings. The value used is returned on `RecordedTake.latencyCompensationSeconds`,
+  Nawa's settings. The value used is returned on `RecordedTake.latencyCompensationSeconds`,
   as the contract requires.
 - Live MIDI → sound: `midir` callbacks enqueue `NoteOn` commands immediately. The RT thread
   starts the voice at the next block boundary, which is the lowest possible software latency.
@@ -512,7 +576,7 @@ export function createTauriPlatform(options: TauriPlatformOptions = {}): Platfor
 
 ### 2.9 Tauri security posture (parity with Electron)
 
-- Capabilities and permissions (Tauri 2 ACL) allow only Studio's commands and the dialog/fs
+- Capabilities and permissions (Tauri 2 ACL) allow only Nawa's commands and the dialog/fs
   plugin scopes needed for user-chosen files. There is no shell or HTTP plugin.
 - The CSP is the same as §1.4 and is set in `tauri.conf.json`. The `ipc:` and asset-protocol
   sources are added there.

@@ -5,6 +5,13 @@ tests pass in CI and the "what works / what was measured / what remains" report 
 in [agent-workstreams.md](agent-workstreams.md). Incomplete capabilities stay behind
 `StudioFeatureFlags`.
 
+> **Hosts changed after phase 8 began (2026-11).** The product is now **Nawa**. The Next.js
+> site (`apps/web`) and the standalone Vite host (`apps/vite-host`) were replaced by one static
+> Vite+ site, `apps/site` (landing page plus `/studio/`, deployed to GitHub Pages), and the
+> Electron host moved to `apps/desktop`, packaged with electron-builder and released through
+> GitHub Releases. Tauri is no longer planned work; its design stays in [hosts.md §2](hosts.md)
+> as a future option. Phase reports below keep the host names of the time they were written.
+
 ## Dependency graph
 
 ```mermaid
@@ -174,6 +181,16 @@ the vocal editor with zero violations (its findings were fixed: list semantics f
 AA contrast for the faint text tier, labelled scroll regions). Remains: a manual
 screen-reader pass, real-hardware MIDI and latency checks, and Firefox/Safari runs (CI
 covers Chromium only).
+
+**Update (2026-11): Nawa, website and desktop releases.** The hosts were consolidated: a
+static Vite+ site (`apps/site`, landing page and `/studio/`) deployed to GitHub Pages by
+`.github/workflows/pages.yml`, and the desktop app (`apps/desktop`) packaged with
+electron-builder (macOS dmg/zip, Windows NSIS, Linux AppImage) and published to GitHub Releases
+by the tag-triggered `.github/workflows/release.yml`. The Playwright suites now run against the
+site's production build (`landing` and `studio` projects). The website ships without an AI
+assistant transport ([assistant.md](assistant.md)). Remains: the release workflow has not run on
+GitHub yet; the Windows and Linux installers have not been built; builds are not signed with a
+paid certificate.
 
 ## Reporting format per phase
 

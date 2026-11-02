@@ -66,7 +66,7 @@ export interface ConversationOptions {
 }
 
 export const NOT_CONFIGURED_MESSAGE =
-  "The AI assistant isn't configured on this server: set OPENROUTER_API_KEY";
+  "The AI assistant isn't available here: no assistant endpoint is configured for this copy of Nawa.";
 
 const ERROR_CODES: readonly AssistantErrorCode[] = [
   'not-configured',

@@ -1,6 +1,6 @@
-# Studio — Architecture
+# Nawa — Architecture
 
-Status: living document. Owner: tech lead. Last updated: 2026-10-29.
+Status: living document. Owner: tech lead. Last updated: 2026-11-02.
 Related: [domain-model.md](domain-model.md) · [audio-engine.md](audio-engine.md) ·
 [vocal-dsp.md](vocal-dsp.md) · [midi-device-research.md](midi-device-research.md) ·
 [midi-integration.md](midi-integration.md) · [persistence.md](persistence.md) ·
@@ -9,9 +9,12 @@ Related: [domain-model.md](domain-model.md) · [audio-engine.md](audio-engine.md
 
 ## 1. Executive summary
 
-Studio is a local-first DAW delivered as **one portable React component, `<Studio />`**,
-mounted by thin hosts: a Next.js App Router site (landing page at `/`, client-only
-`/studio` route), a standalone Vite app (portability proof) and, later, Electron and Tauri.
+Nawa is a local-first DAW delivered as **one portable React component, `<Studio />`**,
+mounted by two thin hosts: a static Vite+ website (`apps/site`: landing page at `/`, the Studio
+at `/studio/`, deployed to GitHub Pages at <https://itsdula.github.io/nawa/>) and an Electron
+desktop app (`apps/desktop`, released through GitHub Releases). Audio runs on Web Audio in the
+page on both; Electron only hosts Chromium. A native Rust backend under Tauri is a documented
+future option ([hosts.md §2](hosts.md)), not planned work.
 
 The codebase is split by **what can be ported to Rust and what cannot**:
 
@@ -27,18 +30,18 @@ The codebase is split by **what can be ported to Rust and what cannot**:
 
 Key decisions (each has an ADR):
 
-| Decision         | Choice                                                                                                                                                                                                                                               | Why                                                                             |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Musical time     | Integer ticks, **960 PPQ**; one global tempo for v1                                                                                                                                                                                                  | exact straight/triplet grids, deterministic scheduling, tempo map later         |
-| Persistent state | Immutable, normalized project model; every change is a serializable **command**; **snapshot undo history** with structural sharing                                                                                                                   | exact undo, cheap diffing for the engine and autosave, deterministic replay     |
-| UI state         | Zustand stores for editor state; transport position, meters and playhead rendered from rAF **outside React**                                                                                                                                         | no React work at audio/frame rate                                               |
-| Audio            | Web Audio graph built from native nodes; **AudioWorklet** only where audio-thread code is required (recording capture); scheduling via a lookahead scheduler on the `AudioContext` clock; **OfflineAudioContext** bounce through the same graph code | proven, sample-accurate, and offline/real-time parity                           |
-| Engine API       | Backend-neutral `AudioEngine` port + pure `diffProjects()` change stream                                                                                                                                                                             | a Rust engine can implement the semantics without mimicking Web Audio           |
-| Vocal DSP        | pYIN-style tracker + note HMM/rules + key profiles for analysis; **TD-PSOLA** for correction (formant-preserving by construction); Signalsmith Stretch as an alternative strategy behind `VocalProcessor`                                            | quality for monophonic voice, permissive licensing, small portable code         |
-| MIDI             | Device-independent `midi-core` + separate device-profile packages; software mapping always works; **no SysEx writes** without a documented protocol                                                                                                  | honest hardware support                                                         |
-| Persistence      | IndexedDB (Dexie) with project JSON separate from binary assets; versioned schema + migrations; zip bundle for portability                                                                                                                           | local-first, recoverable, portable                                              |
-| Workers/worklets | esbuild-generated **inline bundles loaded from Blob URLs**                                                                                                                                                                                           | identical behaviour in Next/Turbopack, Vite and Electron with no bundler config |
-| Styling          | Tailwind v4 compiled into a **prebuilt, scoped `studio.css`** (no global preflight)                                                                                                                                                                  | hosts just import one stylesheet; Studio can be embedded                        |
+| Decision         | Choice                                                                                                                                                                                                                                               | Why                                                                                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Musical time     | Integer ticks, **960 PPQ**; one global tempo for v1                                                                                                                                                                                                  | exact straight/triplet grids, deterministic scheduling, tempo map later                                     |
+| Persistent state | Immutable, normalized project model; every change is a serializable **command**; **snapshot undo history** with structural sharing                                                                                                                   | exact undo, cheap diffing for the engine and autosave, deterministic replay                                 |
+| UI state         | Zustand stores for editor state; transport position, meters and playhead rendered from rAF **outside React**                                                                                                                                         | no React work at audio/frame rate                                                                           |
+| Audio            | Web Audio graph built from native nodes; **AudioWorklet** only where audio-thread code is required (recording capture); scheduling via a lookahead scheduler on the `AudioContext` clock; **OfflineAudioContext** bounce through the same graph code | proven, sample-accurate, and offline/real-time parity                                                       |
+| Engine API       | Backend-neutral `AudioEngine` port + pure `diffProjects()` change stream                                                                                                                                                                             | a Rust engine can implement the semantics without mimicking Web Audio                                       |
+| Vocal DSP        | pYIN-style tracker + note HMM/rules + key profiles for analysis; **TD-PSOLA** for correction (formant-preserving by construction); Signalsmith Stretch as an alternative strategy behind `VocalProcessor`                                            | quality for monophonic voice, permissive licensing, small portable code                                     |
+| MIDI             | Device-independent `midi-core` + separate device-profile packages; software mapping always works; **no SysEx writes** without a documented protocol                                                                                                  | honest hardware support                                                                                     |
+| Persistence      | IndexedDB (Dexie) with project JSON separate from binary assets; versioned schema + migrations; zip bundle for portability                                                                                                                           | local-first, recoverable, portable                                                                          |
+| Workers/worklets | esbuild-generated **inline bundles loaded from Blob URLs**                                                                                                                                                                                           | identical behaviour in any bundler (verified with Vite, Next/Turbopack and Electron) with no bundler config |
+| Styling          | Tailwind v4 compiled into a **prebuilt, scoped `studio.css`** (no global preflight)                                                                                                                                                                  | hosts just import one stylesheet; Studio can be embedded                                                    |
 
 ## 2. Quality attributes and constraints
 
@@ -61,20 +64,18 @@ Key decisions (each has an ADR):
 ```mermaid
 flowchart LR
   subgraph Hosts
-    NEXT["apps/web (Next.js)\n/ landing · /studio thin route"]
-    VITE["apps/vite-host"]
-    ELEC["apps/electron-host (Phase 8)"]
-    TAURI["Tauri host (future)"]
+    SITE["apps/site (Vite+, GitHub Pages)\n/ landing · /studio/"]
+    ELEC["apps/desktop (Electron)"]
+    TAURI["Tauri host (future option)"]
   end
   STUDIO["@studio/react\n<Studio platform? config? />"]
-  NEXT --> STUDIO
-  VITE --> STUDIO
+  SITE --> STUDIO
   ELEC --> STUDIO
   TAURI -.-> STUDIO
   subgraph Platform["PlatformServices (injected)"]
     PB["platform-browser\nIndexedDB · Web MIDI · file pickers · permissions"]
     AW["audio-web\nWeb Audio engine"]
-    NATIVE["future: Rust audio/MIDI via Tauri commands/events"]
+    NATIVE["future option: Rust audio/MIDI via Tauri commands/events"]
   end
   STUDIO --> Platform
   PB --> AW
@@ -150,7 +151,7 @@ flowchart BT
   studio --> mpk
   studio --> ui
   studio -. "default-platform.ts only" .-> pbrowser
-  apps["apps/web · apps/vite-host"] --> studio
+  apps["apps/site · apps/desktop"] --> studio
   apps --> ui
 ```
 
@@ -177,7 +178,7 @@ flowchart BT
 **Enforcement** (CI `pnpm boundaries`, `pnpm lint`, `pnpm typecheck`):
 
 - dependency-cruiser: allowed-dependency lists per package, no cycles, no Node built-ins or
-  UI/state libraries in class A, only `apps/web` may import `next`, apps import only
+  UI/state libraries in class A, apps import only
   `@studio/react`/`@studio/ui`, `studio-react` features never import `platform-browser`.
 - ESLint `no-restricted-imports` mirrors the class rules at edit time.
 - Class A `tsconfig.src.json` has `lib: ES2023` and `types: []` (no DOM, no Node).
@@ -186,14 +187,13 @@ flowchart BT
 
 ```
 apps/
-  web/                         Next.js host
-    app/layout.tsx             fonts, metadata, global landing CSS
-    app/page.tsx               landing page (sections in components/)
-    app/studio/page.tsx        server component: renders <StudioClient/>
-    app/studio/studio-client.tsx  'use client' + next/dynamic(ssr:false) → <Studio/>
-    components/                landing-only components
-  vite-host/                   index.html + src/main.tsx mounting <Studio/>
-  electron-host/               (Phase 8) main.ts, preload.ts (contextBridge IPC), renderer
+  site/                        static website (Vite+), deployed to GitHub Pages
+    index.html                 landing page entry → src/landing-main.tsx, src/landing/
+    studio/index.html          Studio entry → src/studio/main.tsx mounting <Studio/>
+    vite.config.ts             two entries, base '/nawa/' (NAWA_BASE_PATH overrides)
+  desktop/                     Electron app: src/main (protocol, CSP, IPC), src/preload,
+                               src/renderer mounting <Studio/>, electron-builder.yml
+  dev-monitor/                 `pnpm dev` orchestrator and log viewer
 packages/
   domain/src/                  ids, time, grid, theory, params, model, factories, selectors,
                                intervals, invariants, result
@@ -221,6 +221,8 @@ packages/
                                piano-roll,audio-editor,vocal-editor,mixer,effects,
                                instrument,midi-controller,project,export}/, platform/,
                                styles/studio.css
+  theme-core/src/              theme tokens, colour maths, CSS and canvas emission, presets
+  audio-ui/src/                audio controls and meters on @audio-ui/react
   test-fixtures/src/           seeded generators, synthetic vowels, melodies
 docs/                          this document, subsystem docs, ADRs, research
 e2e/                           Playwright specs (landing, portability, studio/*)
@@ -432,18 +434,18 @@ interface PlatformServices { audioBackendFactory; createVocalProcessor; midiAcce
 
 Full matrix with sources: [research/platform-compatibility.md §2](research/platform-compatibility.md).
 
-| Capability                               | Chrome/Edge                                          | Firefox                                             | Safari      | Electron 45                            | Tauri (Win / macOS / Linux)          |
+| Capability                               | Chrome/Edge                                          | Firefox                                             | Safari      | Electron 45                            | Tauri, future (Win / macOS / Linux)  |
 | ---------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- | ----------- | -------------------------------------- | ------------------------------------ |
 | Web MIDI                                 | ✅ (permission prompt for all MIDI since Chrome 124) | ⚠️ site-permission add-on; no hotplug events (poll) | ❌          | ✅ (grant `midi` via session handlers) | ✅ / ❌ / ❌ → native `midir` bridge |
 | AudioWorklet / OfflineAudioContext       | ✅                                                   | ✅                                                  | ✅          | ✅                                     | ✅ / ✅ / ⚠️                         |
 | Mic capture constraints (AEC/NS/AGC off) | ✅                                                   | ✅                                                  | ⚠️ AEC only | ✅                                     | ✅ / ⚠️ / ⚠️                         |
 | `outputLatency`                          | ✅                                                   | ✅                                                  | ✅ 18.4+    | ✅                                     | ✅ / ⚠️ / ❓                         |
 | File System Access pickers               | ✅                                                   | ❌ (fallback input/download)                        | ❌          | native dialogs via preload             | Tauri dialog plugin                  |
-| SharedArrayBuffer                        | needs COOP/COEP                                      | same                                                | same        | protocol headers                       | ❓                                   |
+| SharedArrayBuffer                        | needs COOP/COEP (not on GitHub Pages)                | same                                                | same        | protocol headers                       | ❓                                   |
 
 Plugin hosting (VST/AU/CLAP) is impossible in browsers and out of scope; a native backend
 could add it later. Audio latency in browsers is typically 10–40 ms output plus device
-input latency; Studio reports `baseLatency`/`outputLatency` and lets users calibrate.
+input latency; Nawa reports `baseLatency`/`outputLatency` and lets users calibrate.
 
 ## 12. Risks, spikes and benchmarks
 
@@ -457,7 +459,7 @@ input latency; Studio reports `baseLatency`/`outputLatency` and lets users calib
 | Web MIDI unavailable (Safari/Firefox quirks)                                     | no controller     | capability detection, clear UI state, on-screen keyboard                                       | unit tests with fake ports                             |
 | IndexedDB quota/eviction, Safari blob bugs                                       | data loss         | Uint8Array storage, `storage.persist()` request, bundle export, backup revision                | IndexedDB contract tests                               |
 | React re-render storms                                                           | jank              | frame data outside React, selectors, canvas layers                                             | profiling budget (Phase 8)                             |
-| Worker/worklet loading differences across hosts                                  | broken features   | inline Blob-URL bundles; CSP documented (`script-src 'self' blob:`, `worker-src 'self' blob:`) | portability E2E on both hosts                          |
+| Worker/worklet loading differences across hosts                                  | broken features   | inline Blob-URL bundles; CSP documented (`script-src 'self' blob:`, `worker-src 'self' blob:`) | portability E2E on the site; Electron smoke test       |
 
 Benchmarks (method in [test-plan.md](test-plan.md) §6): 16-track/100-clip offline render
 time, scheduler tick cost, meter read cost, arrangement draw time at extreme zoom, MIDI

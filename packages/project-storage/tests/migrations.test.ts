@@ -93,7 +93,7 @@ describe('version gate', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.stage).toBe('version');
-    expect(result.error.message).toMatch(/newer version of Studio \(schema 2\)/);
+    expect(result.error.message).toMatch(/newer version of Nawa \(schema 2\)/);
     expect(result.error.message).toMatch(/supports up to 1/);
   });
 

@@ -16,7 +16,7 @@ export const TUTORIAL_ANCHORS: readonly TutorialAnchor[] = [
   { id: 'transport-bar', description: 'the top toolbar', where: 'always' },
   {
     id: 'project-menu',
-    description: 'Studio menu: New project, demo, open recent, import/export bundles',
+    description: 'Nawa menu: New project, demo, open recent, import/export bundles',
     where: 'toolbar',
   },
   { id: 'project-name', description: 'project name; double-click to rename', where: 'toolbar' },

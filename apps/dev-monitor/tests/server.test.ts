@@ -18,7 +18,7 @@ beforeEach(async () => {
       openElectron: () => void calls.push('open'),
       restartElectron: () => void calls.push('restart'),
     },
-    info: () => ({ nextUrl: 'http://localhost:3000' }),
+    info: () => ({ siteUrl: 'http://localhost:3000' }),
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -67,12 +67,12 @@ describe('monitor server', () => {
     expect((await fetch(`${base}/api/electron/open`, { method: 'POST' })).status).toBe(202);
     expect((await fetch(`${base}/api/electron/restart`, { method: 'POST' })).status).toBe(202);
     expect(calls).toEqual(['open', 'restart']);
-    hub.setStatus({ id: 'next', label: 'Next.js', state: 'running', sinceMs: 1 });
+    hub.setStatus({ id: 'site', label: 'Site', state: 'running', sinceMs: 1 });
     const services = (await (await fetch(`${base}/api/services`)).json()) as {
-      nextUrl: string;
+      siteUrl: string;
       services: unknown[];
     };
-    expect(services.nextUrl).toBe('http://localhost:3000');
+    expect(services.siteUrl).toBe('http://localhost:3000');
     expect(services.services).toHaveLength(1);
     const page = await fetch(`${base}/`);
     expect(page.headers.get('content-security-policy')).toContain("script-src 'self'");

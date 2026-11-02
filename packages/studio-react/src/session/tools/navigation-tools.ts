@@ -36,7 +36,7 @@ export function registerNavigationTools(
       name: 'navigate',
       title: 'Go to page',
       description:
-        'Shows a Studio page: "projects" (project list), "arrange" (timeline with tracks and clips), "editor" (full-height editor for the open clip, or the selected track\'s instrument and effects), "mixer" (volume/pan/effects for every track) or "controller" (MIDI controller mappings).',
+        'Shows a Nawa page: "projects" (project list), "arrange" (timeline with tracks and clips), "editor" (full-height editor for the open clip, or the selected track\'s instrument and effects), "mixer" (volume/pan/effects for every track) or "controller" (MIDI controller mappings).',
       inputSchema: {
         type: 'object',
         properties: { view: { type: 'string', enum: DESTINATIONS, description: 'Page to show.' } },
