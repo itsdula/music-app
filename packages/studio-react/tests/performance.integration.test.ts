@@ -169,23 +169,29 @@ describe('performance baselines (16 tracks / 100 clips)', () => {
     expect(ms).toBeLessThan(2);
   });
 
-  it('builds a peak pyramid for 3 minutes of stereo audio and reads zoom levels', () => {
-    const frames = 48000 * 180;
-    const channel = new Float32Array(frames);
-    for (let i = 0; i < frames; i++) channel[i] = Math.sin(i * 0.01) * 0.5;
-    const pcm = { sampleRate: 48000, channels: [channel, channel.slice()] };
-    let pyramid = buildPeakPyramid(pcm);
-    const build = time('buildPeakPyramid (3 min stereo 48 kHz)', 3, () => {
-      pyramid = buildPeakPyramid(pcm);
-    });
-    const read = time('readPeaks (1,600 columns, full file)', 500, () => {
-      readPeaks(pyramid, 0, frames, 1600);
-    });
-    const readZoomed = time('readPeaks (1,600 columns, 1 s window)', 500, () => {
-      readPeaks(pyramid, 48000 * 60, 48000 * 61, 1600);
-    });
-    expect(build).toBeLessThan(3000);
-    expect(read).toBeLessThan(10);
-    expect(readZoomed).toBeLessThan(10);
-  });
+  // Four builds of a 3-minute file (each held to 3 s below) plus generating the audio outlast
+  // Vitest's default 5 s test timeout on slower CI runners, so the per-op budgets decide instead.
+  it(
+    'builds a peak pyramid for 3 minutes of stereo audio and reads zoom levels',
+    { timeout: 30_000 },
+    () => {
+      const frames = 48000 * 180;
+      const channel = new Float32Array(frames);
+      for (let i = 0; i < frames; i++) channel[i] = Math.sin(i * 0.01) * 0.5;
+      const pcm = { sampleRate: 48000, channels: [channel, channel.slice()] };
+      let pyramid = buildPeakPyramid(pcm);
+      const build = time('buildPeakPyramid (3 min stereo 48 kHz)', 3, () => {
+        pyramid = buildPeakPyramid(pcm);
+      });
+      const read = time('readPeaks (1,600 columns, full file)', 500, () => {
+        readPeaks(pyramid, 0, frames, 1600);
+      });
+      const readZoomed = time('readPeaks (1,600 columns, 1 s window)', 500, () => {
+        readPeaks(pyramid, 48000 * 60, 48000 * 61, 1600);
+      });
+      expect(build).toBeLessThan(3000);
+      expect(read).toBeLessThan(10);
+      expect(readZoomed).toBeLessThan(10);
+    },
+  );
 });
