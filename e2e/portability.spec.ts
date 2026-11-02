@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 /**
  * The site's Studio page (/studio/) mounts the portable <Studio />, which must boot to the
- * start screen and, once a project is created, show the transport and arrangement.
+ * start dialog and, once a project is created, show the transport and arrangement.
  */
 test('the portable <Studio /> boots in this host', async ({ page }) => {
   const path = '/studio/';
@@ -11,7 +11,7 @@ test('the portable <Studio /> boots in this host', async ({ page }) => {
   await page.goto(path);
   const root = page.getByTestId('studio-root');
   await expect(root).toHaveAttribute('data-studio-status', 'ready', { timeout: 20_000 });
-  await expect(page.getByTestId('start-screen')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'No project open' })).toBeVisible();
   await page.getByTestId('start-new').click();
   await expect(page.getByTestId('transport-bar')).toBeVisible();
   await expect(page.getByTestId('arrangement')).toBeVisible();

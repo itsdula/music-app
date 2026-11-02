@@ -9,19 +9,16 @@ import { BottomPanel } from '../features/bottom-panel/BottomPanel';
 import { BrowserPanel } from '../features/browser/BrowserPanel';
 import { TransportBar } from '../features/transport/TransportBar';
 import { useKeyboardShortcuts } from '../features/shortcuts/use-keyboard-shortcuts';
-import { StartScreen } from '../features/start/StartScreen';
+import { StartDialog } from '../features/start/StartDialog';
 import { useProjectState, useSession, useUiState } from '../session/context';
 import { installSelectionZones } from '../state/selection-zones';
 import { LearnBanner } from './LearnBanner';
 import { NoticeBar } from './NoticeBar';
 
 export function StudioShell() {
-  const isOpen = useProjectState((s) => s.isOpen);
-  return isOpen ? <Workspace /> : <StartScreen />;
-}
-
-function Workspace() {
   const session = useSession();
+  // Until a project is open the workspace shows an unsaved placeholder behind the start dialog.
+  const isOpen = useProjectState((s) => s.isOpen);
   const panels = useUiState((s) => s.panels);
   const view = useUiState((s) => s.view);
   const assistantOpen = useUiState((s) => s.assistantOpen);
@@ -127,7 +124,7 @@ function Workspace() {
         )}
         {assistantOpen && <AssistantPanel />}
       </div>
-      <TutorialLayer />
+      {isOpen ? <TutorialLayer /> : <StartDialog />}
     </div>
   );
 }

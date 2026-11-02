@@ -16,16 +16,23 @@ async function renderStudio() {
   return { platform, ...utils };
 }
 
-describe('start screen', () => {
+describe('start dialog', () => {
   it('asks for a project on load and lists saved projects on the next load', async () => {
+    const user = userEvent.setup();
     const platform = createTestPlatform();
     const first = render(<Studio platform={platform} config={{ autosaveDelayMs: 5 }} />);
-    expect(
-      await screen.findByRole('heading', { name: 'No project open' }, { timeout: 5000 }),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('transport-bar')).not.toBeInTheDocument();
-    expect(await screen.findByTestId('start-recent-empty')).toBeInTheDocument();
-    expect(screen.getAllByTestId('start-sample').length).toBeGreaterThan(0);
+    const dialog = await screen.findByRole(
+      'dialog',
+      { name: 'No project open' },
+      { timeout: 5000 },
+    );
+    // No saved projects yet, so it opens on "New project".
+    expect(within(dialog).getByTestId('start-new')).toBeInTheDocument();
+    await user.click(within(dialog).getByTestId('start-tab-recent'));
+    expect(await within(dialog).findByTestId('start-recent-empty')).toBeInTheDocument();
+    await user.click(within(dialog).getByTestId('start-tab-samples'));
+    expect(within(dialog).getAllByTestId('start-sample').length).toBeGreaterThan(0);
+    await user.click(within(dialog).getByTestId('start-tab-new'));
 
     await startEmptyProject();
     expect(screen.getByTestId('project-name')).toHaveTextContent('Untitled Project');
@@ -40,8 +47,8 @@ describe('start screen', () => {
     const recent = await screen.findByTestId('start-recent', {}, { timeout: 5000 });
     expect(recent).toHaveTextContent('Untitled Project');
     expect(within(recent).getByText('Last opened')).toBeInTheDocument();
-    await userEvent.setup().click(recent);
-    expect(await screen.findByTestId('transport-bar', {}, { timeout: 5000 })).toBeInTheDocument();
+    await user.click(recent);
+    await waitFor(() => expect(screen.queryByTestId('start-screen')).toBeNull());
   });
 });
 

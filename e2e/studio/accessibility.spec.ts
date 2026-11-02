@@ -66,6 +66,16 @@ test.describe('Accessibility (axe, WCAG 2.1 AA)', () => {
     }
   });
 
+  test('start dialog, in each of its tabs', async ({ page }) => {
+    await page.getByTestId('project-menu').click();
+    await page.getByTestId('menu-close-project').click();
+    await expect(page.getByRole('dialog', { name: 'No project open' })).toBeVisible();
+    for (const tab of ['recent', 'new', 'samples']) {
+      await page.getByTestId(`start-tab-${tab}`).click();
+      await expectNoViolations(page, `start dialog: ${tab}`, '[role="dialog"]');
+    }
+  });
+
   test('export, settings and keyboard-shortcut dialogs', async ({ page }) => {
     await page.getByTestId('open-export').click();
     await expect(page.getByRole('dialog')).toBeVisible();

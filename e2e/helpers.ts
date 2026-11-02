@@ -38,14 +38,14 @@ export async function positionBars(page: Page): Promise<string> {
   return (await page.getByTestId('position-bars').textContent()) ?? '';
 }
 
-/** On the start screen shown after every load, creates an empty project and waits for the workspace. */
+/** In the start dialog shown after every load, creates an empty project and waits for it to close. */
 export async function startEmptyProject(page: Page): Promise<void> {
   await page.getByTestId('start-new').click();
-  await expect(page.getByTestId('transport-bar')).toBeVisible();
+  await expect(page.getByTestId('start-screen')).toHaveCount(0);
 }
 
-/** On the start screen, reopens the most recently edited project (first in the list). */
+/** In the start dialog, reopens the most recently edited project (first in "Your projects"). */
 export async function reopenLastProject(page: Page): Promise<void> {
   await page.getByTestId('start-recent').first().click();
-  await expect(page.getByTestId('transport-bar')).toBeVisible();
+  await expect(page.getByTestId('start-screen')).toHaveCount(0);
 }

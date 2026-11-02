@@ -23,6 +23,8 @@ export interface DialogContentProps extends Omit<
   showClose?: boolean;
   /** Width utility. Default `w-[min(28rem,calc(100vw-2rem))]`. */
   widthClassName?: string;
+  /** Extra classes for the backdrop, e.g. a stronger dim or a blur. */
+  overlayClassName?: string;
 }
 
 export function DialogContent({
@@ -31,6 +33,7 @@ export function DialogContent({
   hideTitle = false,
   showClose = true,
   widthClassName = 'w-[min(28rem,calc(100vw-2rem))]',
+  overlayClassName,
   className,
   children,
   ...props
@@ -41,7 +44,12 @@ export function DialogContent({
   );
   return (
     <RadixDialog.Portal container={container}>
-      <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/60 motion-safe:transition-opacity motion-safe:duration-150 motion-safe:starting:opacity-0" />
+      <RadixDialog.Overlay
+        className={cn(
+          'fixed inset-0 z-50 bg-black/60 motion-safe:transition-opacity motion-safe:duration-150 motion-safe:starting:opacity-0',
+          overlayClassName,
+        )}
+      />
       <RadixDialog.Content
         aria-describedby={description ? undefined : props['aria-describedby']}
         className={cn(
