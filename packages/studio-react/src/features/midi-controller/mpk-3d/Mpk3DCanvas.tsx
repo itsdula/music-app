@@ -1,13 +1,16 @@
 import { MPK_MINI_MK3_LAYOUT } from '@studio/midi-akai-mpk-mini-mk3';
 import { useEffect, useRef, useState } from 'react';
 import {
+  Box3,
   DirectionalLight,
   HemisphereLight,
   Mesh,
   MOUSE,
+  NeutralToneMapping,
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  PMREMGenerator,
   Scene,
   ShadowMaterial,
   SRGBColorSpace,
@@ -15,6 +18,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildMpkScene, type ActivityMap } from './scene';
 
 export interface CameraPose {
@@ -41,23 +45,28 @@ function webglAvailable(): boolean {
 
 /**
  * Renderer, camera and controls around the procedural model. Independent of the Studio
- * session: live activity is pulled through `readActivity` every frame.
+ * session: live activity is pulled through `readActivity` (and the OLED text through
+ * `readOledText`) every frame; the OLED texture is only redrawn when its text changes.
  */
 export function Mpk3DCanvas({
   className,
   readActivity,
+  readOledText,
   pose = DEFAULT_POSE,
 }: {
   className?: string | undefined;
   readActivity: () => ActivityMap;
+  readOledText?: (() => string) | undefined;
   pose?: CameraPose;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const readRef = useRef(readActivity);
+  const oledRef = useRef(readOledText);
   const [failed, setFailed] = useState(() => !webglAvailable());
 
   useEffect(() => {
     readRef.current = readActivity;
+    oledRef.current = readOledText;
   });
 
   useEffect(() => {
@@ -76,6 +85,9 @@ export function Mpk3DCanvas({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = SRGBColorSpace;
+    // Neutral (Khronos PBR) tone mapping keeps the accent hues true; ACES washes them out.
+    renderer.toneMapping = NeutralToneMapping;
+    renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFShadowMap;
     const canvas = renderer.domElement;
@@ -86,16 +98,37 @@ export function Mpk3DCanvas({
     host.appendChild(canvas);
 
     const scene = new Scene();
-    const model = buildMpkScene(MPK_MINI_MK3_LAYOUT);
-    scene.add(model.root);
+    // Soft studio reflections from a prefiltered room environment.
+    const pmrem = new PMREMGenerator(renderer);
+    const room = new RoomEnvironment();
+    const envTarget = pmrem.fromScene(room, 0.04);
+    room.dispose();
+    scene.environment = envTarget.texture;
+    scene.environmentIntensity = 0.55;
 
-    const hemi = new HemisphereLight(0xf2f3ff, 0x1a1b22, 1.4);
+    const model = buildMpkScene(MPK_MINI_MK3_LAYOUT);
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    model.panelTexture.anisotropy = Math.min(16, maxAniso);
+    model.oledTexture.anisotropy = Math.min(8, maxAniso);
+    scene.add(model.root);
+    model.root.updateMatrixWorld(true);
+    const bounds = new Box3().setFromObject(model.root);
+
+    let disposed = false;
+    // Re-draw the panel print once web fonts (Inter) are available.
+    void document.fonts?.ready.then(() => {
+      if (disposed) return;
+      model.redrawPrint();
+      dirty = true;
+    });
+
+    const hemi = new HemisphereLight(0xf2f3ff, 0x1a1b22, 0.7);
     scene.add(hemi);
-    const key = new DirectionalLight(0xffffff, 2.2);
+    const key = new DirectionalLight(0xffffff, 2.0);
     key.position.set(-3, 14, 4);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
-    key.shadow.radius = 4;
+    key.shadow.radius = 5;
     key.shadow.bias = -0.0004;
     key.shadow.normalBias = 0.02;
     const cam = key.shadow.camera;
@@ -106,7 +139,7 @@ export function Mpk3DCanvas({
     cam.near = 1;
     cam.far = 30;
     scene.add(key);
-    const rim = new DirectionalLight(0xb9b0ff, 0.6);
+    const rim = new DirectionalLight(0xdfe3ff, 0.5);
     rim.position.set(6, 5, -8);
     scene.add(rim);
 
@@ -115,7 +148,7 @@ export function Mpk3DCanvas({
     const floorMat = new ShadowMaterial({ opacity: 0.35 });
     const floor = new Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.92;
+    floor.position.y = bounds.min.y - 0.002;
     floor.receiveShadow = true;
     scene.add(floor);
 
@@ -185,6 +218,8 @@ export function Mpk3DCanvas({
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       if (model.applyActivity(readRef.current())) moving = true;
+      const oledText = oledRef.current?.();
+      if (oledText !== undefined && model.setOledText(oledText)) dirty = true;
       if (moving) {
         moving = model.step(dt, reducedMotion);
         dirty = true;
@@ -197,6 +232,7 @@ export function Mpk3DCanvas({
     raf = requestAnimationFrame(frame);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       observer.disconnect();
       controls.removeEventListener('start', onStart);
@@ -209,6 +245,8 @@ export function Mpk3DCanvas({
       key.dispose();
       rim.dispose();
       hemi.dispose();
+      envTarget.dispose();
+      pmrem.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       canvas.remove();

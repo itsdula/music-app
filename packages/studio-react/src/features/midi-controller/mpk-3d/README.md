@@ -3,10 +3,13 @@
 An experimental, read-only 3D view of the controller shown behind the "2D / 3D" toggle in
 the MIDI controller panel. The model is built procedurally with three.js primitives from
 `MPK_MINI_MK3_LAYOUT` (no model files, textures or brand marks) and mirrors live activity
-from `session.midi.activity` every frame (keys, pads, knobs, buttons, joystick).
+from `session.midi.activity` (and the last MIDI message on the OLED) every frame (keys, pads, knobs, buttons, joystick).
 
 - `scene.ts` — pure model builder (`buildMpkScene`), no renderer; unit-tested in
   `packages/studio-react/tests/mpk-3d.test.ts`.
+- `geometry.ts` — part geometries (wedge body, notched/tapered keys, domed pads, lathe
+  knobs with knurling, joystick cap, display bezel).
+- `print.ts` — the printed top panel and the OLED, drawn on canvases at runtime.
 - `Mpk3DCanvas.tsx` — renderer, camera, OrbitControls, lights, render-on-demand loop,
   WebGL fallback, `prefers-reduced-motion` handling and full disposal on unmount.
 - `Mpk3DView.tsx` — default export wired to the Studio session.
