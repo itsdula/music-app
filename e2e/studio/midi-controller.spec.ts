@@ -64,6 +64,25 @@ test.describe('Phase 5: MPK Mini MK3 (simulated Web MIDI port)', () => {
     );
   });
 
+  test('the hardware view lights pressed keys and switches between 2D and 3D', async ({ page }) => {
+    await connectMidi(page);
+    await openControllerView(page, 'Hardware');
+    const view = page.getByTestId('mpk-hardware-view');
+    await sendMidi(page, MPK.id, [0x90, 48, 90]);
+    await expect(view.locator('[data-control="key.0"]')).toHaveAttribute('data-active', 'true');
+    await sendMidi(page, MPK.id, [0x80, 48, 0]);
+    await expect(view.locator('[data-control="key.0"]')).toHaveAttribute('data-active', 'false');
+
+    // mpk-3d experiment: the 3D view loads on demand (or explains that WebGL is missing).
+    await page.getByRole('radio', { name: '3D' }).click();
+    await expect(view).toHaveCount(0);
+    await expect(
+      page.getByTestId('mpk-3d-view').or(page.getByText('3D view unavailable')),
+    ).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('radio', { name: '2D' }).click();
+    await expect(page.getByTestId('mpk-hardware-view')).toBeVisible();
+  });
+
   test('pads and keys play the selected instrument and appear in diagnostics', async ({ page }) => {
     await connectMidi(page);
     // Pad 1 (channel 10, note 36) and a key (channel 1, middle C).

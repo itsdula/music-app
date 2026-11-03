@@ -5,6 +5,7 @@ const SECTIONS = [
   'Everything a song needs. In one tab.',
   'From first note to final take',
   'Turn a knob. Hear it.',
+  'Plug in your MPK mini. It just plays.',
   'Your music stays on your machine. In a tab or its own window.',
   'Browser support',
   'Start your next track in the browser',
@@ -62,7 +63,7 @@ test.describe('landing page', () => {
     }
 
     const hero = page.getByRole('region', { name: 'Nawa' });
-    const download = page.getByRole('region', { name: SECTIONS[3] });
+    const download = page.getByRole('region', { name: SECTIONS[4] });
     if (hasRelease) {
       await expect(hero.getByRole('link', { name: 'Download for desktop' })).toBeVisible();
       await expect(download.getByRole('link', { name: 'Download for desktop' })).toBeAttached();
@@ -174,6 +175,20 @@ test.describe('landing page', () => {
           .join(' | ')}`,
     );
     expect(found).toEqual([]);
+  });
+
+  test('the MPK mini plays: a pressed key lights up and shows its note', async ({ page }) => {
+    const mpk = page.getByTestId('landing-mpk');
+    await mpk.scrollIntoViewIfNeeded();
+    const key = mpk.getByRole('button', { name: 'Key 1 (1/4)' });
+    await key.focus();
+    await page.keyboard.down('Enter');
+    await expect(key).toHaveAttribute('data-active', 'true');
+    await expect(mpk.getByRole('img', { name: 'OLED display' })).toContainText('NOTE C3');
+    await page.keyboard.up('Enter');
+    await expect(key).toHaveAttribute('data-active', 'false');
+    await mpk.getByRole('button', { name: 'PAD 1' }).click();
+    await expect(mpk.getByRole('img', { name: 'OLED display' })).toContainText('PAD 1 · KICK');
   });
 
   test('"Open Nawa" navigates to the workstation', async ({ page }) => {

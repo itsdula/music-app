@@ -1,4 +1,5 @@
 import { BrowserSupport } from './BrowserSupport';
+import { ControllerSection } from './ControllerSection';
 import { Features } from './Features';
 import { FinalCta } from './FinalCta';
 import { Hero } from './Hero';
@@ -17,6 +18,7 @@ export function LandingPage() {
         <Features />
         <Workflow />
         <SoundDemo />
+        <ControllerSection />
         <Platforms />
         <BrowserSupport />
         <FinalCta />

@@ -82,29 +82,3 @@
     }
   }
 }
-
-/* MPK Mini MK3 hardware view: live activity states set from the render loop. */
-.studio-root .mpk-control:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-.studio-root .mpk-pad[data-active='true'] .mpk-pad-light {
-  opacity: 0.95;
-  filter: url(#mpk-glow);
-}
-.studio-root .mpk-pad[data-bank='B'] .mpk-pad-light {
-  fill: #3cc8b4;
-}
-.studio-root .mpk-pad[data-bank='A'] .mpk-pad-light {
-  fill: #f16d75;
-}
-.studio-root .mpk-key-white[data-active='true'] .mpk-key-face,
-.studio-root .mpk-key-black[data-active='true'] .mpk-key-face {
-  fill: var(--color-accent);
-}
-.studio-root .mpk-knob[data-active='true'] circle {
-  stroke: var(--color-accent);
-}
-.studio-root .mpk-button[data-active='true'] .mpk-button-face {
-  fill: #e9eaee;
-}
